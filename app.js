@@ -1,4 +1,4 @@
-const APP_VERSION = "4.2.0-week-number-item-resize";
+const APP_VERSION = "4.3.0-invisible-handles-week-fix";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 
@@ -14,20 +14,21 @@ const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5}
     .labelCanvas{background:#fff;color:#000;position:relative;overflow:hidden;border:1px solid rgba(0,0,0,.5);box-shadow:0 20px 50px rgba(0,0,0,.35)}
     .stageInner{position:relative;transform-origin:center center}
     .obj{position:absolute;border:1px dashed rgba(250,204,21,.55);user-select:none;touch-action:none;overflow:visible}
-    .obj.selected{border:2px solid #facc15;background:rgba(250,204,21,.08)}
+    .obj.selected{border:2px solid #facc15;background:rgba(250,204,21,.06)}
     .obj.locked{border-color:rgba(248,113,113,.9)}
-    .inner{position:absolute;display:flex;overflow:hidden;align-items:center;justify-content:center;text-align:center;line-height:.95;white-space:nowrap;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;transform-origin:center center}
+    .inner{position:absolute;display:flex;overflow:hidden;align-items:center;justify-content:center;text-align:center;line-height:.95;white-space:nowrap;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;transform-origin:center center;color:#000}
     .obj img,.obj canvas{width:100%;height:100%;display:block;image-rendering:pixelated}
-    .handle{display:none;position:absolute;width:16px;height:16px;background:#facc15;border:1px solid #111827;border-radius:4px;z-index:20}
+    /* BarTender-style invisible resize zones: no yellow square handles */
+    .handle{display:none;position:absolute;background:transparent!important;border:0!important;border-radius:0!important;z-index:20}
     .obj.selected .handle{display:block}
-    .handle.n{top:-8px;left:50%;margin-left:-8px;cursor:ns-resize}
-    .handle.s{bottom:-8px;left:50%;margin-left:-8px;cursor:ns-resize}
-    .handle.e{right:-8px;top:50%;margin-top:-8px;cursor:ew-resize}
-    .handle.w{left:-8px;top:50%;margin-top:-8px;cursor:ew-resize}
-    .handle.ne{right:-8px;top:-8px;cursor:nesw-resize}
-    .handle.nw{left:-8px;top:-8px;cursor:nwse-resize}
-    .handle.se{right:-8px;bottom:-8px;cursor:nwse-resize}
-    .handle.sw{left:-8px;bottom:-8px;cursor:nesw-resize}
+    .handle.n{top:-8px;left:14px;right:14px;height:16px;cursor:ns-resize}
+    .handle.s{bottom:-8px;left:14px;right:14px;height:16px;cursor:ns-resize}
+    .handle.e{right:-8px;top:14px;bottom:14px;width:16px;cursor:ew-resize}
+    .handle.w{left:-8px;top:14px;bottom:14px;width:16px;cursor:ew-resize}
+    .handle.ne{right:-10px;top:-10px;width:22px;height:22px;cursor:nesw-resize}
+    .handle.nw{left:-10px;top:-10px;width:22px;height:22px;cursor:nwse-resize}
+    .handle.se{right:-10px;bottom:-10px;width:22px;height:22px;cursor:nwse-resize}
+    .handle.sw{left:-10px;bottom:-10px;width:22px;height:22px;cursor:nesw-resize}
     .gridOverlay{position:absolute;inset:0;pointer-events:none;z-index:4;opacity:.28}
     .safeZone{position:absolute;border:1px dashed rgba(239,68,68,.7);pointer-events:none;z-index:5}
     .guide{position:absolute;background:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.8);pointer-events:none;z-index:99}
@@ -112,8 +113,8 @@ function fallbackLayout(t){
     objects:{
       WO:{x:3,y:40,w:66,h:20,rot:0,fontSize:16,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
       QR:{x:10,y:76,w:52,h:52,rot:0,locked:false,visible:true},
-      ITEM:{x:0,y:175,w:72,h:190,rot:-90,fontSize:26,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      WEEK:{x:15,y:382,w:42,h:24,rot:0,fontSize:18,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
+      ITEM:{x:0,y:165,w:72,h:230,rot:-90,fontSize:28,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      WEEK:{x:15,y:405,w:42,h:26,rot:0,fontSize:18,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
     }
   };
   return {
@@ -224,13 +225,23 @@ function currentRow(){
   };
 }
 
+
+function weekNumberForRow(row){
+  const candidates = [row.week, row.Week, row.weekNumber, row["Week"], row["week"], row["Week Number"], row["WeekNumber"]];
+  for(const v of candidates){
+    const m = String(v ?? "").match(/\d{1,2}/);
+    if(m) return m[0];
+  }
+  return isoWeekNumber(new Date());
+}
+
 function labelText(id,row){
   if(id==="WO")return cap(row.wo||"WO");
   if(id==="ITEM"){
     const olive=/\bolive\b/i.test(row.crop||"");
     return cap(olive?(row.scion||row.rootstock||"ITEM"):(row.rootstock||row.scion||"ITEM"));
   }
-  if(id==="WEEK")return cap(row.week||isoWeekNumber(new Date())||"");
+  if(id==="WEEK")return weekNumberForRow(row);
   return "";
 }
 
@@ -313,6 +324,7 @@ function makeTextInner(id,row,o){
   c.style.fontFamily=`"${o.fontFamily||"Times New Roman"}", Georgia, serif`;
   c.style.justifyContent=alignH(o.alignH);
   c.style.alignItems=alignV(o.alignV);
+  c.style.color="#000";
   applyInnerRotation(c,o);
   return c;
 }
@@ -699,7 +711,7 @@ function renderPrintPage(row,b){
 function printTextInner(id,row,o){
   const r=((Number(o.rot||0)%360)+360)%360, swap=(r===90||r===270);
   const left=swap?((o.w-o.h)/2):0, top=swap?((o.h-o.w)/2):0, w=swap?o.h:o.w, h=swap?o.w:o.h;
-  return `<div style="position:absolute;left:${left}px;top:${top}px;width:${w}px;height:${h}px;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:center;white-space:nowrap;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize||16}px;line-height:.95;transform-origin:center center;transform:rotate(${o.rot||0}deg);">${escapeHtml(labelText(id,row))}</div>`;
+  return `<div style="position:absolute;left:${left}px;top:${top}px;width:${w}px;height:${h}px;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:center;white-space:nowrap;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize||16}px;line-height:.95;color:#000;transform-origin:center center;transform:rotate(${o.rot||0}deg);">${escapeHtml(labelText(id,row))}</div>`;
 }
 
 function initEvents(){
