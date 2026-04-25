@@ -1,4 +1,4 @@
-const APP_VERSION = "6.10.0-menu-left-restored-wrap-table";
+const APP_VERSION = "6.11.0-restore-top-menu";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
@@ -149,6 +149,12 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .wrapMainBlock{padding:1px 3px 0!important;line-height:.88!important}
     .wrapMainBlock .scionLine,.wrapMainBlock .rootLine{line-height:.86!important}
     @media(max-width:1100px){body.beinvt-label-pot #canvasHost{flex-direction:column!important;min-height:0!important;height:auto!important}body.beinvt-label-pot #stageDataWrap{width:100%!important;max-width:none!important;min-width:0!important;flex:0 0 clamp(360px,60vh,640px)!important;height:auto!important;min-height:360px!important}body.beinvt-label-pot #stageLabelHost{flex:0 0 auto!important;min-width:0!important}}
+    /* v6.11: do not let table/preview layout disturb the original top toolbar */
+    body.beinvt-label-pot .stageWrap > #canvasHost,body.beinvt-label-wrap .stageWrap > #canvasHost{order:10!important}
+    body.beinvt-label-pot .stageWrap > :not(#canvasHost),body.beinvt-label-wrap .stageWrap > :not(#canvasHost){order:0!important;flex:0 0 auto!important;min-height:0!important}
+    .beinvtTopMenuKeep{position:relative!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;transform:none!important;z-index:90!important;align-self:flex-start!important;justify-self:flex-start!important;flex:0 0 auto!important;margin-top:0!important;margin-bottom:8px!important}
+    .beinvtTopMenuKeep #modeTabs,.beinvtTopMenuKeep .modeTabs{display:inline-flex!important;vertical-align:middle!important}
+    .beinvtTopMenuKeep input#zoom{vertical-align:middle!important}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
@@ -558,6 +564,44 @@ function activateSettingsGroup(idx){
   secs.forEach(sec=>sec.classList.toggle("beinvt-hidden-section",sec.dataset.settingsGroup!==String(idx)));
   localStorage.setItem("beinvtSettingsGroup",String(idx));
 }
+function keepOriginalTopMenu(){
+  const host=$("canvasHost");
+  const sel=$("labelType");
+  const zoom=$("zoom");
+  if(!host || !sel) return;
+  const stageWrap=host.closest(".stageWrap") || host.parentElement;
+  if(!stageWrap) return;
+
+  function markAndLift(el){
+    if(!el || el===host || el.contains(host) || !stageWrap.contains(el)) return;
+    el.classList.add("beinvtTopMenuKeep");
+    if(el.parentElement===stageWrap && el.nextElementSibling!==host){
+      stageWrap.insertBefore(el,host);
+    }
+  }
+
+  function compactAncestorFor(el, other){
+    if(!el) return null;
+    const preferred=el.closest(".toolbar,.topbar,.header,.stageToolbar,.controls,.row,.bar");
+    if(preferred && !preferred.contains(host) && stageWrap.contains(preferred)) return preferred;
+    let n=el.parentElement;
+    while(n && n!==document.body && n!==stageWrap){
+      if(n.contains(host)) return el.parentElement;
+      if(other && n.contains(other) && !n.contains(host)) return n;
+      n=n.parentElement;
+    }
+    return el.parentElement;
+  }
+
+  const selBar=compactAncestorFor(sel,zoom);
+  markAndLift(selBar);
+
+  if(zoom && selBar && !selBar.contains(zoom)){
+    const zoomBar=compactAncestorFor(zoom,sel);
+    markAndLift(zoomBar);
+  }
+}
+
 function ensureSettingsGroups(){
   const panel=document.querySelector("aside.panel")||document.querySelector(".panel.sidebar")||document.querySelector(".settingsPanel");
   if(!panel||panel.querySelector("#settingsGroupTabs")) return;
@@ -628,8 +672,10 @@ function renderAll(){
   applyModeClass();
   removeGitHubWorkflowText();
   ensureControlPanelLeft();
+  keepOriginalTopMenu();
   ensureSettingsGroups();
   ensureModeTabs();
+  keepOriginalTopMenu();
   updateModeTabs();
   if($("labelType")) $("labelType").value=labelType;
   if($("safeToggle")) $("safeToggle").checked=showSafeZone;
@@ -1406,6 +1452,7 @@ function bindDirectionalButtons(){
 
 function initEvents(){
   ensureModeTabs();
+  keepOriginalTopMenu();
   bindDirectionalButtons();
   if($("labelType")) $("labelType").onchange=e=>{labelType=e.target.value;selectedId="ITEM";undoStack=[];redoStack=[];setLayout(loadWorkingLayout(labelType),false); renderRows(); updateModeTabs();};
   if($("zoom")) $("zoom").oninput=renderCanvas;
