@@ -1,4 +1,4 @@
-const APP_VERSION = "4.8.0-meta-top-item-left-weekall";
+const APP_VERSION = "4.9.0-currentweek-centered-metaabove-potblankscion";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 
@@ -12,7 +12,7 @@ const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5}
 (function injectV4Css(){
   const css = `
     .labelCanvas{background:#fff;color:#000;position:relative;overflow:hidden;border:1px solid rgba(0,0,0,.5);box-shadow:0 20px 50px rgba(0,0,0,.35)}
-    .stageInner{position:relative;transform-origin:center center}
+    .stageInner{position:relative;transform-origin:center top}
     .obj{position:absolute;border:1px dashed rgba(250,204,21,.55);user-select:none;touch-action:none;overflow:visible}
     .obj.selected{border:2px solid #facc15;background:rgba(250,204,21,.08)}
     .obj.locked{border-color:rgba(248,113,113,.9)}
@@ -33,7 +33,7 @@ const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5}
     .guide{position:absolute;background:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.8);pointer-events:none;z-index:99}
     .guide.v{width:1px;top:-9999px;height:20000px}
     .guide.h{height:1px;left:-9999px;width:20000px}
-    .stageMeta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:0 0 8px 0;padding:8px 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#e5e7eb}\n    .stageStack{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
+    .stageMeta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:0 0 6px 0;padding:8px 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#e5e7eb}\n    .stageStack{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;padding-top:8px}
     .stageMeta .metaPill{display:inline-flex;gap:6px;align-items:center;padding:5px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);font-size:12px}
     .stageMeta .metaPill.colorPill{font-weight:700}
     .stageMeta b{color:#fff}
@@ -181,7 +181,7 @@ async function loadCsv(){
   const h=g[0].map(x=>x.trim());
   rows=g.slice(1).map(line=>{
     const o={}; h.forEach((k,i)=>o[k]=line[i]||"");
-    const act=o["Activity Code"]||"", d=new Date(o["Last Updated"]||"");
+    const act=o["Activity Code"]||"";
     return {
       wo:o["Work Order"]||"",
       act,
@@ -192,7 +192,7 @@ async function loadCsv(){
       labelColor:o["Label Color"]||"",
       quantity:o["Quantity"]||"1",
       labelsNeeded:o["Labels Needed"]||"1",
-      week:isoWeekNumber(d)
+      week:currentWeekNumber()
     };
   }).filter(r=>r.wo);
   filteredRows=rows.slice();
@@ -206,6 +206,9 @@ function isoWeekNumber(date){
   d.setUTCDate(d.getUTCDate()+4-day);
   const y0=new Date(Date.UTC(d.getUTCFullYear(),0,1));
   return String(Math.ceil((((d-y0)/86400000)+1)/7));
+}
+function currentWeekNumber(){
+  return isoWeekNumber(new Date());
 }
 
 function currentRow(){
@@ -239,7 +242,7 @@ function labelText(id,row){
     const olive=/\bolive\b/i.test(row.crop||"");
     return cap(olive?(row.scion||row.rootstock||"ITEM"):(row.rootstock||row.scion||"ITEM"));
   }
-  if(id==="WEEK")return cap(row.week||"");
+  if(id==="WEEK")return cap(currentWeekNumber());
   return "";
 }
 
@@ -271,7 +274,7 @@ function applyPotAutoStack(){
   const limit=350;
   if(objs.WO){objs.WO.x=3; objs.WO.y=8; objs.WO.w=66; objs.WO.h=18; objs.WO.rot=0;}
   if(objs.QR){objs.QR.w=Math.min(Number(objs.QR.w||50),50); objs.QR.h=Math.min(Number(objs.QR.h||50),50); objs.QR.x=Math.round((72-objs.QR.w)/2); objs.QR.y=30;}
-  if(objs.ITEM){objs.ITEM.x=2; objs.ITEM.y=84; objs.ITEM.w=68; objs.ITEM.rot=90; objs.ITEM.alignH='left'; objs.ITEM.alignV='top';}
+  if(objs.ITEM){objs.ITEM.x=2; objs.ITEM.y=84; objs.ITEM.w=68; objs.ITEM.rot=90; objs.ITEM.alignH='center'; objs.ITEM.alignV='middle';}
   const weekH=(objs.WEEK&&Number(objs.WEEK.h||24))||24;
   const weekY=Math.min(limit-weekH-6,320);
   if(objs.WEEK){objs.WEEK.x=11; objs.WEEK.y=weekY; objs.WEEK.w=50; objs.WEEK.h=24; objs.WEEK.rot=0;}
@@ -283,6 +286,7 @@ function renderAll(){
   if($("labelType")) $("labelType").value=labelType;
   if($("safeToggle")) $("safeToggle").checked=showSafeZone;
   if($("gridToggle")) $("gridToggle").checked=showGrid;
+  renderRows();
   renderCanvas();
   renderObjectPanel();
   syncControls();
@@ -311,6 +315,7 @@ function renderCanvas(){
   stack.appendChild(meta);
   const stage=document.createElement("div");
   stage.className="stageInner";
+  stage.style.transformOrigin="center top";
   stage.style.transform=`scale(${zoom})`;
 
   const lab=document.createElement("div");
@@ -365,10 +370,10 @@ function makeTextInner(id,row,o){
   c.style.fontFamily=`"${o.fontFamily||"Times New Roman"}", Georgia, serif`;
   c.style.justifyContent=alignH(o.alignH);
   c.style.alignItems=alignV(o.alignV);
-  c.style.textAlign=(id==="ITEM"?"left":"center");
+  c.style.textAlign="center";
   if(id==="ITEM"){
-    c.style.justifyContent='flex-start';
-    c.style.alignItems='flex-start';
+    c.style.justifyContent='center';
+    c.style.alignItems='center';
     c.style.whiteSpace="normal";
     c.style.wordBreak="break-word";
     c.style.overflowWrap="anywhere";
@@ -636,7 +641,10 @@ function centerSelected(axis){
 
 function renderRows(){
   const q=(($("search")&&$("search").value)||"").toLowerCase();
-  filteredRows=rows.filter(r=>Object.values(r).join(" ").toLowerCase().includes(q));
+  filteredRows=rows.filter(r=>{
+    if(labelType==="POT" && String(r.scion||"").trim()) return false;
+    return Object.values(r).join(" ").toLowerCase().includes(q);
+  });
   if(currentRowIndex>=filteredRows.length)currentRowIndex=0;
   const tb=$("rowsBody");
   if(!tb)return;
@@ -769,14 +777,14 @@ function printTextInner(id,row,o){
   const r=((Number(o.rot||0)%360)+360)%360, swap=(r===90||r===270);
   const left=swap?((o.w-o.h)/2):0, top=swap?((o.h-o.w)/2):0, w=swap?o.h:o.w, h=swap?o.w:o.h;
   const white=id==="ITEM"?"white-space:normal;word-break:break-word;overflow-wrap:anywhere;padding:1px 2px;":"white-space:nowrap;";
-  const jc=id==="ITEM"?'flex-start':alignH(o.alignH);
-  const ai=id==="ITEM"?'flex-start':alignV(o.alignV);
-  const ta=id==="ITEM"?'left':'center';
+  const jc=id==="ITEM"?'center':alignH(o.alignH);
+  const ai=id==="ITEM"?'center':alignV(o.alignV);
+  const ta='center';
   return `<div style="position:absolute;left:${left}px;top:${top}px;width:${w}px;height:${h}px;display:flex;align-items:${ai};justify-content:${jc};overflow:hidden;text-align:${ta};${white}text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize||16}px;line-height:.95;transform-origin:center center;transform:rotate(${o.rot||0}deg);">${escapeHtml(labelText(id,row))}</div>`;
 }
 
 function initEvents(){
-  if($("labelType")) $("labelType").onchange=e=>{labelType=e.target.value;selectedId="ITEM";undoStack=[];redoStack=[];setLayout(loadWorkingLayout(labelType),false)};
+  if($("labelType")) $("labelType").onchange=e=>{labelType=e.target.value;selectedId="ITEM";undoStack=[];redoStack=[];setLayout(loadWorkingLayout(labelType),false); renderRows();};
   if($("zoom")) $("zoom").oninput=renderCanvas;
   if($("search")) $("search").oninput=renderRows;
   if($("safeToggle")) $("safeToggle").onchange=e=>{showSafeZone=e.target.checked;renderCanvas()};
