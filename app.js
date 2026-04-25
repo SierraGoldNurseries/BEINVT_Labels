@@ -1,4 +1,4 @@
-const APP_VERSION = "4.6.0-item90-color-qty-scion-rootstock";
+const APP_VERSION = "4.7.0-color-qty-top-autostack-350";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 
@@ -35,6 +35,7 @@ const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5}
     .guide.h{height:1px;left:-9999px;width:20000px}
     .stageMeta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px 0;padding:8px 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#e5e7eb}
     .stageMeta .metaPill{display:inline-flex;gap:6px;align-items:center;padding:5px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);font-size:12px}
+    .stageMeta .metaPill.colorPill{font-weight:700}
     .stageMeta b{color:#fff}
   `;
   const tag = document.createElement("style");
@@ -113,10 +114,10 @@ function fallbackLayout(t){
     safeMarginPx:5,
     gridPx:4,
     objects:{
-      WO:{x:3,y:42,w:66,h:18,rot:0,fontSize:16,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      QR:{x:11,y:80,w:50,h:50,rot:0,locked:false,visible:true},
-      ITEM:{x:2,y:222,w:68,h:106,rot:90,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      WEEK:{x:15,y:368,w:42,h:22,rot:0,fontSize:18,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
+      WO:{x:3,y:8,w:66,h:18,rot:0,fontSize:16,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      QR:{x:11,y:30,w:50,h:50,rot:0,locked:false,visible:true},
+      ITEM:{x:2,y:84,w:68,h:230,rot:90,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      WEEK:{x:11,y:320,w:50,h:22,rot:0,fontSize:18,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
     }
   };
   return {
@@ -242,8 +243,40 @@ function labelText(id,row){
   return "";
 }
 
+function normalizeColorName(name){
+  return String(name||"").trim().toLowerCase().replace(/\s+/g,"");
+}
+function colorMeta(name){
+  const raw=String(name||"").trim();
+  const key=normalizeColorName(raw);
+  const map={
+    hotpink:{bg:"#ff69b4",fg:"#111827"},pink:{bg:"#ec4899",fg:"#111827"},red:{bg:"#ef4444",fg:"#ffffff"},
+    yellow:{bg:"#facc15",fg:"#111827"},turquoise:{bg:"#40e0d0",fg:"#111827"},white:{bg:"#ffffff",fg:"#111827"},
+    blue:{bg:"#3b82f6",fg:"#ffffff"},green:{bg:"#22c55e",fg:"#111827"},orange:{bg:"#fb923c",fg:"#111827"},
+    purple:{bg:"#a855f7",fg:"#ffffff"},black:{bg:"#111827",fg:"#ffffff"},gray:{bg:"#9ca3af",fg:"#111827"},grey:{bg:"#9ca3af",fg:"#111827"}
+  };
+  if(map[key]) return {...map[key], label: raw.toUpperCase()};
+  const probe=document.createElement("span");
+  probe.style.color=key;
+  if(probe.style.color) return {bg:key,fg:"#111827",label:raw.toUpperCase()};
+  return {bg:"rgba(255,255,255,.08)",fg:"#e5e7eb",label:raw.toUpperCase()||"UNKNOWN"};
+}
 function qrUrl(text){
   return "https://quickchart.io/qr?size=220&text="+encodeURIComponent(text||" ");
+}
+
+function applyPotAutoStack(){
+  if(labelType!=="POT"||!layout||!layout.objects)return;
+  const objs=layout.objects;
+  const limit=350;
+  if(objs.WO){objs.WO.x=3; objs.WO.y=8; objs.WO.w=66; objs.WO.h=18; objs.WO.rot=0;}
+  if(objs.QR){objs.QR.w=Math.min(Number(objs.QR.w||50),50); objs.QR.h=Math.min(Number(objs.QR.h||50),50); objs.QR.x=Math.round((72-objs.QR.w)/2); objs.QR.y=30;}
+  if(objs.ITEM){objs.ITEM.x=2; objs.ITEM.y=84; objs.ITEM.w=68; objs.ITEM.rot=90;}
+  const weekH=(objs.WEEK&&Number(objs.WEEK.h||22))||22;
+  const weekY=Math.min(limit-weekH-8,320);
+  if(objs.WEEK){objs.WEEK.x=11; objs.WEEK.y=weekY; objs.WEEK.w=50; objs.WEEK.h=22; objs.WEEK.rot=0;}
+  if(objs.ITEM){const maxItemBottom=(objs.WEEK?objs.WEEK.y:limit)-6; objs.ITEM.h=Math.max(40,maxItemBottom-objs.ITEM.y);}
+  clampAllObjects();
 }
 
 function renderAll(){
@@ -262,13 +295,14 @@ function renderCanvas(){
   const host=$("canvasHost");
   if(!host) return;
   host.innerHTML="";
+  applyPotAutoStack();
   const s=sizePx(), zoom=Number(($("zoom")&&$("zoom").value)||1);
   const row=currentRow();
+  const cm=colorMeta(row.labelColor||"");
   const meta=document.createElement("div");
   meta.className="stageMeta";
   meta.innerHTML=`
-    <span class="metaPill">WO <b>${escapeHtml(cap(row.wo||""))}</b></span>
-    <span class="metaPill">Label Color <b>${escapeHtml(cap(row.labelColor||""))}</b></span>
+    <span class="metaPill colorPill" style="background:${escapeHtml(cm.bg)};color:${escapeHtml(cm.fg)};border-color:${escapeHtml(cm.fg==='#ffffff'?'rgba(255,255,255,.35)':'rgba(17,24,39,.2)')}">Label Color <b style="color:${escapeHtml(cm.fg)}">${escapeHtml(cm.label)}</b></span>
     <span class="metaPill">Qty <b>${escapeHtml(String(row.quantity||row.labelsNeeded||"1"))}</b></span>
   `;
   host.appendChild(meta);
@@ -327,6 +361,12 @@ function makeTextInner(id,row,o){
   c.style.fontFamily=`"${o.fontFamily||"Times New Roman"}", Georgia, serif`;
   c.style.justifyContent=alignH(o.alignH);
   c.style.alignItems=alignV(o.alignV);
+  if(id==="ITEM"){
+    c.style.whiteSpace="normal";
+    c.style.wordBreak="break-word";
+    c.style.overflowWrap="anywhere";
+    c.style.padding="2px";
+  }
   applyInnerRotation(c,o);
   return c;
 }
@@ -399,6 +439,7 @@ function attachObjectEvents(el){
 }
 
 function labelBounds(){return sizePx()}
+function activeBottomLimit(){const b=labelBounds(); return labelType==="POT"?Math.min(350,b.h):b.h}
 function gridSnapVal(v){
   const snapGrid=$("snapGridToggle");
   if(!snapGrid||!snapGrid.checked)return v;
@@ -449,11 +490,11 @@ function startResize(e,el,id,dir){
     h=Math.max(8,gridSnapVal(h));
     x=gridSnapVal(x);
     y=gridSnapVal(y);
-    const b=labelBounds();
+    const b=labelBounds(), limH=activeBottomLimit();
     x=clamp(x,0,Math.max(0,b.w-w));
-    y=clamp(y,0,Math.max(0,b.h-h));
+    y=clamp(y,0,Math.max(0,limH-h));
     w=Math.min(w,b.w-x);
-    h=Math.min(h,b.h-y);
+    h=Math.min(h,limH-y);
     const sn=snapRect({x,y,w,h},id);
     o.x=Math.round(sn.x);
     o.y=Math.round(sn.y);
@@ -491,8 +532,9 @@ function snapRect(r,id){
   let by=null,byd=Infinity,byi=0;
   ys.forEach(yv=>ry.forEach((rv,i)=>{const d=Math.abs(rv-yv);if(d<byd&&d<=th){byd=d;by=yv;byi=i}}));
   if(by!==null){if(byi===0)r.y=by;if(byi===1)r.y=by-r.h/2;if(byi===2)r.y=by-r.h;guides.push({type:"h",pos:by})}
+  const limH=activeBottomLimit();
   r.x=clamp(r.x,0,Math.max(0,b.w-r.w));
-  r.y=clamp(r.y,0,Math.max(0,b.h-r.h));
+  r.y=clamp(r.y,0,Math.max(0,limH-r.h));
   return{...r,guides};
 }
 
@@ -511,11 +553,11 @@ function drawGuides(gs=[]){
 function clearGuides(){document.querySelectorAll(".guide").forEach(g=>g.remove())}
 
 function clampObject(id){
-  const o=layout.objects[id],b=labelBounds();
+  const o=layout.objects[id],b=labelBounds(),limH=activeBottomLimit();
   o.w=clamp(Number(o.w||10),8,b.w);
-  o.h=clamp(Number(o.h||10),8,b.h);
+  o.h=clamp(Number(o.h||10),8,limH);
   o.x=clamp(Number(o.x||0),0,Math.max(0,b.w-o.w));
-  o.y=clamp(Number(o.y||0),0,Math.max(0,b.h-o.h));
+  o.y=clamp(Number(o.y||0),0,Math.max(0,limH-o.h));
 }
 function clampAllObjects(){Object.keys(layout.objects).forEach(clampObject)}
 
@@ -697,6 +739,7 @@ function printQueue(){
   printRows(queue);
 }
 function printRows(items){
+  applyPotAutoStack();
   const s=LABEL_SIZES[labelType],b=sizePx(),win=window.open("","_blank");
   let pages="";
   items.forEach(item=>{for(let i=0;i<Math.max(1,item.qty||1);i++)pages+=renderPrintPage(item.row,b)});
@@ -718,7 +761,8 @@ function renderPrintPage(row,b){
 function printTextInner(id,row,o){
   const r=((Number(o.rot||0)%360)+360)%360, swap=(r===90||r===270);
   const left=swap?((o.w-o.h)/2):0, top=swap?((o.h-o.w)/2):0, w=swap?o.h:o.w, h=swap?o.w:o.h;
-  return `<div style="position:absolute;left:${left}px;top:${top}px;width:${w}px;height:${h}px;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:center;white-space:nowrap;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize||16}px;line-height:.95;transform-origin:center center;transform:rotate(${o.rot||0}deg);">${escapeHtml(labelText(id,row))}</div>`;
+  const white=id==="ITEM"?"white-space:normal;word-break:break-word;overflow-wrap:anywhere;padding:2px;":"white-space:nowrap;";
+  return `<div style="position:absolute;left:${left}px;top:${top}px;width:${w}px;height:${h}px;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:center;${white}text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize||16}px;line-height:.95;transform-origin:center center;transform:rotate(${o.rot||0}deg);">${escapeHtml(labelText(id,row))}</div>`;
 }
 
 function initEvents(){
