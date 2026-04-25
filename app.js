@@ -1,4 +1,4 @@
-const APP_VERSION = "4.9.0-currentweek-centered-metaabove-potblankscion";
+const APP_VERSION = "5.0.0-tightstack-labelsneeded-stickyhead";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 
@@ -37,6 +37,8 @@ const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5}
     .stageMeta .metaPill{display:inline-flex;gap:6px;align-items:center;padding:5px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);font-size:12px}
     .stageMeta .metaPill.colorPill{font-weight:700}
     .stageMeta b{color:#fff}
+    .table thead th{position:sticky;top:0;z-index:8;background:#0f172a;box-shadow:0 1px 0 rgba(255,255,255,.08)}
+    .table{border-collapse:separate;border-spacing:0}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
@@ -275,11 +277,43 @@ function applyPotAutoStack(){
   if(objs.WO){objs.WO.x=3; objs.WO.y=8; objs.WO.w=66; objs.WO.h=18; objs.WO.rot=0;}
   if(objs.QR){objs.QR.w=Math.min(Number(objs.QR.w||50),50); objs.QR.h=Math.min(Number(objs.QR.h||50),50); objs.QR.x=Math.round((72-objs.QR.w)/2); objs.QR.y=30;}
   if(objs.ITEM){objs.ITEM.x=2; objs.ITEM.y=84; objs.ITEM.w=68; objs.ITEM.rot=90; objs.ITEM.alignH='center'; objs.ITEM.alignV='middle';}
-  const weekH=(objs.WEEK&&Number(objs.WEEK.h||24))||24;
-  const weekY=Math.min(limit-weekH-6,320);
-  if(objs.WEEK){objs.WEEK.x=11; objs.WEEK.y=weekY; objs.WEEK.w=50; objs.WEEK.h=24; objs.WEEK.rot=0;}
-  if(objs.ITEM){const maxItemBottom=(objs.WEEK?objs.WEEK.y:limit)-4; objs.ITEM.h=Math.max(40,maxItemBottom-objs.ITEM.y);}
+  if(objs.WEEK){objs.WEEK.x=11; objs.WEEK.w=50; objs.WEEK.h=24; objs.WEEK.rot=0;}
+  if(objs.ITEM){
+    const weekH=(objs.WEEK&&Number(objs.WEEK.h||24))||24;
+    const itemMaxBottom=limit-weekH-6;
+    objs.ITEM.h=Math.max(40,itemMaxBottom-Number(objs.ITEM.y||0));
+    if(objs.WEEK) objs.WEEK.y=Math.min(limit-weekH, Number(objs.ITEM.y||0)+Number(objs.ITEM.h||0)+4);
+  }
   clampAllObjects();
+}
+
+let __potTightenPass=false;
+function tightenPotLayoutAfterFit(){
+  if(labelType!=="POT"||!layout||!layout.objects||__potTightenPass)return false;
+  const item=layout.objects.ITEM, week=layout.objects.WEEK;
+  const itemEl=document.querySelector('.obj[data-id="ITEM"]');
+  const inner=itemEl&&itemEl.querySelector('.inner');
+  if(!item||!week||!itemEl||!inner)return false;
+  try{
+    const z=Number(($("zoom")&&$("zoom").value)||1)||1;
+    const rg=document.createRange();
+    rg.selectNodeContents(inner);
+    const tr=rg.getBoundingClientRect();
+    const neededH=Math.max(40,Math.ceil(tr.height/z)+8);
+    const limit=activeBottomLimit();
+    const weekH=Number(week.h||24);
+    const maxH=Math.max(40,limit-weekH-6-Number(item.y||0));
+    const nextH=clamp(neededH,40,maxH);
+    const nextWeekY=clamp(Math.round(Number(item.y||0)+nextH+4),0,Math.max(0,limit-weekH));
+    const changed=Math.abs(nextH-Number(item.h||0))>1 || Math.abs(nextWeekY-Number(week.y||0))>1;
+    if(!changed)return false;
+    item.h=Math.round(nextH);
+    week.y=Math.round(nextWeekY);
+    clampAllObjects();
+    return true;
+  }catch(err){
+    return false;
+  }
 }
 
 function renderAll(){
@@ -310,7 +344,7 @@ function renderCanvas(){
   meta.style.alignSelf='center';
   meta.innerHTML=`
     <span class="metaPill colorPill" style="background:${escapeHtml(cm.bg)};color:${escapeHtml(cm.fg)};border-color:${escapeHtml(cm.fg==='#ffffff'?'rgba(255,255,255,.35)':'rgba(17,24,39,.2)')}">Label Color <b style="color:${escapeHtml(cm.fg)}">${escapeHtml(cm.label)}</b></span>
-    <span class="metaPill">Qty <b>${escapeHtml(String(row.quantity||row.labelsNeeded||"1"))}</b></span>
+    <span class="metaPill">Qty <b>${escapeHtml(String(row.labelsNeeded||"1"))}</b></span>
   `;
   stack.appendChild(meta);
   const stage=document.createElement("div");
@@ -359,6 +393,12 @@ function renderCanvas(){
   stack.appendChild(stage);
   host.appendChild(stack);
   autoFitTextObjects();
+  if(tightenPotLayoutAfterFit()){
+    __potTightenPass=true;
+    renderCanvas();
+    __potTightenPass=false;
+    return;
+  }
 }
 
 function makeTextInner(id,row,o){
@@ -650,11 +690,11 @@ function renderRows(){
   if(!tb)return;
   tb.innerHTML="";
   const head=document.querySelector(".table thead tr");
-  if(head)head.innerHTML="<th>WO</th><th>Activity</th><th>Scion</th><th>Rootstock</th><th>Color</th><th>Qty</th><th></th>";
+  if(head)head.innerHTML="<th>WO</th><th>Activity</th><th>Scion</th><th>Rootstock</th><th>Color</th><th>Labels Needed</th><th></th>";
   filteredRows.slice(0,300).forEach((r,i)=>{
     const tr=document.createElement("tr");
     if(i===currentRowIndex)tr.className="active";
-    tr.innerHTML=`<td>${escapeHtml(cap(r.wo))}</td><td>${escapeHtml(cap(r.act))}</td><td>${escapeHtml(cap(r.scion||""))}</td><td>${escapeHtml(cap(r.rootstock||""))}</td><td>${escapeHtml(cap(r.labelColor||""))}</td><td>${escapeHtml(String(r.quantity||r.labelsNeeded||"1"))}</td><td><button>Add</button></td>`;
+    tr.innerHTML=`<td>${escapeHtml(cap(r.wo))}</td><td>${escapeHtml(cap(r.act))}</td><td>${escapeHtml(cap(r.scion||""))}</td><td>${escapeHtml(cap(r.rootstock||""))}</td><td>${escapeHtml(cap(r.labelColor||""))}</td><td>${escapeHtml(String(r.labelsNeeded||"1"))}</td><td><button>Add</button></td>`;
     tr.onclick=e=>{
       if(e.target.tagName==="BUTTON"){addToQueue(r);return}
       currentRowIndex=i;
@@ -680,7 +720,7 @@ function renderQueue(){
   queue.forEach(q=>{
     const d=document.createElement("div");
     d.className="queueItem";
-    d.innerHTML=`<div><b>${escapeHtml(cap(q.row.wo))}</b><div class="small">${escapeHtml(cap(q.row.scion||""))} ${q.row.rootstock?"| "+escapeHtml(cap(q.row.rootstock)):""}</div><div class="small">${escapeHtml(cap(q.row.labelColor||""))} • Qty ${escapeHtml(String(q.row.quantity||q.row.labelsNeeded||q.qty||1))}</div></div><input type="number" min="1" value="${q.qty}"><button class="danger">x</button>`;
+    d.innerHTML=`<div><b>${escapeHtml(cap(q.row.wo))}</b><div class="small">${escapeHtml(cap(q.row.scion||""))} ${q.row.rootstock?"| "+escapeHtml(cap(q.row.rootstock)):""}</div><div class="small">${escapeHtml(cap(q.row.labelColor||""))} • Qty ${escapeHtml(String(q.row.labelsNeeded||q.qty||1))}</div></div><input type="number" min="1" value="${q.qty}"><button class="danger">x</button>`;
     d.querySelector("input").onchange=e=>{q.qty=Math.max(1,parseInt(e.target.value||"1",10)||1);saveQueue()};
     d.querySelector("button").onclick=()=>{queue=queue.filter(x=>x.id!==q.id);saveQueue();renderQueue()};
     h.appendChild(d);
