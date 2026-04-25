@@ -1,6 +1,6 @@
-const APP_VERSION = "5.2.0-pot-tighten-manual-nudge-fix";
+const APP_VERSION = "6.0.0-potstake-horizontal-composite";
 const INCH = 96;
-const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
+const LABEL_SIZES = { POT:{widthIn:5,heightIn:.75}, WRAP:{widthIn:5,heightIn:.5} };
 
 /*
   APP.JS ONLY UPDATE
@@ -47,6 +47,16 @@ const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5}
     .modeTabs{display:inline-flex;gap:6px;align-items:center;margin-left:6px}
     .modeTab{border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(255,255,255,.04);color:#e5e7eb;padding:8px 12px;font-size:13px;font-weight:800;cursor:pointer}
     .modeTab.active{border-color:#60a5fa;background:rgba(96,165,250,.18)}
+    .potMain{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;line-height:.92;padding:2px 4px;white-space:normal;word-break:break-word;overflow-wrap:anywhere}
+    .potMain .scion{font-weight:900}
+    .potMain .onLine{font-weight:900}
+    .potMain .onWord{font-size:.72em;margin-right:.18em}
+    .potMain .rootstock{font-size:1em}
+    .potMain .patentLine{font-size:.34em;line-height:1.05;margin-top:2px}
+    .potMetaText{position:absolute;inset:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;line-height:.94;padding:2px 4px;white-space:pre-line;word-break:break-word;overflow-wrap:anywhere}
+    .potWarningText{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-start;text-align:left;line-height:1.02;padding:2px 3px;white-space:pre-line;font-weight:900}
+    .potStatic{position:absolute;pointer-events:none}
+    .potLogo{object-fit:contain;image-rendering:auto;background:#fff}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
@@ -120,15 +130,15 @@ async function loadDefaults(){
 
 function fallbackLayout(t){
   if(t==="POT") return {
-    name:"Pot Standard v4",
+    name:"Pot Standard v6",
     labelType:"POT",
-    safeMarginPx:5,
+    safeMarginPx:4,
     gridPx:4,
     objects:{
-      WO:{x:3,y:8,w:66,h:18,rot:0,fontSize:16,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      QR:{x:11,y:30,w:50,h:50,rot:0,locked:false,visible:true},
-      ITEM:{x:2,y:84,w:68,h:230,rot:90,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"top"},
-      WEEK:{x:11,y:320,w:50,h:24,rot:0,fontSize:18,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
+      QR:{x:6,y:14,w:34,h:34,rot:0,locked:false,visible:true},
+      WO:{x:44,y:5,w:86,h:60,rot:0,fontSize:16,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
+      ITEM:{x:128,y:4,w:190,h:60,rot:0,fontSize:26,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      WEEK:{x:396,y:4,w:80,h:62,rot:0,fontSize:7,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"}
     }
   };
   return {
@@ -200,6 +210,10 @@ async function loadCsv(){
       crop:o["Crop"]||"",
       scion:o["Scion"]||"",
       rootstock:o["Rootstock"]||"",
+      internalId:o["Internal ID"]||"",
+      lotNumber:o["Lot Number"]||"",
+      scionPatent:o["Scion Patent"]||"",
+      rootstockPatent:o["Rootstock Patent"]||"",
       tray:o["Tray Type"]||"",
       labelColor:o["Label Color"]||"",
       quantity:o["Quantity"]||"1",
@@ -233,6 +247,10 @@ function currentRow(){
     labelColor:"TEST PINK",
     quantity:"3",
     labelsNeeded:"3",
+    internalId:"27047",
+    lotNumber:"2026",
+    scionPatent:"USPP 12345",
+    rootstockPatent:"USPP 67890",
     week:"52"
   };
   return filteredRows[currentRowIndex]||rows[0]||{
@@ -244,17 +262,52 @@ function currentRow(){
     quantity:"1",
     week:"17",
     act:"INITIATION",
+    internalId:"27047",
+    lotNumber:"2026",
+    scionPatent:"",
+    rootstockPatent:"",
     labelsNeeded:"1"
   };
 }
 
+function potWarningText(){
+  return `WARNING: ASEXUAL
+REPRODUCTION OF SCIONS,
+BUDS, OR CUTTINGS
+WHETHER FOR SALE
+OR OWN USE IS
+PROHIBITED UNDER
+U.S. PLANT PATENT LAWS.
+SALES OUTSIDE THE
+U.S. ARE PROHIBITED.`;
+}
+function patentPieces(row){
+  const out=[];
+  const sp=cap(row.scionPatent||"").trim();
+  const rp=cap(row.rootstockPatent||"").trim();
+  if(sp) out.push(sp);
+  if(rp) out.push(rp);
+  return out;
+}
+function potLotQrText(row){
+  return String(row.lotNumber||row.internalId||row.wo||"").trim() || String(row.wo||"").trim();
+}
 function labelText(id,row){
-  if(id==="WO")return cap(row.wo||"WO");
+  if(id==="WO"){
+    if(labelType==="POT") return [cap(row.wo||"WO"), cap(row.crop||""), cap(row.internalId||"")].filter(Boolean).join("\n");
+    return cap(row.wo||"WO");
+  }
   if(id==="ITEM"){
-    const olive=/\bolive\b/i.test(row.crop||"");
+    const sc=cap(row.scion||"").trim();
+    const rt=cap(row.rootstock||row.scion||"ITEM").trim();
+    if(labelType==="POT") return [sc||cap(row.crop||""), rt].filter(Boolean).join(" ");
+    const olive=/olive/i.test(row.crop||"");
     return cap(olive?(row.scion||row.rootstock||"ITEM"):(row.rootstock||row.scion||"ITEM"));
   }
-  if(id==="WEEK")return cap(currentWeekNumber());
+  if(id==="WEEK"){
+    if(labelType==="POT") return potWarningText();
+    return cap(currentWeekNumber());
+  }
   return "";
 }
 
@@ -346,43 +399,43 @@ function applyPotAutoStack(){
   const limit=350;
   const row=currentRow();
   const wo=objs.WO, qr=objs.QR, item=objs.ITEM, week=objs.WEEK;
+
   if(wo){
     wo.rot=0;
-    wo.x=clamp(Number(wo.x||3),0,6);
-    wo.y=clamp(Number(wo.y||8),0,18);
-    wo.w=clamp(Number(wo.w||66),54,68);
-    wo.h=clamp(Number(wo.h||18),16,24);
+    wo.x=3; wo.y=8; wo.w=66; wo.h=18;
   }
+
   if(qr){
     qr.rot=0;
     qr.w=clamp(Number(qr.w||46),34,50);
     qr.h=clamp(Number(qr.h||46),34,50);
     qr.x=Math.round((72-qr.w)/2);
-    const minQrY=(wo?Number(wo.y||0)+Number(wo.h||18)+2:26);
-    qr.y=clamp(Number(qr.y||minQrY),minQrY,minQrY+6);
+    qr.y=(wo?Number(wo.y||0)+Number(wo.h||18)+2:28);
   }
+
   if(item){
-    item.x=clamp(Number(item.x||2),0,4);
-    item.w=clamp(Number(item.w||68),64,70);
+    item.x=2;
+    item.w=68;
     item.rot=90;
     item.alignH='center';
     item.alignV='middle';
-    const targetY=(qr?Number(qr.y||0)+Number(qr.h||0)+2:84);
-    item.y=clamp(targetY,0,Math.max(0,limit-40));
+    item.y=(qr?Number(qr.y||0)+Number(qr.h||0)+2:82);
+
     const weekH=(week&&Number(week.h||24))||24;
     const maxH=Math.max(38,limit-weekH-2-Number(item.y||0));
     const txt=labelText("ITEM",row);
     const measured=measureTextPx(txt,Number(item.fontSize||22),item.fontFamily);
     item.h=clamp(measured+4,38,maxH);
   }
+
   if(week){
     week.rot=0;
-    week.w=clamp(Number(week.w||50),40,58);
-    week.h=clamp(Number(week.h||24),18,28);
+    week.w=50;
+    week.h=24;
     week.x=Math.round((72-week.w)/2);
-    const y=(item?Number(item.y||0)+Number(item.h||0)+2:320);
-    week.y=clamp(Math.round(y),0,Math.max(0,limit-Number(week.h||24)));
+    week.y=clamp(Math.round((item?Number(item.y||0)+Number(item.h||0)+2:320)),0,Math.max(0,limit-Number(week.h||24)));
   }
+
   clampAllObjects();
 }
 
@@ -434,7 +487,7 @@ function renderCanvas(){
   const host=$("canvasHost");
   if(!host) return;
   host.innerHTML="";
-  applyPotAutoStack();
+  syncPotAutoLayout();
   const s=sizePx(), zoom=Number(($("zoom")&&$("zoom").value)||1);
   const row=currentRow();
   const cm=colorMeta(row.labelColor||"");
@@ -479,7 +532,8 @@ function renderCanvas(){
     lab.appendChild(safe);
   }
 
-  for(const id of ["WO","QR","ITEM","WEEK"]){
+  const ids=(labelType==="POT")?["QR","WO","ITEM","WEEK"]:["WO","QR","ITEM","WEEK"];
+  for(const id of ids){
     const o=layout.objects[id];
     if(!o||o.visible===false)continue;
     const el=document.createElement("div");
@@ -491,30 +545,62 @@ function renderCanvas(){
     lab.appendChild(el);
     attachObjectEvents(el);
   }
+
+  if(labelType==="POT"){
+    const lot=document.createElement("div");
+    lot.className='potStatic';
+    Object.assign(lot.style,{left:'330px',top:'8px',width:'38px',height:'38px'});
+    renderQrInto(lot,potLotQrText(row));
+    lab.appendChild(lot);
+
+    const logo=document.createElement('img');
+    logo.className='potStatic potLogo';
+    logo.src='https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=';
+    Object.assign(logo.style,{left:'374px',top:'12px',width:'22px',height:'22px'});
+    lab.appendChild(logo);
+  }
+
   stack.appendChild(stage);
   host.appendChild(stack);
   autoFitTextObjects();
-  if(tightenPotLayoutAfterFit()){
-    __potTightenPass=true;
-    renderCanvas();
-    __potTightenPass=false;
-    return;
-  }
 }
 
 function makeTextInner(id,row,o){
   const c=document.createElement("div");
   c.className="inner";
   c.dataset.textId=id;
-  c.textContent=labelText(id,row);
   c.style.fontSize=(o.fontSize||16)+"px";
   c.style.fontFamily=`"${o.fontFamily||"Times New Roman"}", Georgia, serif`;
   c.style.justifyContent=alignH(o.alignH);
   c.style.alignItems=alignV(o.alignV);
   c.style.textAlign="center";
+
+  if(labelType==="POT" && id==="WO"){
+    c.className='potMetaText';
+    c.textContent=labelText(id,row);
+    c.style.fontSize=(o.fontSize||16)+"px";
+    return c;
+  }
+  if(labelType==="POT" && id==="ITEM"){
+    const sc=cap(row.scion||"").trim() || cap(row.crop||"").trim() || "SCION";
+    const rt=cap(row.rootstock||"").trim() || "ROOTSTOCK";
+    const patents=patentPieces(row);
+    c.className='potMain';
+    c.innerHTML=`<div class="scion">${escapeHtml(sc)}</div><div class="onLine"><span class="onWord">ON</span><span class="rootstock">${escapeHtml(rt)}</span></div>${patents.length?`<div class="patentLine">${escapeHtml(patents.join(' | '))}</div>`:''}`;
+    c.style.fontSize=(o.fontSize||26)+"px";
+    return c;
+  }
+  if(labelType==="POT" && id==="WEEK"){
+    c.className='potWarningText';
+    c.textContent=potWarningText();
+    c.style.fontSize=(o.fontSize||7)+"px";
+    return c;
+  }
+
+  c.textContent=labelText(id,row);
   if(id==="ITEM"){
     c.style.justifyContent='center';
-    c.style.alignItems='flex-start';
+    c.style.alignItems='center';
     c.style.whiteSpace="normal";
     c.style.wordBreak="break-word";
     c.style.overflowWrap="anywhere";
@@ -551,11 +637,13 @@ function alignV(v){return v==="top"?"flex-start":v==="bottom"?"flex-end":"center
 
 function autoFitTextObjects(){
   for(const id of["WO","ITEM","WEEK"]){
-    const e=document.querySelector(`.obj[data-id="${id}"]`), c=e&&e.querySelector(".inner");
+    const e=document.querySelector(`.obj[data-id="${id}"]`);
+    if(!e)continue;
+    const c=e.firstElementChild;
     if(!c)continue;
     const o=layout.objects[id], r=((Number(o.rot||0)%360)+360)%360, swap=(r===90||r===270);
     const maxW=swap?o.h:o.w, maxH=swap?o.w:o.h;
-    let hi=Number(o.fontSize||16),lo=6,best=lo;
+    let hi=Number(o.fontSize||16), lo=6, best=lo;
     c.style.fontSize=hi+"px";
     if(c.scrollWidth<=maxW && c.scrollHeight<=maxH)continue;
     while(lo<=hi){
@@ -919,7 +1007,7 @@ function printTextInner(id,row,o){
   const left=swap?((o.w-o.h)/2):0, top=swap?((o.h-o.w)/2):0, w=swap?o.h:o.w, h=swap?o.w:o.h;
   const white=id==="ITEM"?"white-space:normal;word-break:break-word;overflow-wrap:anywhere;padding:1px 2px;":"white-space:nowrap;";
   const jc=id==="ITEM"?'center':alignH(o.alignH);
-  const ai=id==="ITEM"?'flex-start':alignV(o.alignV);
+  const ai=id==="ITEM"?'center':alignV(o.alignV);
   const ta='center';
   return `<div style="position:absolute;left:${left}px;top:${top}px;width:${w}px;height:${h}px;display:flex;align-items:${ai};justify-content:${jc};overflow:hidden;text-align:${ta};${white}text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize||16}px;line-height:.95;transform-origin:center center;transform:rotate(${o.rot||0}deg);">${escapeHtml(labelText(id,row))}</div>`;
 }
