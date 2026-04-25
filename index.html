@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>BEINVT Label Designer</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <h1>BEINVT Label Designer v3</h1>
+    <label style="margin:0">Label</label>
+    <select id="labelType" style="width:130px"><option value="POT">Pot Stake 0.75 x 5</option><option value="WRAP">Wrap Tie 5 x 0.5</option></select>
+    <label style="margin:0">Zoom</label><input id="zoom" type="range" min=".45" max="4" step=".05" value="1.25" style="width:160px"/>
+    <button id="undoBtn">Undo</button><button id="redoBtn">Redo</button>
+    <button id="printLabel" class="primary">Print Current</button>
+    <button id="printQueue" class="primary">Print Queue</button>
+    <button id="testMode">Worst-Case Test</button>
+    <span class="small">Times New Roman + ALL CAPS.</span>
+  </div>
+  <aside class="panel">
+    <h2>Data</h2>
+    <div class="section"><input id="search" placeholder="Search labels..."/></div>
+    <div class="section" style="overflow:auto;max-height:260px">
+      <table class="table"><thead><tr><th>WO</th><th>Activity</th><th>Item</th><th></th></tr></thead><tbody id="rowsBody"></tbody></table>
+    </div>
+    <h2>Print Queue</h2>
+    <div class="section"><div class="row"><button id="addCurrent">Add Current</button><button id="clearQueue" class="danger">Clear</button></div><div id="queueList" style="margin-top:8px"></div></div>
+    <h2>Objects</h2><div class="section"><div id="objectPanel" class="objectList"></div></div>
+    <h2>Presets</h2>
+    <div class="section">
+      <select id="presetSelect"></select>
+      <div class="row" style="margin-top:8px"><button id="savePreset">Save Browser Preset</button><button id="loadPreset">Load</button><button id="deletePreset" class="danger">Delete</button></div>
+      <div class="row" style="margin-top:8px"><button id="resetLayout">Reset Default</button></div>
+      <p class="small">To commit a preset to GitHub: export/download JSON, then use the included manual GitHub workflow <b>Commit layout preset</b>.</p>
+    </div>
+  </aside>
+  <main class="panel stageWrap" id="canvasHost"></main>
+  <aside class="panel">
+    <h2>Position / Size</h2>
+    <div class="section">
+      <div class="row"><b id="selectedName">ITEM</b><span class="small">selected</span></div>
+      <div class="grid4"><div><label>X</label><input id="x" type="number"/></div><div><label>Y</label><input id="y" type="number"/></div><div><label>W</label><input id="w" type="number"/></div><div><label>H</label><input id="h" type="number"/></div></div>
+      <div class="grid2"><div><label>Rot</label><input id="rot" type="number"/></div><div><label>Font Size</label><input id="fontSize" type="number"/></div></div>
+      <div class="row" style="margin-top:8px"><label><input id="lockToggle" type="checkbox" style="width:auto"/> Lock</label><label><input id="visibleToggle" type="checkbox" style="width:auto"/> Visible</label></div>
+      <div class="row" style="margin-top:8px"><button id="centerH">Center H</button><button id="centerV">Center V</button><button id="centerBoth">Center Both</button></div>
+    </div>
+    <h2>Grid / Snap / Safe Zone</h2>
+    <div class="section">
+      <label><input id="gridToggle" type="checkbox" checked style="width:auto"/> Show grid</label>
+      <label><input id="snapToggle" type="checkbox" checked style="width:auto"/> Snap guides</label>
+      <label><input id="snapGridToggle" type="checkbox" checked style="width:auto"/> Snap to grid</label>
+      <label>Grid size px</label><input id="gridPx" type="number" value="4"/>
+      <label>Snap distance px</label><input id="snapPx" type="number" value="5"/>
+      <label><input id="safeToggle" type="checkbox" checked style="width:auto"/> Show safe zone</label>
+      <label>Safe margin <span id="safeValue">4px</span></label><input id="safeMargin" type="range" min="0" max="30" value="4"/>
+    </div>
+    <h2>Import / Export Layout</h2>
+    <div class="section"><div class="row"><button id="exportLayout">Export</button><button id="importLayout">Import</button><button id="downloadLayout">Download JSON</button></div><textarea id="layoutJson" placeholder="Exported layout JSON appears here. Paste JSON here and click Import."></textarea></div>
+    <h2>Print Calibration</h2>
+    <div class="section"><p class="small">Print 1-inch square, measure it, enter measured size, then save.</p><button id="printCalibration">Print 1in Test Square</button><div class="grid2"><div><label>Measured W</label><input id="measuredW" type="number" step=".001" value="1"/></div><div><label>Measured H</label><input id="measuredH" type="number" step=".001" value="1"/></div></div><button id="saveCalibration" class="good">Save Calibration</button><div class="small" id="calStatus"></div></div>
+  </aside>
+</div>
+<script src="vendor/qrcode.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "beinvt-label-designer",
+  "version": "3.0.0",
+  "private": true,
+  "description": "BEINVT GitHub Pages label designer",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "serve": "python3 -m http.server 8080"
+  }
+}
