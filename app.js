@@ -1,4 +1,4 @@
-const APP_VERSION = "5.1.0-tight-gap-labelsneeded-tabs-sticky";
+const APP_VERSION = "5.2.0-pot-tighten-manual-nudge-fix";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 
@@ -66,6 +66,7 @@ let calibration=JSON.parse(localStorage.getItem("beinvtCalibration")||'{"scaleX"
 let presets=JSON.parse(localStorage.getItem("beinvtLayoutPresets")||"{}");
 let queue=JSON.parse(localStorage.getItem("beinvtPrintQueue")||"[]");
 let undoStack=[], redoStack=[], isRestoring=false;
+let potAutoLayoutKey="";
 
 const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
@@ -148,6 +149,7 @@ function setLayout(n,keepHist=true){
   if(keepHist)pushHistory();
   layout=clone(n);
   labelType=layout.labelType||labelType;
+  potAutoLayoutKey="";
   clampAllObjects();
   saveWorkingLayout();
   renderAll();
@@ -322,6 +324,18 @@ function updateModeTabs(){
   if($("labelType")) $("labelType").value=labelType;
 }
 
+function currentPotAutoKey(){
+  const row=currentRow();
+  return [labelType,row.wo||"",labelText("ITEM",row),currentWeekNumber()].join("|");
+}
+function syncPotAutoLayout(force=false){
+  if(labelType!=="POT") return;
+  const key=currentPotAutoKey();
+  if(!force && potAutoLayoutKey===key) return;
+  applyPotAutoStack();
+  potAutoLayoutKey=key;
+}
+
 function qrUrl(text){
   return "https://quickchart.io/qr?size=220&text="+encodeURIComponent(text||" ");
 }
@@ -331,20 +345,43 @@ function applyPotAutoStack(){
   const objs=layout.objects;
   const limit=350;
   const row=currentRow();
-  if(objs.WO){objs.WO.x=3; objs.WO.y=8; objs.WO.w=66; objs.WO.h=18; objs.WO.rot=0;}
-  if(objs.QR){objs.QR.w=Math.min(Number(objs.QR.w||50),50); objs.QR.h=Math.min(Number(objs.QR.h||50),50); objs.QR.x=Math.round((72-objs.QR.w)/2); objs.QR.y=30;}
-  if(objs.ITEM){
-    objs.ITEM.x=2; objs.ITEM.y=84; objs.ITEM.w=68; objs.ITEM.rot=90; objs.ITEM.alignH='center'; objs.ITEM.alignV='middle';
-    const weekH=(objs.WEEK&&Number(objs.WEEK.h||24))||24;
-    const maxH=Math.max(40,limit-weekH-6-Number(objs.ITEM.y||0));
-    const txt=labelText("ITEM",row);
-    const measured=measureTextPx(txt,Number(objs.ITEM.fontSize||22),objs.ITEM.fontFamily);
-    objs.ITEM.h=clamp(measured+14,46,maxH);
+  const wo=objs.WO, qr=objs.QR, item=objs.ITEM, week=objs.WEEK;
+  if(wo){
+    wo.rot=0;
+    wo.x=clamp(Number(wo.x||3),0,6);
+    wo.y=clamp(Number(wo.y||8),0,18);
+    wo.w=clamp(Number(wo.w||66),54,68);
+    wo.h=clamp(Number(wo.h||18),16,24);
   }
-  if(objs.WEEK){
-    objs.WEEK.x=11; objs.WEEK.w=50; objs.WEEK.h=24; objs.WEEK.rot=0;
-    const y=(objs.ITEM?Number(objs.ITEM.y||0)+Number(objs.ITEM.h||0)+4:320);
-    objs.WEEK.y=clamp(Math.round(y),0,Math.max(0,limit-Number(objs.WEEK.h||24)));
+  if(qr){
+    qr.rot=0;
+    qr.w=clamp(Number(qr.w||46),34,50);
+    qr.h=clamp(Number(qr.h||46),34,50);
+    qr.x=Math.round((72-qr.w)/2);
+    const minQrY=(wo?Number(wo.y||0)+Number(wo.h||18)+2:26);
+    qr.y=clamp(Number(qr.y||minQrY),minQrY,minQrY+6);
+  }
+  if(item){
+    item.x=clamp(Number(item.x||2),0,4);
+    item.w=clamp(Number(item.w||68),64,70);
+    item.rot=90;
+    item.alignH='center';
+    item.alignV='middle';
+    const targetY=(qr?Number(qr.y||0)+Number(qr.h||0)+2:84);
+    item.y=clamp(targetY,0,Math.max(0,limit-40));
+    const weekH=(week&&Number(week.h||24))||24;
+    const maxH=Math.max(38,limit-weekH-2-Number(item.y||0));
+    const txt=labelText("ITEM",row);
+    const measured=measureTextPx(txt,Number(item.fontSize||22),item.fontFamily);
+    item.h=clamp(measured+4,38,maxH);
+  }
+  if(week){
+    week.rot=0;
+    week.w=clamp(Number(week.w||50),40,58);
+    week.h=clamp(Number(week.h||24),18,28);
+    week.x=Math.round((72-week.w)/2);
+    const y=(item?Number(item.y||0)+Number(item.h||0)+2:320);
+    week.y=clamp(Math.round(y),0,Math.max(0,limit-Number(week.h||24)));
   }
   clampAllObjects();
 }
@@ -457,7 +494,12 @@ function renderCanvas(){
   stack.appendChild(stage);
   host.appendChild(stack);
   autoFitTextObjects();
-  // Dynamic POT stack sizing is handled before render.
+  if(tightenPotLayoutAfterFit()){
+    __potTightenPass=true;
+    renderCanvas();
+    __potTightenPass=false;
+    return;
+  }
 }
 
 function makeTextInner(id,row,o){
@@ -472,7 +514,7 @@ function makeTextInner(id,row,o){
   c.style.textAlign="center";
   if(id==="ITEM"){
     c.style.justifyContent='center';
-    c.style.alignItems='center';
+    c.style.alignItems='flex-start';
     c.style.whiteSpace="normal";
     c.style.wordBreak="break-word";
     c.style.overflowWrap="anywhere";
@@ -877,13 +919,40 @@ function printTextInner(id,row,o){
   const left=swap?((o.w-o.h)/2):0, top=swap?((o.h-o.w)/2):0, w=swap?o.h:o.w, h=swap?o.w:o.h;
   const white=id==="ITEM"?"white-space:normal;word-break:break-word;overflow-wrap:anywhere;padding:1px 2px;":"white-space:nowrap;";
   const jc=id==="ITEM"?'center':alignH(o.alignH);
-  const ai=id==="ITEM"?'center':alignV(o.alignV);
+  const ai=id==="ITEM"?'flex-start':alignV(o.alignV);
   const ta='center';
   return `<div style="position:absolute;left:${left}px;top:${top}px;width:${w}px;height:${h}px;display:flex;align-items:${ai};justify-content:${jc};overflow:hidden;text-align:${ta};${white}text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize||16}px;line-height:.95;transform-origin:center center;transform:rotate(${o.rot||0}deg);">${escapeHtml(labelText(id,row))}</div>`;
 }
 
+function nudgeSelected(dx,dy){
+  const o=layout&&layout.objects&&layout.objects[selectedId];
+  if(!o||o.locked)return;
+  pushHistory();
+  o.x=Number(o.x||0)+dx;
+  o.y=Number(o.y||0)+dy;
+  clampObject(selectedId);
+  saveWorkingLayout();
+  renderAll();
+}
+function bindDirectionalButtons(){
+  const map={
+    nudgeUp:[0,-1], nUp:[0,-1], upBtn:[0,-1],
+    nudgeDown:[0,1], nD:[0,1], downBtn:[0,1],
+    nudgeLeft:[-1,0], nL:[-1,0], leftBtn:[-1,0],
+    nudgeRight:[1,0], nR:[1,0], rightBtn:[1,0]
+  };
+  Object.entries(map).forEach(([id,delta])=>{
+    const el=$(id);
+    if(el&&!el.dataset.nudgeBound){
+      el.dataset.nudgeBound="1";
+      el.onclick=()=>nudgeSelected(delta[0],delta[1]);
+    }
+  });
+}
+
 function initEvents(){
   ensureModeTabs();
+  bindDirectionalButtons();
   if($("labelType")) $("labelType").onchange=e=>{labelType=e.target.value;selectedId="ITEM";undoStack=[];redoStack=[];setLayout(loadWorkingLayout(labelType),false); renderRows(); updateModeTabs();};
   if($("zoom")) $("zoom").oninput=renderCanvas;
   if($("search")) $("search").oninput=renderRows;
@@ -925,12 +994,11 @@ function initEvents(){
     if(mod&&e.key.toLowerCase()==="y"){e.preventDefault();redo();return}
     const o=layout.objects[selectedId];
     if(!o||o.locked)return;
-    let changed=false,step=e.shiftKey?10:1;
-    if(e.key==="ArrowUp"){pushHistory();o.y-=step;changed=true}
-    else if(e.key==="ArrowDown"){pushHistory();o.y+=step;changed=true}
-    else if(e.key==="ArrowLeft"){pushHistory();o.x-=step;changed=true}
-    else if(e.key==="ArrowRight"){pushHistory();o.x+=step;changed=true}
-    if(changed){e.preventDefault();clampObject(selectedId);saveWorkingLayout();renderAll()}
+    const step=e.shiftKey?10:1;
+    if(e.key==="ArrowUp"){e.preventDefault();nudgeSelected(0,-step);return}
+    else if(e.key==="ArrowDown"){e.preventDefault();nudgeSelected(0,step);return}
+    else if(e.key==="ArrowLeft"){e.preventDefault();nudgeSelected(-step,0);return}
+    else if(e.key==="ArrowRight"){e.preventDefault();nudgeSelected(step,0);return}
   });
 }
 
