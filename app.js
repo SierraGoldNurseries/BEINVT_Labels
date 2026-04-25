@@ -1,4 +1,4 @@
-const APP_VERSION = "6.9.0-pot-settings-wrap-individuals";
+const APP_VERSION = "6.10.0-menu-left-restored-wrap-table";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
@@ -99,50 +99,56 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .table tbody td{background:#0f172a!important}
     .table,.tableWrap,.tableContainer,.rowsWrap,.rowsContainer,#rowsWrap,#rowsContainer{width:100%!important;max-width:none!important}
     .table{table-layout:fixed!important}
-    #canvasHost,.canvasHost{overflow:hidden!important;width:100%!important}
+    #canvasHost,.canvasHost{overflow:visible!important;width:100%!important}
 
     /* v6.7 stage/table layout and side meta */
     .stageWrap{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;padding:10px!important;gap:10px!important;overflow:hidden!important;background:radial-gradient(circle at center, rgba(255,255,255,.08), rgba(255,255,255,.02))!important}
     #canvasHost{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;min-height:0!important;height:100%!important}
-    body.beinvt-label-pot #canvasHost{flex-direction:row!important;align-items:stretch!important;min-height:calc(100vh - 190px)!important}
+    body.beinvt-label-pot #canvasHost{flex-direction:row!important;align-items:stretch!important;min-height:calc(100vh - 210px)!important}
     #stageDataWrap{width:100%;flex:0 0 300px;max-height:44vh;min-height:210px;background:#0f172a;border:1px solid rgba(255,255,255,.14);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-    body.beinvt-label-pot #stageDataWrap{order:1;width:62%;max-width:none;min-width:460px;flex:1 1 62%;align-self:stretch;height:auto;max-height:none;min-height:calc(100vh - 210px)}
-    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(420px,64vh,640px);max-height:none;min-height:420px}
+    body.beinvt-label-pot #stageDataWrap{width:44%;max-width:640px;min-width:360px;flex:0 0 44%;align-self:stretch;height:auto;max-height:none;min-height:520px}
+    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(340px,56vh,520px);max-height:none;min-height:340px}
     #stageDataSearchRow{padding:8px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;gap:8px;align-items:center;background:#121a2c}
     #stageSearch{height:34px;width:100%;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:#0b1220;color:#e5e7eb;padding:7px 10px;font-size:13px}
     .stageTableScroll{flex:1;overflow:auto;background:#0f172a;position:relative}
     #stageRowsTable{width:100%!important;min-width:780px!important;table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important;background:#0f172a!important}
     body.beinvt-label-wrap #stageRowsTable{min-width:1040px!important}
-    body.beinvt-label-pot #stageRowsTable{min-width:980px!important}
+    body.beinvt-label-pot #stageRowsTable{min-width:720px!important}
     #stageRowsTable thead,#stageRowsTable thead tr,#stageRowsTable thead th{background:#121a2c!important;opacity:1!important;color:#e5e7eb!important}
     #stageRowsTable thead th{position:sticky!important;top:0!important;z-index:100!important;background-clip:padding-box!important;box-shadow:0 2px 0 rgba(0,0,0,.55)!important}
     #stageRowsTable tbody td{background:#0f172a!important;opacity:1!important;color:#e5e7eb!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     #stageRowsTable tr.active td{background:rgba(96,165,250,.20)!important}
     #stageRowsTable tr:hover td{background:rgba(255,255,255,.06)!important}
-    #stageLabelHost{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;padding:8px}
-    body.beinvt-label-pot #stageLabelHost{order:2;flex:0 0 min(360px,38%);justify-content:center;align-items:flex-start;min-width:260px;padding-top:0}
+    #stageLabelHost{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto;position:relative;padding:8px}
+    body.beinvt-label-pot #stageLabelHost{justify-content:center;align-items:flex-start;min-width:0;padding-top:0}
     #stageLabelHost .stageStack{padding-top:0!important;gap:8px!important;align-items:center!important;justify-content:flex-start!important}
     .wrapMainBlock .rootLine .on{text-transform:none!important}
     .wrapMainBlock .benchLine:empty{display:none!important}
-
-    body.beinvt-label-wrap #stageLabelHost{align-items:flex-end!important;justify-content:center!important;min-height:96px!important;padding-bottom:2px!important}
+    /* v6.10 menu consolidation, wider cards, taller render tables */
+    #canvasHost,.canvasHost{overflow:hidden!important}
+    body.beinvt-label-pot #canvasHost{min-height:calc(100vh - 175px)!important;height:calc(100vh - 175px)!important;overflow:hidden!important}
+    body.beinvt-label-pot #stageDataWrap{order:1!important;width:calc(100% - 330px)!important;max-width:none!important;min-width:560px!important;flex:1 1 auto!important;align-self:stretch!important;height:auto!important;max-height:none!important;min-height:0!important}
+    body.beinvt-label-pot #stageLabelHost{order:2!important;flex:0 0 320px!important;min-width:300px!important;overflow:hidden!important;justify-content:center!important;align-items:flex-start!important;padding-top:0!important}
+    body.beinvt-label-pot #stageRowsTable{min-width:1080px!important}
+    body.beinvt-label-wrap #canvasHost{height:calc(100vh - 135px)!important;min-height:720px!important;overflow:hidden!important}
+    body.beinvt-label-wrap #stageDataWrap{flex:1 1 auto!important;min-height:580px!important;max-height:none!important;height:auto!important}
+    body.beinvt-label-wrap #stageLabelHost{flex:0 0 118px!important;min-height:118px!important;overflow:hidden!important;align-items:flex-end!important;justify-content:center!important;padding-bottom:28px!important}
     body.beinvt-label-wrap #stageLabelHost .stageStack{justify-content:flex-end!important}
-    body.beinvt-label-wrap .wrapPreviewRow{align-items:flex-end!important}
-    .wrapTextInner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:.86;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;padding:0 1px}
-    .wrapTextInner.leftText{align-items:center;justify-content:flex-start;text-align:left}
-    .wrapTextInner.smallText{line-height:.94}
-    .wrapTextInner.rootstockInner{text-transform:none!important}
-    .wrapTextInner .wrapOn{font-size:.68em;margin-right:.18em;text-transform:none!important}
-    .objectBtn{min-width:0!important;white-space:normal!important;line-height:1.1!important}
+    body.beinvt-label-wrap .wrapPreviewRow{align-items:flex-end!important;transform:translateY(-10px)}
+    .labelPreviewRow .stageMeta{flex:0 0 220px!important;max-width:220px!important;min-width:220px!important}
+    .stageMeta .metaPill{min-height:28px!important;padding:7px 10px!important;font-size:12px!important}
+    body.beinvt-label-pot aside.panel,body.beinvt-label-wrap aside.panel,body.beinvt-label-pot .panel.sidebar,body.beinvt-label-wrap .panel.sidebar,body.beinvt-label-pot .settingsPanel,body.beinvt-label-wrap .settingsPanel{order:-10!important;flex:0 0 330px!important;max-width:330px!important;min-width:290px!important;overflow:auto!important}
+    body.beinvt-label-pot .stageWrap,body.beinvt-label-wrap .stageWrap{order:1!important;flex:1 1 auto!important;min-width:0!important}
     #objectPanel{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
-    body.beinvt-label-wrap #objectPanel{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+    .objectBtn{min-width:0!important;white-space:normal!important;line-height:1.1!important}
     .settingsGroupTabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 10px 0;padding:8px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(15,23,42,.72);position:sticky;top:0;z-index:30}
     .settingsGroupTab{border:1px solid rgba(255,255,255,.16);border-radius:999px;background:rgba(255,255,255,.05);color:#e5e7eb;padding:7px 10px;font-size:12px;font-weight:800;cursor:pointer}
     .settingsGroupTab.active{border-color:#60a5fa;background:rgba(96,165,250,.20);color:#fff}
     .beinvt-settings-compact .section[data-settings-group].beinvt-hidden-section{display:none!important}
     .beinvt-settings-compact .section[data-settings-group]{margin-bottom:10px!important}
-
-    @media(max-width:1100px){body.beinvt-label-pot #canvasHost{flex-direction:column!important;min-height:0!important}body.beinvt-label-pot #stageDataWrap{width:100%;max-width:none;min-width:0;flex:0 0 clamp(360px,58vh,620px);height:auto;min-height:360px}body.beinvt-label-pot #stageLabelHost{flex:0 0 auto;min-width:0}}
+    .wrapMainBlock{padding:1px 3px 0!important;line-height:.88!important}
+    .wrapMainBlock .scionLine,.wrapMainBlock .rootLine{line-height:.86!important}
+    @media(max-width:1100px){body.beinvt-label-pot #canvasHost{flex-direction:column!important;min-height:0!important;height:auto!important}body.beinvt-label-pot #stageDataWrap{width:100%!important;max-width:none!important;min-width:0!important;flex:0 0 clamp(360px,60vh,640px)!important;height:auto!important;min-height:360px!important}body.beinvt-label-pot #stageLabelHost{flex:0 0 auto!important;min-width:0!important}}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
@@ -168,19 +174,17 @@ const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const cap=s=>String(s??"").toUpperCase();
 const clone=o=>JSON.parse(JSON.stringify(o));
-const POT_OBJECT_ORDER=["WO","QR","ITEM","WEEK"];
-const WRAP_OBJECT_ORDER=["WO_QR","WO","CROP","INTERNAL","SCION","SCION_ROYALTY","ROOTSTOCK","ROOTSTOCK_ROYALTY","LOT","ADDRESS","LOT_QR","LOGO","WARNING"];
-const IMAGE_OBJECT_IDS=new Set(["QR","WO_QR","LOT_QR","LOGO"]);
 function cleanDisplay(v){
-  const s=String(v??"").trim();
-  if(!s) return "";
-  if(/^-?\s*none\s*-?$/i.test(s)) return "";
-  return s;
+  const raw=String(v??"").trim();
+  if(!raw) return "";
+  if(/^-?\s*none\s*-?$/i.test(raw)) return "";
+  return raw;
 }
 function capClean(v){ return cap(cleanDisplay(v)); }
-function objectOrder(type=labelType){ return type==="WRAP"?WRAP_OBJECT_ORDER:POT_OBJECT_ORDER; }
-function defaultSelectedId(type=labelType){ return type==="WRAP"?"SCION":"ITEM"; }
-function isImageObject(id){ return IMAGE_OBJECT_IDS.has(id); }
+function isExcludedPotActivity(act){
+  const s=String(act||"").toLowerCase().replace(/[\s_-]+/g," ").trim();
+  return ["pre ship sorting","pre-ship sorting","shipping request","propagation material processing"].some(x=>s===x.replace(/[\s_-]+/g," ").trim());
+}
 
 function sizePx(type=labelType){
   const s=LABEL_SIZES[type];
@@ -246,45 +250,18 @@ function fallbackLayout(t){
     safeMarginPx:3,
     gridPx:4,
     objects:{
-      WO_QR:{x:2,y:5,w:38,h:38,rot:0,locked:false,visible:true},
-      WO:{x:42,y:2,w:68,h:14,rot:0,fontSize:14,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
-      CROP:{x:42,y:17,w:68,h:14,rot:0,fontSize:11,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
-      INTERNAL:{x:42,y:32,w:68,h:12,rot:0,fontSize:10,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
-      SCION:{x:114,y:1,w:238,h:15,rot:0,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      SCION_ROYALTY:{x:114,y:15,w:238,h:5,rot:0,fontSize:5,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ROOTSTOCK:{x:114,y:20,w:238,h:15,rot:0,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ROOTSTOCK_ROYALTY:{x:114,y:34,w:238,h:5,rot:0,fontSize:5,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      LOT:{x:114,y:39,w:238,h:4,rot:0,fontSize:4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ADDRESS:{x:114,y:43,w:238,h:4,rot:0,fontSize:4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      LOT_QR:{x:356,y:7,w:34,h:34,rot:0,locked:false,visible:true},
-      LOGO:{x:393,y:14,w:20,h:20,rot:0,locked:false,visible:true},
-      WARNING:{x:418,y:2,w:60,h:44,rot:0,fontSize:4.3,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"}
+      WO:{x:2,y:2,w:104,h:44,rot:0,fontSize:18,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ITEM:{x:108,y:1,w:254,h:46,rot:0,fontSize:26,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      QR:{x:364,y:2,w:44,h:44,rot:0,locked:false,visible:true},
+      WEEK:{x:410,y:2,w:68,h:44,rot:0,fontSize:4.8,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
     }
   };
 }
 
-function normalizeLayoutObject(baseObj, savedObj){
-  return Object.assign({}, baseObj||{}, savedObj||{});
-}
-function normalizeLayout(src){
-  const type=(src&&src.labelType)||labelType||"POT";
-  const base=fallbackLayout(type);
-  if(!src||!src.objects) return base;
-  if(type==="WRAP" && !src.objects.SCION){
-    return base;
-  }
-  const out=Object.assign({}, base, src, {labelType:type, objects:{}});
-  for(const id of objectOrder(type)){
-    out.objects[id]=normalizeLayoutObject(base.objects[id], src.objects[id]);
-  }
-  return out;
-}
-
 function setLayout(n,keepHist=true){
   if(keepHist)pushHistory();
-  layout=normalizeLayout(clone(n));
+  layout=clone(n);
   labelType=layout.labelType||labelType;
-  if(!layout.objects[selectedId]) selectedId=defaultSelectedId(labelType);
   potAutoLayoutKey="";
   clampAllObjects();
   saveWorkingLayout();
@@ -296,9 +273,9 @@ function saveWorkingLayout(){
 function loadWorkingLayout(type){
   try{
     const s=localStorage.getItem("beinvtWorkingLayout_"+type);
-    if(s)return normalizeLayout(JSON.parse(s));
+    if(s)return JSON.parse(s);
   }catch(e){}
-  return normalizeLayout(clone(DEFAULT_LAYOUTS[type]||fallbackLayout(type)));
+  return clone(DEFAULT_LAYOUTS[type]||fallbackLayout(type));
 }
 
 function parseCsv(text){
@@ -394,8 +371,6 @@ function currentRow(){
     lotNumber:"2026",
     scionPatent:"USPP 12345",
     rootstockPatent:"USPP 67890",
-    scionRoyalty:"SCION ROYALTY",
-    rootstockRoyalty:"ROOTSTOCK ROYALTY",
     week:"52"
   };
   return filteredRows[currentRowIndex]||rows[0]||{
@@ -513,7 +488,7 @@ function ensureModeTabs(){
     const b=e.target.closest("[data-mode]");
     if(!b)return;
     labelType=b.getAttribute("data-mode");
-    selectedId=defaultSelectedId(labelType);
+    selectedId="ITEM";
     undoStack=[];
     redoStack=[];
     setLayout(loadWorkingLayout(labelType),false);
@@ -537,17 +512,80 @@ function applyModeClass(){
 
 function removeGitHubWorkflowText(){
   const needle="To commit a preset to GitHub: export/download JSON, then use the included manual GitHub workflow Commit layout preset.";
+  const walker=document.createTreeWalker(document.body||document.documentElement,NodeFilter.SHOW_TEXT);
+  const nodes=[];
+  while(walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(n=>{
+    if(String(n.nodeValue||"").includes(needle)) n.nodeValue=String(n.nodeValue||"").replace(needle,"").trim();
+  });
   document.querySelectorAll("body *").forEach(el=>{
-    if(!el||["SCRIPT","STYLE"].includes(el.tagName)) return;
-    if(el.dataset && el.dataset.beinvtGitTextRemoved) return;
-    [...el.childNodes].forEach(n=>{
-      if(n.nodeType===3 && String(n.nodeValue||"").includes(needle)){
-        n.nodeValue=String(n.nodeValue||"").replace(needle,"").trim();
-        if(el.dataset) el.dataset.beinvtGitTextRemoved="1";
-      }
-    });
+    if(["SCRIPT","STYLE"].includes(el.tagName)) return;
     if(el.children.length===0 && String(el.textContent||"").trim()===needle) el.remove();
   });
+}
+function ensureControlPanelLeft(){
+  const panel=document.querySelector("aside.panel")||document.querySelector(".panel.sidebar")||document.querySelector(".settingsPanel");
+  const stage=document.querySelector(".stageWrap")||document.querySelector("#canvasHost")?.parentElement;
+  if(!panel||!stage||!panel.parentElement||panel.dataset.beinvtLeftDone) return;
+  const parent=panel.parentElement;
+  if(stage.parentElement===parent){
+    parent.style.display=parent.style.display||"flex";
+    parent.style.alignItems=parent.style.alignItems||"stretch";
+    panel.style.order="-10";
+    stage.style.order="1";
+    panel.dataset.beinvtLeftDone="1";
+  }
+}
+function settingsSectionTitle(sec,idx){
+  const heading=sec.querySelector("h1,h2,h3,h4,.sectionTitle,.title");
+  const ids=[...sec.querySelectorAll("[id]")].map(x=>String(x.id||"").toLowerCase()).join(" ");
+  const txt=String((heading&&heading.textContent)||sec.textContent||"").toLowerCase();
+  const hay=(ids+" "+txt).replace(/[_-]+/g," ");
+  if(/objectpanel|selectedname|font size|locktoggle|visibletoggle|centerh|center selected|position|width|height|rotation/.test(hay)) return "Objects";
+  if(/queuelist|addcurrent|printqueue|clearqueue|queue/.test(hay)) return "Queue";
+  if(/presetselect|savepreset|loadpreset|deletepreset|layoutjson|exportlayout|importlayout|downloadlayout|preset|layout json/.test(hay)) return "Presets";
+  if(/printcalibration|savecalibration|measuredw|measuredh|calibration/.test(hay)) return "Calibration";
+  if(/safetoggle|gridtoggle|snaptoggle|snappx|zoom|safe zone|grid|snap|preview/.test(hay)) return "Preview";
+  if(/printlabel|testmode|test mode|print current/.test(hay)) return "Print";
+  if(/labeltype|modetabs|pot stakes|wrap ties|template|label type/.test(hay)) return "Template";
+  if(/search|rowsbody|labels|table/.test(hay)) return "Table";
+  return ["Objects","Preview","Presets","Queue","Print","Calibration"][idx]||`Group ${idx+1}`;
+}
+function activateSettingsGroup(idx){
+  const tabs=document.querySelectorAll(".settingsGroupTab[data-settings-group]");
+  const secs=document.querySelectorAll(".section[data-settings-group]");
+  tabs.forEach(t=>t.classList.toggle("active",t.dataset.settingsGroup===String(idx)));
+  secs.forEach(sec=>sec.classList.toggle("beinvt-hidden-section",sec.dataset.settingsGroup!==String(idx)));
+  localStorage.setItem("beinvtSettingsGroup",String(idx));
+}
+function ensureSettingsGroups(){
+  const panel=document.querySelector("aside.panel")||document.querySelector(".panel.sidebar")||document.querySelector(".settingsPanel");
+  if(!panel||panel.querySelector("#settingsGroupTabs")) return;
+  let sections=[];
+  try{ sections=[...panel.querySelectorAll(":scope > .section")]; }catch(e){ sections=[...panel.querySelectorAll(".section")]; }
+  sections=sections.filter(sec=>!sec.querySelector("#rowsBody")&&!sec.querySelector("#stageRowsTable")&&!sec.closest("#canvasHost"));
+  if(sections.length<2) return;
+  panel.classList.add("beinvt-settings-compact");
+  const tabs=document.createElement("div");
+  tabs.id="settingsGroupTabs";
+  tabs.className="settingsGroupTabs";
+  const used={};
+  sections.forEach((sec,idx)=>{
+    sec.dataset.settingsGroup=String(idx);
+    let title=settingsSectionTitle(sec,idx);
+    used[title]=(used[title]||0)+1;
+    if(used[title]>1) title=`${title} ${used[title]}`;
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="settingsGroupTab";
+    btn.dataset.settingsGroup=String(idx);
+    btn.textContent=title;
+    btn.onclick=()=>activateSettingsGroup(idx);
+    tabs.appendChild(btn);
+  });
+  panel.insertBefore(tabs,sections[0]);
+  const saved=Number(localStorage.getItem("beinvtSettingsGroup")||0);
+  activateSettingsGroup(Number.isFinite(saved)&&saved>=0&&saved<sections.length?saved:0);
 }
 
 function currentPotAutoKey(){
@@ -586,49 +624,12 @@ function applyPotAutoStack(){
 let __potTightenPass=false;
 function tightenPotLayoutAfterFit(){ return false; }
 
-function settingsSectionTitle(sec,idx){
-  const heading=sec.querySelector("h1,h2,h3,h4,.sectionTitle,.title");
-  const raw=(heading&&heading.textContent)||sec.getAttribute("aria-label")||`Settings ${idx+1}`;
-  return String(raw||"").trim().replace(/\s+/g," ").slice(0,28)||`Settings ${idx+1}`;
-}
-function activateSettingsGroup(idx){
-  const tabs=document.querySelectorAll(".settingsGroupTab[data-settings-group]");
-  const secs=document.querySelectorAll(".section[data-settings-group]");
-  tabs.forEach(t=>t.classList.toggle("active",t.dataset.settingsGroup===String(idx)));
-  secs.forEach(sec=>sec.classList.toggle("beinvt-hidden-section",sec.dataset.settingsGroup!==String(idx)));
-  localStorage.setItem("beinvtSettingsGroup",String(idx));
-}
-function ensureSettingsGroups(){
-  const panel=document.querySelector("aside.panel")||document.querySelector(".panel.sidebar")||document.querySelector(".settingsPanel");
-  if(!panel||panel.querySelector("#settingsGroupTabs")) return;
-  let sections=[];
-  try{ sections=[...panel.querySelectorAll(":scope > .section")]; }catch(e){ sections=[...panel.querySelectorAll(".section")]; }
-  sections=sections.filter(sec=>!sec.querySelector("#rowsBody")&&!sec.querySelector("#stageRowsTable")&&!sec.closest("#canvasHost"));
-  if(sections.length<3) return;
-  panel.classList.add("beinvt-settings-compact");
-  const tabs=document.createElement("div");
-  tabs.id="settingsGroupTabs";
-  tabs.className="settingsGroupTabs";
-  sections.forEach((sec,idx)=>{
-    sec.dataset.settingsGroup=String(idx);
-    const btn=document.createElement("button");
-    btn.type="button";
-    btn.className="settingsGroupTab";
-    btn.dataset.settingsGroup=String(idx);
-    btn.textContent=settingsSectionTitle(sec,idx);
-    btn.onclick=()=>activateSettingsGroup(idx);
-    tabs.appendChild(btn);
-  });
-  panel.insertBefore(tabs,sections[0]);
-  const saved=Number(localStorage.getItem("beinvtSettingsGroup")||0);
-  activateSettingsGroup(Number.isFinite(saved)&&saved>=0&&saved<sections.length?saved:0);
-}
-
 function renderAll(){
   applyModeClass();
   removeGitHubWorkflowText();
-  ensureModeTabs();
+  ensureControlPanelLeft();
   ensureSettingsGroups();
+  ensureModeTabs();
   updateModeTabs();
   if($("labelType")) $("labelType").value=labelType;
   if($("safeToggle")) $("safeToggle").checked=showSafeZone;
@@ -676,12 +677,10 @@ function effectiveStageZoom(requested,s,labelHost){
   if(!isFinite(z)||z<=0) z=1;
   const hostW=Math.max(1,(labelHost&&labelHost.clientWidth)||window.innerWidth||900);
   const hostH=Math.max(1,(labelHost&&labelHost.clientHeight)||window.innerHeight||500);
-  const metaW=labelType==="WRAP"?164:160;
-  const gap=18;
-  let maxByW=(hostW-metaW-gap-18)/Math.max(1,s.w);
-  const maxByH=(hostH-12)/Math.max(1,s.h);
-  const hardMax=labelType==="WRAP"?1.12:1.30;
-  if(labelType==="POT") maxByW=(hostW-metaW-gap-8)/Math.max(1,s.w);
+  const metaW=226, gap=18;
+  const maxByW=(hostW-metaW-gap-12)/Math.max(1,s.w);
+  const maxByH=(hostH-18)/Math.max(1,s.h);
+  const hardMax=labelType==="WRAP"?1.04:1.22;
   const maxZ=Math.max(0.25,Math.min(hardMax,maxByW,maxByH));
   return clamp(z,0.25,maxZ);
 }
@@ -742,7 +741,7 @@ function renderCanvas(){
     lab.appendChild(safe);
   }
 
-  for(const id of objectOrder()){
+  for(const id of ["WO","QR","ITEM","WEEK"]){
     const o=layout.objects[id];
     if(!o||o.visible===false)continue;
     const el=document.createElement("div");
@@ -750,7 +749,10 @@ function renderCanvas(){
     el.dataset.id=id;
     Object.assign(el.style,{left:o.x+"px",top:o.y+"px",width:o.w+"px",height:o.h+"px"});
     if(labelType==="WRAP"){
-      el.appendChild(makeWrapObjectInner(id,row,o));
+      if(id==="WO") el.appendChild(makeWrapWoInner(row));
+      else if(id==="ITEM") el.appendChild(makeWrapMainInner(row));
+      else if(id==="QR") el.appendChild(makeWrapQrInner(row));
+      else if(id==="WEEK") el.appendChild(makeWrapWarningInner());
     }else{
       if(id==="QR") renderQrInto(el,row.wo);
       else el.appendChild(makeTextInner(id,row,o));
@@ -852,54 +854,6 @@ function wrapPatentText(row){
   if(rr) parts.push(rr);
   return parts.join(" | ");
 }
-function wrapObjectText(id,row){
-  if(id==="WO") return capClean(row.wo);
-  if(id==="CROP") return capClean(row.crop);
-  if(id==="INTERNAL") return capClean(row.internalId);
-  if(id==="SCION") return wrapScionText(row);
-  if(id==="SCION_ROYALTY") return wrapScionRoyaltyText(row);
-  if(id==="ROOTSTOCK") return wrapRootstockText(row);
-  if(id==="ROOTSTOCK_ROYALTY") return wrapRootstockRoyaltyText(row);
-  if(id==="LOT") return wrapLotLine(row);
-  if(id==="ADDRESS") return WRAP_ADDRESS;
-  if(id==="WARNING") return WRAP_WARNING;
-  return "";
-}
-function makeWrapTextInner(id,row,o){
-  const c=document.createElement("div");
-  c.className="wrapTextInner"+(id==="ROOTSTOCK"?" rootstockInner":"")+(["WO","CROP","INTERNAL","WARNING"].includes(id)?" leftText":"")+(["SCION_ROYALTY","ROOTSTOCK_ROYALTY","LOT","ADDRESS","WARNING"].includes(id)?" smallText":"");
-  c.style.fontSize=(o.fontSize||8)+"px";
-  c.style.justifyContent=alignH(o.alignH);
-  c.style.alignItems=alignV(o.alignV);
-  c.style.textAlign=(o.alignH==="left"?"left":o.alignH==="right"?"right":"center");
-  if(id==="ROOTSTOCK") c.innerHTML=`<span class="wrapOn">on</span>${escapeHtml(wrapRootstockText(row))}`;
-  else c.textContent=wrapObjectText(id,row);
-  return c;
-}
-function makeSgLogoInner(){
-  const c=document.createElement("div");
-  c.className="wrapLogo";
-  c.style.width="100%";
-  c.style.height="100%";
-  c.style.flex="0 0 auto";
-  const img=document.createElement("img");
-  img.src=SG_LOGO_URL;
-  img.alt="SG";
-  img.onerror=function(){ c.innerHTML='<div class="wrapLogoFallback">SG</div>'; };
-  c.appendChild(img);
-  return c;
-}
-function makeWrapObjectInner(id,row,o){
-  const c=document.createElement("div");
-  c.style.position="absolute";
-  c.style.inset="0";
-  c.style.overflow="hidden";
-  if(id==="WO_QR"){ renderQrInto(c,wrapLeftQrText(row)); return c; }
-  if(id==="LOT_QR"){ const qrText=wrapRightQrText(row); if(qrText) renderQrInto(c,qrText); return c; }
-  if(id==="LOGO") return makeSgLogoInner();
-  return makeWrapTextInner(id,row,o);
-}
-
 function makeWrapWoInner(row){
   const c=document.createElement("div");
   c.className="wrapWoBlock";
@@ -908,7 +862,7 @@ function makeWrapWoInner(row){
   renderQrInto(qr,wrapLeftQrText(row));
   const t=document.createElement("div");
   t.className="wrapWoText";
-  t.innerHTML=`<div class="wo">${escapeHtml(cap(row.wo||""))}</div><div class="crop">${escapeHtml(cap(row.crop||""))}</div><div class="internal">${escapeHtml(cap(row.internalId||""))}</div>`;
+  t.innerHTML=`<div class="wo">${escapeHtml(capClean(row.wo||""))}</div><div class="crop">${escapeHtml(capClean(row.crop||""))}</div><div class="internal">${escapeHtml(capClean(row.internalId||""))}</div>`;
   c.appendChild(qr); c.appendChild(t);
   return c;
 }
@@ -954,7 +908,7 @@ function printWrapInner(id,row,o){
     const lotLine=wrapLotLine(row);
     const scionRoyalty=wrapScionRoyaltyText(row);
     const rootstockRoyalty=wrapRootstockRoyaltyText(row);
-    return `<div style="${outer}display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:2px 3px 1px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;line-height:.86;"><div style="font-size:15px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapScionText(row))}</div>${scionRoyalty?`<div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(scionRoyalty)}</div>`:""}<div style="font-size:15px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(wrapRootstockText(row))}</div>${rootstockRoyalty?`<div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(rootstockRoyalty)}</div>`:""}${lotLine?`<div style="font-size:4.7px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(lotLine)}</div>`:""}<div style="font-size:4.7px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(WRAP_ADDRESS)}</div></div>`;
+    return `<div style="${outer}display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:2px 3px 1px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;line-height:.86;"><div style="font-size:17px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapScionText(row))}</div>${scionRoyalty?`<div style="font-size:4.8px;line-height:.90;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(scionRoyalty)}</div>`:""}<div style="font-size:17px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(wrapRootstockText(row))}</div>${rootstockRoyalty?`<div style="font-size:4.8px;line-height:.90;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(rootstockRoyalty)}</div>`:""}${lotLine?`<div style="font-size:4.3px;line-height:.88;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(lotLine)}</div>`:""}<div style="font-size:4.3px;line-height:.88;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(WRAP_ADDRESS)}</div></div>`;
   }
   if(id==="QR") { const qrText=wrapRightQrText(row); return `<div style="${outer}display:flex;align-items:center;justify-content:center;gap:2px;padding:1px 1px;">${qrText?`<div style="width:34px;height:34px;flex:0 0 34px;"><img src="${qrUrl(qrText)}" style="width:100%;height:100%;image-rendering:pixelated"/></div>`:""}<div style="width:20px;height:20px;flex:0 0 20px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain;image-rendering:auto" onerror="this.outerHTML='SG'"/></div></div>`; }
   if(id==="WEEK") return `<div style="${outer}display:flex;align-items:center;justify-content:flex-start;padding:1px 2px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:4.3px;line-height:.82;">${escapeHtml(WRAP_WARNING)}</div>`;
@@ -990,23 +944,45 @@ function wrapBlockFits(el){
 }
 function autoFitWrapPreview(){
   if(labelType!=="WRAP") return;
-  const ranges={
-    WO:[14,8], CROP:[11,7], INTERNAL:[10,7],
-    SCION:[24,7], ROOTSTOCK:[24,7],
-    SCION_ROYALTY:[5.4,3.5], ROOTSTOCK_ROYALTY:[5.4,3.5],
-    LOT:[4.8,3.2], ADDRESS:[4.8,3.2], WARNING:[4.5,3.2]
-  };
-  Object.entries(ranges).forEach(([id,range])=>{
-    const obj=document.querySelector(`.obj[data-id="${id}"]`);
-    const inner=obj&&obj.querySelector('.wrapTextInner');
-    if(!obj||!inner) return;
-    let fs=range[0], min=range[1];
-    for(; fs>=min; fs-=0.2){
-      inner.style.fontSize=fs.toFixed(1)+'px';
-      if(wrapBlockFits(obj)) break;
+  const wo=document.querySelector('.obj[data-id="WO"] .wrapWoText');
+  if(wo){
+    const a=wo.querySelector('.wo'), b=wo.querySelector('.crop'), c=wo.querySelector('.internal');
+    let main=17;
+    for(; main>=8; main--){
+      if(a) a.style.fontSize=main+'px';
+      if(b) b.style.fontSize=Math.max(7,Math.round(main*0.76))+'px';
+      if(c) c.style.fontSize=Math.max(7,Math.round(main*0.70))+'px';
+      if(wrapBlockFits(wo.parentElement)) break;
     }
-    if(layout&&layout.objects&&layout.objects[id]) layout.objects[id].fontSize=parseFloat(inner.style.fontSize)||layout.objects[id].fontSize;
-  });
+  }
+  const mainBlock=document.querySelector('.obj[data-id="ITEM"] .wrapMainBlock');
+  if(mainBlock){
+    const sLine=mainBlock.querySelector('.scionLine');
+    const rLine=mainBlock.querySelector('.rootLine');
+    const royalties=mainBlock.querySelectorAll('.royaltyLine');
+    const bLine=mainBlock.querySelector('.benchLine');
+    const aLine=mainBlock.querySelector('.addressLine');
+    const hasRoyalty=royalties.length>0;
+    let big=hasRoyalty?26:30;
+    const minBig=hasRoyalty?11:14;
+    for(; big>=minBig; big--){
+      if(sLine) sLine.style.fontSize=big+'px';
+      if(rLine) rLine.style.fontSize=big+'px';
+      royalties.forEach(x=>x.style.fontSize=Math.max(4.4,Math.round(big*0.22))+'px');
+      if(bLine) bLine.style.fontSize=Math.max(4,Math.round(big*0.18))+'px';
+      if(aLine) aLine.style.fontSize=Math.max(4,Math.round(big*0.18))+'px';
+      if(wrapBlockFits(mainBlock)) break;
+    }
+    if(!wrapBlockFits(mainBlock)) mainBlock.style.lineHeight='.78';
+  }
+  const warn=document.querySelector('.obj[data-id="WEEK"] .wrapWarningBlock');
+  if(warn){
+    let fs=4.8;
+    for(; fs>=3.5; fs-=0.1){
+      warn.style.fontSize=fs.toFixed(1)+'px';
+      if(wrapBlockFits(warn.parentElement)) break;
+    }
+  }
 }
 
 function attachObjectEvents(el){
@@ -1157,8 +1133,10 @@ function clampAllObjects(){Object.keys(layout.objects).forEach(clampObject)}
 
 function objectDisplayName(id){
   if(labelType==="WRAP"){
-    const names={WO_QR:"WO QR",WO:"WO",CROP:"Crop",INTERNAL:"Internal ID",SCION:"Scion",SCION_ROYALTY:"Scion Royalty",ROOTSTOCK:"Rootstock",ROOTSTOCK_ROYALTY:"Rootstock Royalty",LOT:"Lot",ADDRESS:"Address",LOT_QR:"Lot QR",LOGO:"SG Logo",WARNING:"Warning"};
-    return names[id]||id;
+    if(id==="WO") return "WO / Crop / Internal ID";
+    if(id==="ITEM") return "Scion / Rootstock / Royalties";
+    if(id==="QR") return "Lot QR / SG Logo";
+    if(id==="WEEK") return "Warning";
   }
   if(labelType==="POT"){
     if(id==="WO") return "Work Order";
@@ -1171,12 +1149,9 @@ function objectDisplayName(id){
 function renderObjectPanel(){
   const h=$("objectPanel");
   if(!h)return;
-  if(!layout.objects[selectedId]) selectedId=defaultSelectedId(labelType);
   h.innerHTML="";
-  for(const id of objectOrder()){
-    const o=layout.objects[id];
-    if(!o) continue;
-    const b=document.createElement("button");
+  for(const id of["WO","QR","ITEM","WEEK"]){
+    const o=layout.objects[id],b=document.createElement("button");
     b.className="objectBtn"+(selectedId===id?" active":"");
     b.innerHTML=`<span>${escapeHtml(objectDisplayName(id))}</span><span class="badge">${o.locked?"LOCKED":"UNLOCKED"}</span>`;
     b.onclick=()=>selectObject(id);
@@ -1191,7 +1166,6 @@ function selectObject(id){
 }
 
 function syncControls(){
-  if(!layout.objects[selectedId]) selectedId=defaultSelectedId(labelType);
   const o=layout.objects[selectedId];
   if(!o)return;
   if($("selectedName")) $("selectedName").textContent=objectDisplayName(selectedId);
@@ -1199,7 +1173,7 @@ function syncControls(){
     const inp=$(k);
     if(inp)inp.value=Math.round(Number(o[k]||0));
   }
-  if($("fontSize")) $("fontSize").disabled=isImageObject(selectedId);
+  if($("fontSize")) $("fontSize").disabled=selectedId==="QR";
   if($("lockToggle")) $("lockToggle").checked=!!o.locked;
   if($("visibleToggle")) $("visibleToggle").checked=o.visible!==false;
   if($("safeMargin")) $("safeMargin").value=Number(layout.safeMarginPx||0);
@@ -1208,7 +1182,6 @@ function syncControls(){
 }
 
 function applyControls(){
-  if(!layout.objects[selectedId]) selectedId=defaultSelectedId(labelType);
   pushHistory();
   const o=layout.objects[selectedId];
   for(const k of["x","y","w","h","rot"]){
@@ -1216,7 +1189,7 @@ function applyControls(){
     const v=Number(inp&&inp.value);
     if(isFinite(v))o[k]=v;
   }
-  if(!isImageObject(selectedId)){
+  if(selectedId!=="QR"){
     const fs=Number($("fontSize")&&$("fontSize").value);
     if(isFinite(fs)&&fs>0)o.fontSize=fs;
     o.fontFamily="Times New Roman";
@@ -1268,8 +1241,11 @@ function renderRows(){
   const q=(($("stageSearch")&&$("stageSearch").value)||($("search")&&$("search").value)||"").toLowerCase();
   if($("search") && $("stageSearch") && $("search").value!==$("stageSearch").value) $("search").value=$("stageSearch").value;
   filteredRows=rows.filter(r=>{
-    if(labelType==="POT" && cleanDisplay(r.scion)) return false;
-    return Object.values(r).join(" ").toLowerCase().includes(q);
+    if(labelType==="POT"){
+      if(cleanDisplay(r.scion)) return false;
+      if(isExcludedPotActivity(r.act)) return false;
+    }
+    return Object.values(r).map(cleanDisplay).join(" ").toLowerCase().includes(q);
   });
   if(currentRowIndex>=filteredRows.length)currentRowIndex=0;
   const headerHtml=labelType==="POT"
@@ -1298,7 +1274,7 @@ function renderQueue(){
   queue.forEach(q=>{
     const d=document.createElement("div");
     d.className="queueItem";
-    d.innerHTML=`<div><b>${escapeHtml(cap(q.row.wo))}</b><div class="small">${escapeHtml(capClean(q.row.scion||""))} ${cleanDisplay(q.row.rootstock)?"| "+escapeHtml(capClean(q.row.rootstock)):""}</div><div class="small">${escapeHtml(capClean(q.row.labelColor||""))} • Qty ${escapeHtml(displayLabelsNeeded(q.row))}</div></div><input type="number" min="1" value="${q.qty}"><button class="danger">x</button>`;
+    d.innerHTML=`<div><b>${escapeHtml(capClean(q.row.wo))}</b><div class="small">${escapeHtml(capClean(q.row.scion||""))} ${cleanDisplay(q.row.rootstock)?"| "+escapeHtml(capClean(q.row.rootstock)):""}</div><div class="small">${escapeHtml(capClean(q.row.labelColor||""))} • Qty ${escapeHtml(displayLabelsNeeded(q.row))}</div></div><input type="number" min="1" value="${q.qty}"><button class="danger">x</button>`;
     d.querySelector("input").onchange=e=>{q.qty=Math.max(1,parseInt(e.target.value||"1",10)||1);saveQueue()};
     d.querySelector("button").onclick=()=>{queue=queue.filter(x=>x.id!==q.id);saveQueue();renderQueue()};
     h.appendChild(d);
@@ -1381,29 +1357,17 @@ function printRows(items){
 }
 function renderPrintPage(row,b){
   let out=`<div class="page">`;
-  for(const id of objectOrder()){
+  for(const id of["WO","QR","ITEM","WEEK"]){
     const o=layout.objects[id];
     if(!o||o.visible===false)continue;
     if(labelType!=="WRAP" && id==="WEEK"&&!row.week)continue;
     const outer=`position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
-    if(labelType==="WRAP") out+=`<div style="${outer}">${printWrapObjectInner(id,row,o)}</div>`;
+    if(labelType==="WRAP") out+=`<div style="${outer}">${printWrapInner(id,row,o)}</div>`;
     else if(id==="QR") out+=`<div style="${outer}"><img src="${qrUrl(row.wo)}" style="width:100%;height:100%;image-rendering:pixelated"/></div>`;
     else out+=`<div style="${outer}">${printTextInner(id,row,o)}</div>`;
   }
   return out+"</div>";
 }
-function printWrapObjectInner(id,row,o){
-  if(id==="WO_QR") return `<img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/>`;
-  if(id==="LOT_QR") { const qrText=wrapRightQrText(row); return qrText?`<img src="${qrUrl(qrText)}" style="width:100%;height:100%;image-rendering:pixelated"/>`:""; }
-  if(id==="LOGO") return `<img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain;image-rendering:auto" onerror="this.outerHTML='SG'"/>`;
-  const alignHVal=alignH(o.alignH), alignVVal=alignV(o.alignV);
-  const textAlign=o.alignH==="left"?"left":o.alignH==="right"?"right":"center";
-  const common=`position:absolute;inset:0;display:flex;align-items:${alignVVal};justify-content:${alignHVal};overflow:hidden;text-align:${textAlign};white-space:normal;word-break:break-word;overflow-wrap:anywhere;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize||8}px;line-height:.86;padding:0 1px;`;
-  if(id==="ROOTSTOCK") return `<div style="${common}text-transform:none;"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(wrapRootstockText(row))}</div>`;
-  if(id==="WARNING") return `<div style="${common}text-transform:uppercase;white-space:pre-line;line-height:.82;">${escapeHtml(WRAP_WARNING)}</div>`;
-  return `<div style="${common}text-transform:uppercase;">${escapeHtml(wrapObjectText(id,row))}</div>`;
-}
-
 function printTextInner(id,row,o){
   const r=((Number(o.rot||0)%360)+360)%360, swap=(r===90||r===270);
   const left=swap?((o.w-o.h)/2):0, top=swap?((o.h-o.w)/2):0, w=swap?o.h:o.w, h=swap?o.w:o.h;
@@ -1442,10 +1406,8 @@ function bindDirectionalButtons(){
 
 function initEvents(){
   ensureModeTabs();
-  ensureSettingsGroups();
-  removeGitHubWorkflowText();
   bindDirectionalButtons();
-  if($("labelType")) $("labelType").onchange=e=>{labelType=e.target.value;selectedId=defaultSelectedId(labelType);undoStack=[];redoStack=[];setLayout(loadWorkingLayout(labelType),false); renderRows(); updateModeTabs();};
+  if($("labelType")) $("labelType").onchange=e=>{labelType=e.target.value;selectedId="ITEM";undoStack=[];redoStack=[];setLayout(loadWorkingLayout(labelType),false); renderRows(); updateModeTabs();};
   if($("zoom")) $("zoom").oninput=renderCanvas;
   if($("search")) $("search").oninput=function(){ if($("stageSearch")) $("stageSearch").value=this.value; renderRows(); };
   if($("safeToggle")) $("safeToggle").onchange=e=>{showSafeZone=e.target.checked;renderCanvas()};
@@ -1496,6 +1458,8 @@ function initEvents(){
 
 function boot(){
   removeGitHubWorkflowText();
+  ensureControlPanelLeft();
+  ensureSettingsGroups();
   loadDefaults().then(()=>{
     layout=loadWorkingLayout(labelType);
     initEvents();
