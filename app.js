@@ -1,4 +1,4 @@
-const APP_VERSION = "6.6.0-stage-table-rsch-wraprules";
+const APP_VERSION = "6.7.0-stage-table-meta-royalty-fixes";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
@@ -37,10 +37,14 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .guide{position:absolute;background:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.8);pointer-events:none;z-index:99}
     .guide.v{width:1px;top:-9999px;height:20000px}
     .guide.h{height:1px;left:-9999px;width:20000px}
-    .stageMeta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:0 0 6px 0;padding:8px 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#e5e7eb}\n    .stageStack{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;padding-top:8px}
-    .stageMeta .metaPill{display:inline-flex;gap:6px;align-items:center;padding:5px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);font-size:12px}
+    .stageMeta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;margin:0;padding:8px 10px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(18,26,44,.98);color:#e5e7eb}
+    .stageStack{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;padding-top:8px}
+    .labelPreviewRow{display:flex;align-items:center;justify-content:center;gap:14px;max-width:100%;min-width:0}
+    .labelPreviewRow .stageMeta{flex:0 0 154px;max-width:154px;align-self:center;display:flex;flex-direction:column;align-items:stretch;justify-content:center}
+    .stageMeta .metaPill{display:flex;gap:6px;align-items:center;justify-content:space-between;padding:6px 9px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);font-size:12px;line-height:1.1;white-space:nowrap}
     .stageMeta .metaPill.colorPill{font-weight:700}
     .stageMeta b{color:#fff}
+    @media(max-width:980px){.labelPreviewRow{flex-direction:column}.labelPreviewRow .stageMeta{flex:0 0 auto;max-width:none;width:min(100%,360px);flex-direction:row;align-items:center}.stageMeta .metaPill{flex:1}}
     .table thead th{position:sticky;top:0;z-index:8;background:#0f172a;box-shadow:0 1px 0 rgba(255,255,255,.08)}
     .table{border-collapse:separate;border-spacing:0}
 
@@ -62,27 +66,29 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .potStatic{position:absolute;pointer-events:none}
     .potLogo{object-fit:contain;image-rendering:auto;background:#fff}
     .wrapWoBlock,.wrapMainBlock,.wrapQrBlock,.wrapWarningBlock{position:absolute;inset:0;display:flex;overflow:hidden}
-    .wrapWoBlock{align-items:center;gap:3px;padding:1px 2px}
-    .wrapWoQr{width:38px;height:38px;flex:0 0 38px;display:flex;align-items:center;justify-content:center}
+    .wrapWoBlock{align-items:stretch;gap:3px;padding:2px 2px}
+    .wrapWoQr{width:38px;height:38px;flex:0 0 38px;display:flex;align-items:center;justify-content:center;margin:auto 0}
     .wrapWoQr img,.wrapLotQr img,.wrapLogo img{width:100%;height:100%;display:block;image-rendering:pixelated}
-    .wrapWoText{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.86;min-width:0;flex:1;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
+    .wrapWoText{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;line-height:.86;min-width:0;flex:1;height:100%;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
     .wrapWoText .wo{font-size:17px}
     .wrapWoText .crop{font-size:13px}
     .wrapWoText .internal{font-size:12px}
-    .wrapMainBlock{flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 2px;line-height:.84;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
+    .wrapMainBlock{flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:2px 3px 1px;line-height:.86;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
     .wrapMainBlock .scionLine,.wrapMainBlock .rootLine{display:block;width:100%;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%}
-    .wrapMainBlock .scionLine{font-size:30px}
-    .wrapMainBlock .rootLine{font-size:30px}
+    .wrapMainBlock .scionLine{font-size:24px}
+    .wrapMainBlock .rootLine{font-size:24px}
+    .wrapMainBlock .royaltyLine{display:block;width:100%;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;font-size:6px;line-height:.94;margin-top:0}
     .wrapMainBlock .rootLine .on{font-size:.68em;margin-right:.18em}
     .wrapMainBlock .patentLine,.wrapMainBlock .benchLine,.wrapMainBlock .addressLine{display:block;width:100%;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%}
     .wrapMainBlock .patentLine{font-size:8px;line-height:.94;margin-top:0}
     .wrapMainBlock .benchLine{font-size:6.2px;line-height:.94;margin-top:0}
     .wrapMainBlock .addressLine{font-size:6.2px;line-height:.94;margin-top:0}
     .wrapQrBlock{align-items:center;justify-content:center;gap:2px;padding:1px 1px}
-    .wrapLotQr{width:36px;height:36px;flex:0 0 36px}
-    .wrapLogo{width:14px;height:14px;flex:0 0 14px;display:flex;align-items:center;justify-content:center}
+    .wrapLotQr{width:34px;height:34px;flex:0 0 34px}
+    .wrapLogo{width:20px;height:20px;flex:0 0 20px;display:flex;align-items:center;justify-content:center}
+    .wrapLogo img{object-fit:contain!important;image-rendering:auto!important}
     .wrapLogoFallback{font-size:8px;font-weight:900;border:1px solid #000;border-radius:999px;padding:1px 3px;line-height:1}
-    .wrapWarningBlock{align-items:center;justify-content:flex-start;padding:1px 1px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;font-size:5.9px;line-height:.88;background:#fff}
+    .wrapWarningBlock{align-items:center;justify-content:flex-start;padding:1px 2px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;font-size:4.8px;line-height:.82;background:#fff}
     /* v6.4 overrides */
     .stageStack{gap:10px!important}
     .stageMeta{margin-top:6px!important;margin-bottom:0!important;background:#121a2c!important;position:relative!important;z-index:25!important}
@@ -94,22 +100,30 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .table{table-layout:fixed!important}
     #canvasHost,.canvasHost{overflow:visible!important;width:100%!important}
 
-    /* v6.6 center-stage render table, not left-panel widening */
+    /* v6.7 stage/table layout and side meta */
     .stageWrap{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;padding:10px!important;gap:10px!important;overflow:hidden!important;background:radial-gradient(circle at center, rgba(255,255,255,.08), rgba(255,255,255,.02))!important}
-    #stageDataWrap{width:100%;flex:0 0 230px;max-height:34vh;min-height:170px;background:#0f172a;border:1px solid rgba(255,255,255,.14);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+    #canvasHost{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;min-height:0!important}
+    body.beinvt-label-pot #canvasHost{flex-direction:row!important;align-items:stretch!important}
+    #stageDataWrap{width:100%;flex:0 0 300px;max-height:44vh;min-height:210px;background:#0f172a;border:1px solid rgba(255,255,255,.14);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+    body.beinvt-label-pot #stageDataWrap{width:44%;max-width:640px;min-width:360px;flex:0 0 44%;height:min(74vh,680px);max-height:none;min-height:420px}
+    body.beinvt-label-wrap #stageDataWrap{flex-basis:285px;max-height:46vh;min-height:235px}
     #stageDataSearchRow{padding:8px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;gap:8px;align-items:center;background:#121a2c}
     #stageSearch{height:34px;width:100%;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:#0b1220;color:#e5e7eb;padding:7px 10px;font-size:13px}
     .stageTableScroll{flex:1;overflow:auto;background:#0f172a;position:relative}
-    #stageRowsTable{width:100%!important;min-width:980px!important;table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important;background:#0f172a!important}
+    #stageRowsTable{width:100%!important;min-width:780px!important;table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important;background:#0f172a!important}
+    body.beinvt-label-wrap #stageRowsTable{min-width:1040px!important}
+    body.beinvt-label-pot #stageRowsTable{min-width:720px!important}
     #stageRowsTable thead,#stageRowsTable thead tr,#stageRowsTable thead th{background:#121a2c!important;opacity:1!important;color:#e5e7eb!important}
     #stageRowsTable thead th{position:sticky!important;top:0!important;z-index:100!important;background-clip:padding-box!important;box-shadow:0 2px 0 rgba(0,0,0,.55)!important}
     #stageRowsTable tbody td{background:#0f172a!important;opacity:1!important;color:#e5e7eb!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     #stageRowsTable tr.active td{background:rgba(96,165,250,.20)!important}
     #stageRowsTable tr:hover td{background:rgba(255,255,255,.06)!important}
     #stageLabelHost{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto;position:relative;padding:8px}
+    body.beinvt-label-pot #stageLabelHost{justify-content:center;align-items:center;min-width:0}
     #stageLabelHost .stageStack{padding-top:0!important;gap:8px!important}
     .wrapMainBlock .rootLine .on{text-transform:none!important}
     .wrapMainBlock .benchLine:empty{display:none!important}
+    @media(max-width:1100px){body.beinvt-label-pot #canvasHost{flex-direction:column!important}body.beinvt-label-pot #stageDataWrap{width:100%;max-width:none;min-width:0;flex:0 0 260px;height:auto;min-height:210px}}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
@@ -200,10 +214,10 @@ function fallbackLayout(t){
     safeMarginPx:3,
     gridPx:4,
     objects:{
-      WO:{x:2,y:2,w:104,h:44,rot:0,fontSize:20,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ITEM:{x:108,y:2,w:260,h:44,rot:0,fontSize:32,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      QR:{x:370,y:2,w:46,h:44,rot:0,locked:false,visible:true},
-      WEEK:{x:418,y:2,w:60,h:44,rot:0,fontSize:12,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
+      WO:{x:2,y:2,w:108,h:44,rot:0,fontSize:18,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ITEM:{x:112,y:2,w:240,h:44,rot:0,fontSize:24,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      QR:{x:354,y:2,w:48,h:44,rot:0,locked:false,visible:true},
+      WEEK:{x:404,y:2,w:74,h:44,rot:0,fontSize:5,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
     }
   };
 }
@@ -249,6 +263,20 @@ function parseCsv(text){
   return out;
 }
 
+function normCsvKey(s){
+  return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"");
+}
+function csvVal(o,names){
+  for(const name of names){
+    if(Object.prototype.hasOwnProperty.call(o,name) && String(o[name]||"").trim()) return o[name];
+  }
+  const want=names.map(normCsvKey);
+  for(const [k,v] of Object.entries(o)){
+    if(String(v||"").trim() && want.includes(normCsvKey(k))) return v;
+  }
+  return "";
+}
+
 async function loadCsv(){
   const txt=await(await fetch("data/labels.csv?cache="+Date.now())).text();
   const g=parseCsv(txt);
@@ -258,20 +286,22 @@ async function loadCsv(){
     const o={}; h.forEach((k,i)=>o[k]=line[i]||"");
     const act=o["Activity Code"]||"";
     return {
-      wo:o["Work Order"]||"",
+      wo:csvVal(o,["Work Order","WO"])||"",
       act,
-      crop:o["Crop"]||"",
-      name:o["Name"]||"",
-      scion:o["Scion"]||"",
-      rootstock:o["Rootstock"]||"",
-      internalId:o["Internal ID"]||"",
-      lotNumber:o["Lot Number"]||"",
-      scionPatent:o["Scion Patent"]||"",
-      rootstockPatent:o["Rootstock Patent"]||"",
-      tray:o["Tray Type"]||"",
-      labelColor:o["Label Color"]||"",
-      quantity:o["Quantity"]||"1",
-      labelsNeeded:normalizeLabelCount(o["Labels Needed"]||"1"),
+      crop:csvVal(o,["Crop"])||"",
+      name:csvVal(o,["Name","Item Name"])||"",
+      scion:csvVal(o,["Scion"])||"",
+      rootstock:csvVal(o,["Rootstock","Root Stock"])||"",
+      internalId:csvVal(o,["Internal ID","InternalID","Item Internal ID"])||"",
+      lotNumber:csvVal(o,["Lot Number","Lot","Lot #"])||"",
+      scionPatent:csvVal(o,["Scion Patent","Scion Patent Number"])||"",
+      rootstockPatent:csvVal(o,["Rootstock Patent","Rootstock Patent Number","Root Stock Patent"])||"",
+      scionRoyalty:csvVal(o,["Scion Royalty","Scion Royalty Fee","Scion Royalty Amount","Scion Royalty Rate"])||"",
+      rootstockRoyalty:csvVal(o,["Rootstock Royalty","Root Stock Royalty","Rootstock Royalty Fee","Rootstock Royalty Amount","Rootstock Royalty Rate"])||"",
+      tray:csvVal(o,["Tray Type"])||"",
+      labelColor:csvVal(o,["Label Color","Color"])||"",
+      quantity:csvVal(o,["Quantity","Qty"])||"1",
+      labelsNeeded:normalizeLabelCount(csvVal(o,["Labels Needed","Labels","Label Qty"])||"1"),
       week:currentWeekNumber()
     };
   }).filter(r=>r.wo);
@@ -320,6 +350,8 @@ function currentRow(){
     lotNumber:"2026",
     scionPatent:"",
     rootstockPatent:"",
+    scionRoyalty:"",
+    rootstockRoyalty:"",
     labelsNeeded:"1"
   };
 }
@@ -433,6 +465,28 @@ function updateModeTabs(){
   const tabs=document.querySelectorAll(".modeTab[data-mode]");
   tabs.forEach(b=>b.classList.toggle("active",b.getAttribute("data-mode")===labelType));
   if($("labelType")) $("labelType").value=labelType;
+  applyModeClass();
+}
+
+function applyModeClass(){
+  if(!document.body) return;
+  document.body.classList.toggle("beinvt-label-pot",labelType==="POT");
+  document.body.classList.toggle("beinvt-label-wrap",labelType==="WRAP");
+}
+
+function removeGitHubWorkflowText(){
+  const needle="To commit a preset to GitHub: export/download JSON, then use the included manual GitHub workflow Commit layout preset.";
+  document.querySelectorAll("body *").forEach(el=>{
+    if(el.dataset && el.dataset.beinvtGitTextRemoved) return;
+    const own=[...el.childNodes].filter(n=>n.nodeType===3);
+    own.forEach(n=>{
+      if(String(n.nodeValue||"").includes(needle)){
+        n.nodeValue=String(n.nodeValue||"").replace(needle,"").trim();
+        if(el.dataset) el.dataset.beinvtGitTextRemoved="1";
+      }
+    });
+    if(el.children.length===0 && String(el.textContent||"").trim()===needle) el.remove();
+  });
 }
 
 function currentPotAutoKey(){
@@ -472,6 +526,8 @@ let __potTightenPass=false;
 function tightenPotLayoutAfterFit(){ return false; }
 
 function renderAll(){
+  applyModeClass();
+  removeGitHubWorkflowText();
   ensureModeTabs();
   updateModeTabs();
   if($("labelType")) $("labelType").value=labelType;
@@ -583,8 +639,11 @@ function renderCanvas(){
     attachObjectEvents(el);
   }
 
-  stack.appendChild(stage);
-  stack.appendChild(meta);
+  const previewRow=document.createElement("div");
+  previewRow.className="labelPreviewRow "+(labelType==="POT"?"potPreviewRow":"wrapPreviewRow");
+  previewRow.appendChild(meta);
+  previewRow.appendChild(stage);
+  stack.appendChild(previewRow);
   labelHost.appendChild(stack);
   autoFitTextObjects();
   autoFitWrapPreview();
@@ -656,10 +715,21 @@ function wrapLotLine(row){
   if(isRschRow(row)) return "";
   return cap(String(row.lotNumber||"").trim());
 }
+function cleanRoyaltyText(v){
+  return cap(String(v||"").trim());
+}
+function wrapScionRoyaltyText(row){
+  return cleanRoyaltyText(row.scionRoyalty || row.scionPatent || "");
+}
+function wrapRootstockRoyaltyText(row){
+  return cleanRoyaltyText(row.rootstockRoyalty || row.rootstockPatent || "");
+}
 function wrapPatentText(row){
   const parts=[];
-  if(String(row.scionPatent||"").trim()) parts.push(cap(row.scionPatent));
-  if(String(row.rootstockPatent||"").trim()) parts.push(cap(row.rootstockPatent));
+  const sr=wrapScionRoyaltyText(row);
+  const rr=wrapRootstockRoyaltyText(row);
+  if(sr) parts.push(sr);
+  if(rr) parts.push(rr);
   return parts.join(" | ");
 }
 function makeWrapWoInner(row){
@@ -677,9 +747,10 @@ function makeWrapWoInner(row){
 function makeWrapMainInner(row){
   const c=document.createElement("div");
   c.className="wrapMainBlock";
-  const patent=wrapPatentText(row);
+  const scionRoyalty=wrapScionRoyaltyText(row);
+  const rootstockRoyalty=wrapRootstockRoyaltyText(row);
   const lotLine=wrapLotLine(row);
-  c.innerHTML=`<div class="scionLine">${escapeHtml(wrapScionText(row))}</div><div class="rootLine"><span class="on">on</span>${escapeHtml(wrapRootstockText(row))}</div>${patent?`<div class="patentLine">${escapeHtml(patent)}</div>`:""}${lotLine?`<div class="benchLine">${escapeHtml(lotLine)}</div>`:""}<div class="addressLine">${escapeHtml(WRAP_ADDRESS)}</div>`;
+  c.innerHTML=`<div class="scionLine">${escapeHtml(wrapScionText(row))}</div>${scionRoyalty?`<div class="royaltyLine scionRoyaltyLine">${escapeHtml(scionRoyalty)}</div>`:""}<div class="rootLine"><span class="on">on</span>${escapeHtml(wrapRootstockText(row))}</div>${rootstockRoyalty?`<div class="royaltyLine rootstockRoyaltyLine">${escapeHtml(rootstockRoyalty)}</div>`:""}${lotLine?`<div class="benchLine">${escapeHtml(lotLine)}</div>`:""}<div class="addressLine">${escapeHtml(WRAP_ADDRESS)}</div>`;
   return c;
 }
 function makeWrapQrInner(row){
@@ -710,10 +781,15 @@ function makeWrapWarningInner(){
 }
 function printWrapInner(id,row,o){
   const outer=`position:absolute;left:0;top:0;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
-  if(id==="WO") return `<div style="${outer}display:flex;align-items:center;gap:3px;padding:1px 2px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;"><div style="width:38px;height:38px;flex:0 0 38px;"><img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.86;min-width:0;flex:1;"><div style="font-size:15px;">${escapeHtml(cap(row.wo||""))}</div><div style="font-size:12px;">${escapeHtml(cap(row.crop||""))}</div><div style="font-size:11px;">${escapeHtml(cap(row.internalId||""))}</div></div></div>`;
-  if(id==="ITEM") { const lotLine=wrapLotLine(row); return `<div style="${outer}display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 2px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;line-height:.84;"><div style="font-size:18px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapScionText(row))}</div><div style="font-size:18px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(wrapRootstockText(row))}</div>${wrapPatentText(row)?`<div style="font-size:6px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapPatentText(row))}</div>`:""}${lotLine?`<div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(lotLine)}</div>`:""}<div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(WRAP_ADDRESS)}</div></div>`; }
-  if(id==="QR") { const qrText=wrapRightQrText(row); return `<div style="${outer}display:flex;align-items:center;justify-content:center;gap:2px;padding:1px 1px;">${qrText?`<div style="width:36px;height:36px;flex:0 0 36px;"><img src="${qrUrl(qrText)}" style="width:100%;height:100%;image-rendering:pixelated"/></div>`:""}<div style="width:14px;height:14px;flex:0 0 14px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain" onerror="this.outerHTML='SG'"/></div></div>`; }
-  if(id==="WEEK") return `<div style="${outer}display:flex;align-items:center;justify-content:flex-start;padding:1px 1px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:5px;line-height:.86;">${escapeHtml(WRAP_WARNING)}</div>`;
+  if(id==="WO") return `<div style="${outer}display:flex;align-items:stretch;gap:3px;padding:2px 2px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;"><div style="width:38px;height:38px;flex:0 0 38px;margin:auto 0;"><img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;height:100%;line-height:.86;min-width:0;flex:1;"><div style="font-size:14px;">${escapeHtml(cap(row.wo||""))}</div><div style="font-size:11px;">${escapeHtml(cap(row.crop||""))}</div><div style="font-size:10px;">${escapeHtml(cap(row.internalId||""))}</div></div></div>`;
+  if(id==="ITEM") {
+    const lotLine=wrapLotLine(row);
+    const scionRoyalty=wrapScionRoyaltyText(row);
+    const rootstockRoyalty=wrapRootstockRoyaltyText(row);
+    return `<div style="${outer}display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:2px 3px 1px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;line-height:.86;"><div style="font-size:15px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapScionText(row))}</div>${scionRoyalty?`<div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(scionRoyalty)}</div>`:""}<div style="font-size:15px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(wrapRootstockText(row))}</div>${rootstockRoyalty?`<div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(rootstockRoyalty)}</div>`:""}${lotLine?`<div style="font-size:4.7px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(lotLine)}</div>`:""}<div style="font-size:4.7px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(WRAP_ADDRESS)}</div></div>`;
+  }
+  if(id==="QR") { const qrText=wrapRightQrText(row); return `<div style="${outer}display:flex;align-items:center;justify-content:center;gap:2px;padding:1px 1px;">${qrText?`<div style="width:34px;height:34px;flex:0 0 34px;"><img src="${qrUrl(qrText)}" style="width:100%;height:100%;image-rendering:pixelated"/></div>`:""}<div style="width:20px;height:20px;flex:0 0 20px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain;image-rendering:auto" onerror="this.outerHTML='SG'"/></div></div>`; }
+  if(id==="WEEK") return `<div style="${outer}display:flex;align-items:center;justify-content:flex-start;padding:1px 2px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:4.3px;line-height:.82;">${escapeHtml(WRAP_WARNING)}</div>`;
   return "";
 }
 
@@ -749,35 +825,36 @@ function autoFitWrapPreview(){
   const wo=document.querySelector('.obj[data-id="WO"] .wrapWoText');
   if(wo){
     const a=wo.querySelector('.wo'), b=wo.querySelector('.crop'), c=wo.querySelector('.internal');
-    let main=18;
-    for(; main>=10; main--){
+    let main=17;
+    for(; main>=8; main--){
       if(a) a.style.fontSize=main+'px';
-      if(b) b.style.fontSize=Math.max(8,Math.round(main*0.78))+'px';
-      if(c) c.style.fontSize=Math.max(7,Math.round(main*0.72))+'px';
+      if(b) b.style.fontSize=Math.max(7,Math.round(main*0.76))+'px';
+      if(c) c.style.fontSize=Math.max(7,Math.round(main*0.70))+'px';
       if(wrapBlockFits(wo.parentElement)) break;
     }
   }
   const mainBlock=document.querySelector('.obj[data-id="ITEM"] .wrapMainBlock');
   if(mainBlock){
-    const s=mainBlock.querySelector('.scionLine');
-    const r=mainBlock.querySelector('.rootLine');
-    const p=mainBlock.querySelector('.patentLine');
-    const b=mainBlock.querySelector('.benchLine');
-    const a=mainBlock.querySelector('.addressLine');
-    let big=32;
-    for(; big>=8; big--){
-      if(s) s.style.fontSize=big+'px';
-      if(r) r.style.fontSize=big+'px';
-      if(p) p.style.fontSize=Math.max(5,Math.round(big*0.28))+'px';
-      if(b) b.style.fontSize=Math.max(4,Math.round(big*0.22))+'px';
-      if(a) a.style.fontSize=Math.max(4,Math.round(big*0.22))+'px';
+    const sLine=mainBlock.querySelector('.scionLine');
+    const rLine=mainBlock.querySelector('.rootLine');
+    const royalties=mainBlock.querySelectorAll('.royaltyLine');
+    const bLine=mainBlock.querySelector('.benchLine');
+    const aLine=mainBlock.querySelector('.addressLine');
+    const hasRoyalty=royalties.length>0;
+    let big=hasRoyalty?24:28;
+    for(; big>=7; big--){
+      if(sLine) sLine.style.fontSize=big+'px';
+      if(rLine) rLine.style.fontSize=big+'px';
+      royalties.forEach(x=>x.style.fontSize=Math.max(4.2,Math.round(big*0.24))+'px');
+      if(bLine) bLine.style.fontSize=Math.max(4,Math.round(big*0.20))+'px';
+      if(aLine) aLine.style.fontSize=Math.max(4,Math.round(big*0.20))+'px';
       if(wrapBlockFits(mainBlock)) break;
     }
   }
   const warn=document.querySelector('.obj[data-id="WEEK"] .wrapWarningBlock');
   if(warn){
-    let fs=6.3;
-    for(; fs>=4; fs-=0.2){
+    let fs=4.8;
+    for(; fs>=3.5; fs-=0.1){
       warn.style.fontSize=fs.toFixed(1)+'px';
       if(wrapBlockFits(warn.parentElement)) break;
     }
@@ -930,6 +1007,21 @@ function clampObject(id){
 }
 function clampAllObjects(){Object.keys(layout.objects).forEach(clampObject)}
 
+function objectDisplayName(id){
+  if(labelType==="WRAP"){
+    if(id==="WO") return "WO / Crop / Internal ID";
+    if(id==="ITEM") return "Scion / Rootstock / Royalties";
+    if(id==="QR") return "Lot QR / SG Logo";
+    if(id==="WEEK") return "Warning";
+  }
+  if(labelType==="POT"){
+    if(id==="WO") return "Work Order";
+    if(id==="ITEM") return "Pot Stake Item";
+    if(id==="QR") return "WO QR";
+    if(id==="WEEK") return "Week";
+  }
+  return id;
+}
 function renderObjectPanel(){
   const h=$("objectPanel");
   if(!h)return;
@@ -937,7 +1029,7 @@ function renderObjectPanel(){
   for(const id of["WO","QR","ITEM","WEEK"]){
     const o=layout.objects[id],b=document.createElement("button");
     b.className="objectBtn"+(selectedId===id?" active":"");
-    b.innerHTML=`<span>${id}</span><span class="badge">${o.locked?"LOCKED":"UNLOCKED"}</span>`;
+    b.innerHTML=`<span>${escapeHtml(objectDisplayName(id))}</span><span class="badge">${o.locked?"LOCKED":"UNLOCKED"}</span>`;
     b.onclick=()=>selectObject(id);
     h.appendChild(b);
   }
@@ -952,7 +1044,7 @@ function selectObject(id){
 function syncControls(){
   const o=layout.objects[selectedId];
   if(!o)return;
-  if($("selectedName")) $("selectedName").textContent=selectedId;
+  if($("selectedName")) $("selectedName").textContent=objectDisplayName(selectedId);
   for(const k of["x","y","w","h","rot","fontSize"]){
     const inp=$(k);
     if(inp)inp.value=Math.round(Number(o[k]||0));
@@ -998,7 +1090,10 @@ function centerSelected(axis){
 
 
 function buildRowHtml(r){
-  return `<td>${escapeHtml(cap(r.wo))}</td><td>${escapeHtml(cap(r.act))}</td><td>${escapeHtml(cap(r.scion||""))}</td><td>${escapeHtml(cap(r.rootstock||""))}</td><td>${escapeHtml(cap(r.labelColor||""))}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
+  if(labelType==="POT"){
+    return `<td>${escapeHtml(cap(r.wo))}</td><td>${escapeHtml(cap(r.act))}</td><td>${escapeHtml(cap(derivedRootstock(r)||displayPotItem(r)||""))}</td><td>${escapeHtml(cap(r.labelColor||""))}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
+  }
+  return `<td>${escapeHtml(cap(r.wo))}</td><td>${escapeHtml(cap(r.crop||""))}</td><td>${escapeHtml(cap(wrapScionText(r)||""))}</td><td>${escapeHtml(cap(wrapRootstockText(r)||""))}</td><td>${escapeHtml(cap(r.internalId||""))}</td><td>${escapeHtml(cap(r.labelColor||""))}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
 }
 function renderRowBody(tb){
   if(!tb) return;
@@ -1025,7 +1120,9 @@ function renderRows(){
     return Object.values(r).join(" ").toLowerCase().includes(q);
   });
   if(currentRowIndex>=filteredRows.length)currentRowIndex=0;
-  const headerHtml="<th style='width:12%'>WO</th><th style='width:18%'>Activity</th><th style='width:20%'>Scion</th><th style='width:20%'>Rootstock</th><th style='width:12%'>Color</th><th style='width:12%'>Labels</th><th style='width:6%'></th>";
+  const headerHtml=labelType==="POT"
+    ? "<th style='width:17%'>WO</th><th style='width:25%'>Activity</th><th style='width:28%'>Item / Rootstock</th><th style='width:14%'>Color</th><th style='width:10%'>Labels</th><th style='width:6%'></th>"
+    : "<th style='width:12%'>WO</th><th style='width:12%'>Crop</th><th style='width:20%'>Scion</th><th style='width:20%'>Rootstock</th><th style='width:12%'>Internal ID</th><th style='width:10%'>Color</th><th style='width:8%'>Labels</th><th style='width:6%'></th>";
   const stageHead=$("stageRowsHead");
   if(stageHead) stageHead.innerHTML=headerHtml;
   const oldHead=document.querySelector("aside.panel .table thead tr");
@@ -1232,6 +1329,7 @@ function initEvents(){
 }
 
 function boot(){
+  removeGitHubWorkflowText();
   loadDefaults().then(()=>{
     layout=loadWorkingLayout(labelType);
     initEvents();
