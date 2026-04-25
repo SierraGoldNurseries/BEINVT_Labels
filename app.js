@@ -1,4 +1,4 @@
-const APP_VERSION = "6.7.0-stage-table-meta-royalty-fixes";
+const APP_VERSION = "6.8.0-stage-frame-table-height-fixes";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
@@ -16,7 +16,8 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
 (function injectV4Css(){
   const css = `
     .labelCanvas{background:#fff;color:#000;position:relative;overflow:hidden;border:1px solid rgba(0,0,0,.5);box-shadow:0 20px 50px rgba(0,0,0,.35)}
-    .stageInner{position:relative;transform-origin:center top}
+    .stageInner{position:absolute;left:0;top:0;transform-origin:left top}
+    .stageFrame{position:relative;flex:0 0 auto;display:block;overflow:visible}
     .obj{position:absolute;border:1px dashed rgba(250,204,21,.55);user-select:none;touch-action:none;overflow:visible}
     .obj.selected{border:2px solid #facc15;background:rgba(250,204,21,.08)}
     .obj.locked{border-color:rgba(248,113,113,.9)}
@@ -39,12 +40,12 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .guide.h{height:1px;left:-9999px;width:20000px}
     .stageMeta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;margin:0;padding:8px 10px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(18,26,44,.98);color:#e5e7eb}
     .stageStack{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;padding-top:8px}
-    .labelPreviewRow{display:flex;align-items:center;justify-content:center;gap:14px;max-width:100%;min-width:0}
-    .labelPreviewRow .stageMeta{flex:0 0 154px;max-width:154px;align-self:center;display:flex;flex-direction:column;align-items:stretch;justify-content:center}
+    .labelPreviewRow{display:flex;align-items:center;justify-content:center;gap:18px;max-width:none;min-width:max-content;flex-wrap:nowrap;overflow:visible}
+    .labelPreviewRow .stageMeta{flex:0 0 154px;max-width:154px;align-self:center;display:flex;flex-direction:column;align-items:stretch;justify-content:center;position:relative;z-index:40}
     .stageMeta .metaPill{display:flex;gap:6px;align-items:center;justify-content:space-between;padding:6px 9px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);font-size:12px;line-height:1.1;white-space:nowrap}
     .stageMeta .metaPill.colorPill{font-weight:700}
     .stageMeta b{color:#fff}
-    @media(max-width:980px){.labelPreviewRow{flex-direction:column}.labelPreviewRow .stageMeta{flex:0 0 auto;max-width:none;width:min(100%,360px);flex-direction:row;align-items:center}.stageMeta .metaPill{flex:1}}
+    @media(max-width:980px){.labelPreviewRow{flex-direction:column;min-width:0}.labelPreviewRow .stageMeta{flex:0 0 auto;max-width:none;width:min(100%,360px);flex-direction:row;align-items:center}.stageMeta .metaPill{flex:1}}
     .table thead th{position:sticky;top:0;z-index:8;background:#0f172a;box-shadow:0 1px 0 rgba(255,255,255,.08)}
     .table{border-collapse:separate;border-spacing:0}
 
@@ -102,11 +103,11 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
 
     /* v6.7 stage/table layout and side meta */
     .stageWrap{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;padding:10px!important;gap:10px!important;overflow:hidden!important;background:radial-gradient(circle at center, rgba(255,255,255,.08), rgba(255,255,255,.02))!important}
-    #canvasHost{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;min-height:0!important}
-    body.beinvt-label-pot #canvasHost{flex-direction:row!important;align-items:stretch!important}
+    #canvasHost{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;min-height:0!important;height:100%!important}
+    body.beinvt-label-pot #canvasHost{flex-direction:row!important;align-items:stretch!important;min-height:calc(100vh - 210px)!important}
     #stageDataWrap{width:100%;flex:0 0 300px;max-height:44vh;min-height:210px;background:#0f172a;border:1px solid rgba(255,255,255,.14);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-    body.beinvt-label-pot #stageDataWrap{width:44%;max-width:640px;min-width:360px;flex:0 0 44%;height:min(74vh,680px);max-height:none;min-height:420px}
-    body.beinvt-label-wrap #stageDataWrap{flex-basis:285px;max-height:46vh;min-height:235px}
+    body.beinvt-label-pot #stageDataWrap{width:44%;max-width:640px;min-width:360px;flex:0 0 44%;align-self:stretch;height:auto;max-height:none;min-height:520px}
+    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(340px,56vh,520px);max-height:none;min-height:340px}
     #stageDataSearchRow{padding:8px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;gap:8px;align-items:center;background:#121a2c}
     #stageSearch{height:34px;width:100%;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:#0b1220;color:#e5e7eb;padding:7px 10px;font-size:13px}
     .stageTableScroll{flex:1;overflow:auto;background:#0f172a;position:relative}
@@ -119,11 +120,11 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     #stageRowsTable tr.active td{background:rgba(96,165,250,.20)!important}
     #stageRowsTable tr:hover td{background:rgba(255,255,255,.06)!important}
     #stageLabelHost{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto;position:relative;padding:8px}
-    body.beinvt-label-pot #stageLabelHost{justify-content:center;align-items:center;min-width:0}
-    #stageLabelHost .stageStack{padding-top:0!important;gap:8px!important}
+    body.beinvt-label-pot #stageLabelHost{justify-content:center;align-items:flex-start;min-width:0;padding-top:0}
+    #stageLabelHost .stageStack{padding-top:0!important;gap:8px!important;align-items:center!important;justify-content:flex-start!important}
     .wrapMainBlock .rootLine .on{text-transform:none!important}
     .wrapMainBlock .benchLine:empty{display:none!important}
-    @media(max-width:1100px){body.beinvt-label-pot #canvasHost{flex-direction:column!important}body.beinvt-label-pot #stageDataWrap{width:100%;max-width:none;min-width:0;flex:0 0 260px;height:auto;min-height:210px}}
+    @media(max-width:1100px){body.beinvt-label-pot #canvasHost{flex-direction:column!important;min-height:0!important}body.beinvt-label-pot #stageDataWrap{width:100%;max-width:none;min-width:0;flex:0 0 clamp(320px,52vh,520px);height:auto;min-height:320px}}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
@@ -588,9 +589,16 @@ function renderCanvas(){
     <span class="metaPill colorPill" style="background:${escapeHtml(cm.bg)};color:${escapeHtml(cm.fg)};border-color:${escapeHtml(cm.fg==='#ffffff'?'rgba(255,255,255,.35)':'rgba(17,24,39,.2)')}">Label Color <b style="color:${escapeHtml(cm.fg)}">${escapeHtml(cm.label)}</b></span>
     <span class="metaPill">Qty <b>${escapeHtml(displayLabelsNeeded(row))}</b></span>
   `;
+  const stageFrame=document.createElement("div");
+  stageFrame.className="stageFrame";
+  stageFrame.style.width=Math.ceil(s.w*zoom)+"px";
+  stageFrame.style.height=Math.ceil(s.h*zoom)+"px";
+
   const stage=document.createElement("div");
   stage.className="stageInner";
-  stage.style.transformOrigin="center top";
+  stage.style.width=s.w+"px";
+  stage.style.height=s.h+"px";
+  stage.style.transformOrigin="left top";
   stage.style.transform=`scale(${zoom})`;
 
   const lab=document.createElement("div");
@@ -598,6 +606,7 @@ function renderCanvas(){
   lab.style.width=s.w+"px";
   lab.style.height=s.h+"px";
   stage.appendChild(lab);
+  stageFrame.appendChild(stage);
 
   if(showGrid){
     const gp=Number(($("gridPx")&&$("gridPx").value)||layout.gridPx||4);
@@ -642,7 +651,7 @@ function renderCanvas(){
   const previewRow=document.createElement("div");
   previewRow.className="labelPreviewRow "+(labelType==="POT"?"potPreviewRow":"wrapPreviewRow");
   previewRow.appendChild(meta);
-  previewRow.appendChild(stage);
+  previewRow.appendChild(stageFrame);
   stack.appendChild(previewRow);
   labelHost.appendChild(stack);
   autoFitTextObjects();
