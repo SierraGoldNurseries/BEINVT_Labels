@@ -1,9 +1,9 @@
-const APP_VERSION = "6.5.0-meta-shell-wide-table-wrapfix";
+const APP_VERSION = "6.6.0-stage-table-rsch-wraprules";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
 const WRAP_ADDRESS = "SIERRA GOLD NURSERIES YUBA CITY, CA 95991";
-const WRAP_BENCH_LINE = "BENCH CRAFT | PRUNE NORTH | HARDWOOD CUTTING | PRUNE SOUTH";
+const WRAP_BENCH_LINE = "";
 const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTINGS\nWHETHER FOR SALE\nOR OWN USE IS\nPROHIBITED UNDER\nU.S. PLANT PATENT LAWS.\nSALES OUTSIDE THE\nU.S. ARE PROHIBITED.";
 
 /*
@@ -65,7 +65,7 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .wrapWoBlock{align-items:center;gap:3px;padding:1px 2px}
     .wrapWoQr{width:38px;height:38px;flex:0 0 38px;display:flex;align-items:center;justify-content:center}
     .wrapWoQr img,.wrapLotQr img,.wrapLogo img{width:100%;height:100%;display:block;image-rendering:pixelated}
-    .wrapWoText{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.96;min-width:0;flex:1;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
+    .wrapWoText{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.86;min-width:0;flex:1;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
     .wrapWoText .wo{font-size:17px}
     .wrapWoText .crop{font-size:13px}
     .wrapWoText .internal{font-size:12px}
@@ -93,25 +93,23 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .table,.tableWrap,.tableContainer,.rowsWrap,.rowsContainer,#rowsWrap,#rowsContainer{width:100%!important;max-width:none!important}
     .table{table-layout:fixed!important}
     #canvasHost,.canvasHost{overflow:visible!important;width:100%!important}
-    .stageShell{position:relative;flex:0 0 auto;display:block}
-    .stageStack{justify-content:center!important;align-items:center!important;gap:8px!important}
-    .stageMeta{margin:6px 0 0 0!important;align-self:center!important;max-width:92vw!important}
-    .app{grid-template-columns:minmax(560px,32vw) minmax(360px,1fr) 380px!important}
-    .app > aside.panel:first-of-type{min-width:560px!important;width:560px!important;max-width:none!important}
-    .app > aside.panel:first-of-type .section:first-of-type + .section{max-height:360px!important;overflow:auto!important;background:#0f172a!important}
-    .app > aside.panel:first-of-type .table{width:100%!important;min-width:760px!important;table-layout:fixed!important;background:#0f172a!important}
-    .app > aside.panel:first-of-type .table thead,
-    .app > aside.panel:first-of-type .table thead tr,
-    .app > aside.panel:first-of-type .table thead th{background:#121a2c!important;opacity:1!important;z-index:999!important}
-    .app > aside.panel:first-of-type .table tbody td{background:#0f172a!important;opacity:1!important}
-    .wrapWoBlock{gap:5px!important;padding:1px 2px!important}
-    .wrapWoText{line-height:.98!important}
-    .wrapWoText .wo{margin-bottom:1px!important}
-    .wrapWoText .crop{margin-bottom:1px!important}
-    .wrapQrBlock{gap:1px!important;padding:1px!important}
-    .wrapLotQr{width:32px!important;height:32px!important;flex-basis:32px!important}
-    .wrapLogo{width:12px!important;height:12px!important;flex-basis:12px!important;overflow:visible!important}
-    .wrapWarningBlock{font-size:4.6px!important;line-height:.82!important;padding:0 1px!important;overflow:hidden!important;background:#fff!important}
+
+    /* v6.6 center-stage render table, not left-panel widening */
+    .stageWrap{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;padding:10px!important;gap:10px!important;overflow:hidden!important;background:radial-gradient(circle at center, rgba(255,255,255,.08), rgba(255,255,255,.02))!important}
+    #stageDataWrap{width:100%;flex:0 0 230px;max-height:34vh;min-height:170px;background:#0f172a;border:1px solid rgba(255,255,255,.14);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+    #stageDataSearchRow{padding:8px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;gap:8px;align-items:center;background:#121a2c}
+    #stageSearch{height:34px;width:100%;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:#0b1220;color:#e5e7eb;padding:7px 10px;font-size:13px}
+    .stageTableScroll{flex:1;overflow:auto;background:#0f172a;position:relative}
+    #stageRowsTable{width:100%!important;min-width:980px!important;table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important;background:#0f172a!important}
+    #stageRowsTable thead,#stageRowsTable thead tr,#stageRowsTable thead th{background:#121a2c!important;opacity:1!important;color:#e5e7eb!important}
+    #stageRowsTable thead th{position:sticky!important;top:0!important;z-index:100!important;background-clip:padding-box!important;box-shadow:0 2px 0 rgba(0,0,0,.55)!important}
+    #stageRowsTable tbody td{background:#0f172a!important;opacity:1!important;color:#e5e7eb!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #stageRowsTable tr.active td{background:rgba(96,165,250,.20)!important}
+    #stageRowsTable tr:hover td{background:rgba(255,255,255,.06)!important}
+    #stageLabelHost{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto;position:relative;padding:8px}
+    #stageLabelHost .stageStack{padding-top:0!important;gap:8px!important}
+    .wrapMainBlock .rootLine .on{text-transform:none!important}
+    .wrapMainBlock .benchLine:empty{display:none!important}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
@@ -202,10 +200,10 @@ function fallbackLayout(t){
     safeMarginPx:3,
     gridPx:4,
     objects:{
-      WO:{x:2,y:2,w:116,h:44,rot:0,fontSize:20,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ITEM:{x:120,y:2,w:228,h:44,rot:0,fontSize:32,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      QR:{x:350,y:2,w:58,h:44,rot:0,locked:false,visible:true},
-      WEEK:{x:410,y:2,w:68,h:44,rot:0,fontSize:12,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
+      WO:{x:2,y:2,w:104,h:44,rot:0,fontSize:20,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ITEM:{x:108,y:2,w:260,h:44,rot:0,fontSize:32,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      QR:{x:370,y:2,w:46,h:44,rot:0,locked:false,visible:true},
+      WEEK:{x:418,y:2,w:60,h:44,rot:0,fontSize:12,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
     }
   };
 }
@@ -330,12 +328,7 @@ function potWarningText(){ return ""; }
 function patentPieces(row){ return []; }
 function potLotQrText(row){ return String(row.wo||"").trim(); }
 function splitLotParts(row){
-  return String((row&&row.lotNumber)||"")
-    .split("|")
-    .map(s=>String(s||"").trim())
-    .filter(Boolean)
-    .map(s=>s.replace(/^[-\s]+|[-\s]+$/g,""))
-    .filter(Boolean);
+  return String((row&&row.lotNumber)||"").split("|").map(s=>String(s||"").trim()).filter(Boolean);
 }
 function isRschScion(row){
   return /rsch\s*scion/i.test(String((row&&row.scion)||"")) || /rsch\s*scion/i.test(String((row&&row.name)||""));
@@ -353,10 +346,12 @@ function derivedRootstock(row){
   const raw=String((row&&row.rootstock)||"").trim();
   const parts=splitLotParts(row);
   if(isRschRootstock(row)){
-    if(isRschScion(row)) return String(parts[1]||parts[0]||raw||"").trim();
-    return String(parts[0]||raw||"").trim();
+    return String(parts[1]||parts[0]||raw||"").trim();
   }
   return raw || String((row&&row.scion)||"").trim();
+}
+function isRschRow(row){
+  return isRschScion(row) || isRschRootstock(row) || /rsch/i.test(String((row&&row.scion)||"")+" "+String((row&&row.rootstock)||"")+" "+String((row&&row.name)||""));
 }
 function displayPotItem(row){
   const olive=/olive/i.test(row.crop||"");
@@ -491,10 +486,39 @@ function renderAll(){
   updateUndoButtons();
 }
 
-function renderCanvas(){
+function ensureStageShell(){
   const host=$("canvasHost");
-  if(!host) return;
-  host.innerHTML="";
+  if(!host) return null;
+  if(!$("stageLabelHost")){
+    host.innerHTML="";
+    const data=document.createElement("div");
+    data.id="stageDataWrap";
+    data.innerHTML=`<div id="stageDataSearchRow"><input id="stageSearch" placeholder="Search labels..."/></div><div class="stageTableScroll"><table class="table" id="stageRowsTable"><thead><tr id="stageRowsHead"></tr></thead><tbody id="stageRowsBody"></tbody></table></div>`;
+    const labelHost=document.createElement("div");
+    labelHost.id="stageLabelHost";
+    host.appendChild(data);
+    host.appendChild(labelHost);
+    const oldBody=$("rowsBody");
+    if(oldBody){
+      const oldSection=oldBody.closest(".section");
+      if(oldSection) oldSection.style.display="none";
+    }
+    const stageSearch=$("stageSearch");
+    if(stageSearch){
+      stageSearch.value=($("search")&&$("search").value)||"";
+      stageSearch.addEventListener("input",function(){
+        if($("search")) $("search").value=stageSearch.value;
+        renderRows();
+      });
+    }
+  }
+  return $("stageLabelHost");
+}
+
+function renderCanvas(){
+  const labelHost=ensureStageShell();
+  if(!labelHost) return;
+  labelHost.innerHTML="";
   syncPotAutoLayout();
   const s=sizePx(), zoom=Number(($("zoom")&&$("zoom").value)||1);
   const row=currentRow();
@@ -508,13 +532,9 @@ function renderCanvas(){
     <span class="metaPill colorPill" style="background:${escapeHtml(cm.bg)};color:${escapeHtml(cm.fg)};border-color:${escapeHtml(cm.fg==='#ffffff'?'rgba(255,255,255,.35)':'rgba(17,24,39,.2)')}">Label Color <b style="color:${escapeHtml(cm.fg)}">${escapeHtml(cm.label)}</b></span>
     <span class="metaPill">Qty <b>${escapeHtml(displayLabelsNeeded(row))}</b></span>
   `;
-  const stageShell=document.createElement("div");
-  stageShell.className="stageShell";
-  stageShell.style.width=(s.w*zoom)+"px";
-  stageShell.style.height=(s.h*zoom)+"px";
   const stage=document.createElement("div");
   stage.className="stageInner";
-  stage.style.transformOrigin="0 0";
+  stage.style.transformOrigin="center top";
   stage.style.transform=`scale(${zoom})`;
 
   const lab=document.createElement("div");
@@ -563,10 +583,9 @@ function renderCanvas(){
     attachObjectEvents(el);
   }
 
-  stageShell.appendChild(stage);
-  stack.appendChild(stageShell);
+  stack.appendChild(stage);
   stack.appendChild(meta);
-  host.appendChild(stack);
+  labelHost.appendChild(stack);
   autoFitTextObjects();
   autoFitWrapPreview();
 }
@@ -620,6 +639,7 @@ function wrapLeftQrText(row){
   return String(row.wo||"").trim() || " ";
 }
 function wrapRightQrText(row){
+  if(isRschRow(row)) return "";
   const lot=String(row.lotNumber||"").trim();
   const wo=String(row.wo||"").trim();
   return lot ? `LOT ${lot} | ${wo}` : (wo || " ");
@@ -632,12 +652,14 @@ function wrapRootstockText(row){
   if(/^platinum\s+pistachio\s+rootstock$/i.test(String(txt||"").trim())) txt = "Platinum";
   return cap(txt);
 }
+function wrapLotLine(row){
+  if(isRschRow(row)) return "";
+  return cap(String(row.lotNumber||"").trim());
+}
 function wrapPatentText(row){
   const parts=[];
   if(String(row.scionPatent||"").trim()) parts.push(cap(row.scionPatent));
   if(String(row.rootstockPatent||"").trim()) parts.push(cap(row.rootstockPatent));
-  const lot=String(row.lotNumber||"").trim();
-  if(lot) parts.push(`LOT ${cap(lot)}`);
   return parts.join(" | ");
 }
 function makeWrapWoInner(row){
@@ -656,15 +678,20 @@ function makeWrapMainInner(row){
   const c=document.createElement("div");
   c.className="wrapMainBlock";
   const patent=wrapPatentText(row);
-  c.innerHTML=`<div class="scionLine">${escapeHtml(wrapScionText(row))}</div><div class="rootLine"><span class="on">on</span>${escapeHtml(wrapRootstockText(row))}</div>${patent?`<div class="patentLine">${escapeHtml(patent)}</div>`:""}<div class="benchLine">${escapeHtml(WRAP_BENCH_LINE)}</div><div class="addressLine">${escapeHtml(WRAP_ADDRESS)}</div>`;
+  const lotLine=wrapLotLine(row);
+  c.innerHTML=`<div class="scionLine">${escapeHtml(wrapScionText(row))}</div><div class="rootLine"><span class="on">on</span>${escapeHtml(wrapRootstockText(row))}</div>${patent?`<div class="patentLine">${escapeHtml(patent)}</div>`:""}${lotLine?`<div class="benchLine">${escapeHtml(lotLine)}</div>`:""}<div class="addressLine">${escapeHtml(WRAP_ADDRESS)}</div>`;
   return c;
 }
 function makeWrapQrInner(row){
   const c=document.createElement("div");
   c.className="wrapQrBlock";
-  const qr=document.createElement("div");
-  qr.className="wrapLotQr";
-  renderQrInto(qr,wrapRightQrText(row));
+  const qrText=wrapRightQrText(row);
+  if(qrText){
+    const qr=document.createElement("div");
+    qr.className="wrapLotQr";
+    renderQrInto(qr,qrText);
+    c.appendChild(qr);
+  }
   const logo=document.createElement("div");
   logo.className="wrapLogo";
   const img=document.createElement("img");
@@ -672,7 +699,7 @@ function makeWrapQrInner(row){
   img.alt="SG";
   img.onerror=function(){ logo.innerHTML='<div class="wrapLogoFallback">SG</div>'; };
   logo.appendChild(img);
-  c.appendChild(qr); c.appendChild(logo);
+  c.appendChild(logo);
   return c;
 }
 function makeWrapWarningInner(){
@@ -684,9 +711,9 @@ function makeWrapWarningInner(){
 function printWrapInner(id,row,o){
   const outer=`position:absolute;left:0;top:0;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
   if(id==="WO") return `<div style="${outer}display:flex;align-items:center;gap:3px;padding:1px 2px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;"><div style="width:38px;height:38px;flex:0 0 38px;"><img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.86;min-width:0;flex:1;"><div style="font-size:15px;">${escapeHtml(cap(row.wo||""))}</div><div style="font-size:12px;">${escapeHtml(cap(row.crop||""))}</div><div style="font-size:11px;">${escapeHtml(cap(row.internalId||""))}</div></div></div>`;
-  if(id==="ITEM") return `<div style="${outer}display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 2px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;line-height:.84;"><div style="font-size:18px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapScionText(row))}</div><div style="font-size:18px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;"><span style="font-size:.68em;margin-right:.18em;">on</span>${escapeHtml(wrapRootstockText(row))}</div>${wrapPatentText(row)?`<div style="font-size:6px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapPatentText(row))}</div>`:""}<div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(WRAP_BENCH_LINE)}</div><div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(WRAP_ADDRESS)}</div></div>`;
-  if(id==="QR") return `<div style="${outer}display:flex;align-items:center;justify-content:center;gap:1px;padding:1px;"><div style="width:32px;height:32px;flex:0 0 32px;"><img src="${qrUrl(wrapRightQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="width:12px;height:12px;flex:0 0 12px;display:flex;align-items:center;justify-content:center;overflow:visible;"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain" onerror="this.outerHTML='SG'"/></div></div>`;
-  if(id==="WEEK") return `<div style="${outer}display:flex;align-items:center;justify-content:flex-start;padding:0 1px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:4.4px;line-height:.82;">${escapeHtml(WRAP_WARNING)}</div>`;
+  if(id==="ITEM") { const lotLine=wrapLotLine(row); return `<div style="${outer}display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 2px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;line-height:.84;"><div style="font-size:18px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapScionText(row))}</div><div style="font-size:18px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(wrapRootstockText(row))}</div>${wrapPatentText(row)?`<div style="font-size:6px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapPatentText(row))}</div>`:""}${lotLine?`<div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(lotLine)}</div>`:""}<div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(WRAP_ADDRESS)}</div></div>`; }
+  if(id==="QR") { const qrText=wrapRightQrText(row); return `<div style="${outer}display:flex;align-items:center;justify-content:center;gap:2px;padding:1px 1px;">${qrText?`<div style="width:36px;height:36px;flex:0 0 36px;"><img src="${qrUrl(qrText)}" style="width:100%;height:100%;image-rendering:pixelated"/></div>`:""}<div style="width:14px;height:14px;flex:0 0 14px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain" onerror="this.outerHTML='SG'"/></div></div>`; }
+  if(id==="WEEK") return `<div style="${outer}display:flex;align-items:center;justify-content:flex-start;padding:1px 1px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:5px;line-height:.86;">${escapeHtml(WRAP_WARNING)}</div>`;
   return "";
 }
 
@@ -749,8 +776,8 @@ function autoFitWrapPreview(){
   }
   const warn=document.querySelector('.obj[data-id="WEEK"] .wrapWarningBlock');
   if(warn){
-    let fs=5.2;
-    for(; fs>=3.4; fs-=0.2){
+    let fs=6.3;
+    for(; fs>=4; fs-=0.2){
       warn.style.fontSize=fs.toFixed(1)+'px';
       if(wrapBlockFits(warn.parentElement)) break;
     }
@@ -970,56 +997,16 @@ function centerSelected(axis){
 }
 
 
-function widenRenderTable(){
-  const body=$("rowsBody");
-  if(!body)return;
-  const table=body.closest("table");
-  if(table){
-    table.style.width="100%";
-    table.style.minWidth="760px";
-    table.style.tableLayout="fixed";
-    table.style.background="#0f172a";
-  }
-  let p=table?table.parentElement:null;
-  let steps=0;
-  while(p && p!==document.body && steps<6){
-    p.style.width="100%";
-    p.style.maxWidth="none";
-    p.style.minWidth="0";
-    if(steps===0){p.style.background="#0f172a";p.style.position="relative";}
-    steps++;
-    p=p.parentElement;
-  }
-  if(table){
-    table.querySelectorAll("thead, thead tr, thead th").forEach(el=>{
-      el.style.background="#121a2c";
-      el.style.opacity="1";
-      el.style.zIndex="999";
-      el.style.position="sticky";
-      el.style.top="0";
-    });
-    table.querySelectorAll("tbody td").forEach(el=>{
-      el.style.background="#0f172a";
-      el.style.opacity="1";
-    });
-  }
+function buildRowHtml(r){
+  return `<td>${escapeHtml(cap(r.wo))}</td><td>${escapeHtml(cap(r.act))}</td><td>${escapeHtml(cap(r.scion||""))}</td><td>${escapeHtml(cap(r.rootstock||""))}</td><td>${escapeHtml(cap(r.labelColor||""))}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
 }
-function renderRows(){
-  const q=(($("search")&&$("search").value)||"").toLowerCase();
-  filteredRows=rows.filter(r=>{
-    if(labelType==="POT" && String(r.scion||"").trim()) return false;
-    return Object.values(r).join(" ").toLowerCase().includes(q);
-  });
-  if(currentRowIndex>=filteredRows.length)currentRowIndex=0;
-  const tb=$("rowsBody");
-  if(!tb)return;
+function renderRowBody(tb){
+  if(!tb) return;
   tb.innerHTML="";
-  const head=document.querySelector(".table thead tr");
-  if(head)head.innerHTML="<th>WO</th><th>Activity</th><th>Scion</th><th>Rootstock</th><th>Color</th><th>Labels Needed</th><th></th>";
   filteredRows.slice(0,300).forEach((r,i)=>{
     const tr=document.createElement("tr");
     if(i===currentRowIndex)tr.className="active";
-    tr.innerHTML=`<td>${escapeHtml(cap(r.wo))}</td><td>${escapeHtml(cap(r.act))}</td><td>${escapeHtml(cap(r.scion||""))}</td><td>${escapeHtml(cap(r.rootstock||""))}</td><td>${escapeHtml(cap(r.labelColor||""))}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
+    tr.innerHTML=buildRowHtml(r);
     tr.onclick=e=>{
       if(e.target.tagName==="BUTTON"){addToQueue(r);return}
       currentRowIndex=i;
@@ -1028,7 +1015,23 @@ function renderRows(){
     };
     tb.appendChild(tr);
   });
-  widenRenderTable();
+}
+function renderRows(){
+  ensureStageShell();
+  const q=(($("stageSearch")&&$("stageSearch").value)||($("search")&&$("search").value)||"").toLowerCase();
+  if($("search") && $("stageSearch") && $("search").value!==$("stageSearch").value) $("search").value=$("stageSearch").value;
+  filteredRows=rows.filter(r=>{
+    if(labelType==="POT" && String(r.scion||"").trim()) return false;
+    return Object.values(r).join(" ").toLowerCase().includes(q);
+  });
+  if(currentRowIndex>=filteredRows.length)currentRowIndex=0;
+  const headerHtml="<th style='width:12%'>WO</th><th style='width:18%'>Activity</th><th style='width:20%'>Scion</th><th style='width:20%'>Rootstock</th><th style='width:12%'>Color</th><th style='width:12%'>Labels</th><th style='width:6%'></th>";
+  const stageHead=$("stageRowsHead");
+  if(stageHead) stageHead.innerHTML=headerHtml;
+  const oldHead=document.querySelector("aside.panel .table thead tr");
+  if(oldHead) oldHead.innerHTML=headerHtml;
+  renderRowBody($("stageRowsBody"));
+  renderRowBody($("rowsBody"));
 }
 
 function addToQueue(r=currentRow()){
@@ -1181,7 +1184,7 @@ function initEvents(){
   bindDirectionalButtons();
   if($("labelType")) $("labelType").onchange=e=>{labelType=e.target.value;selectedId="ITEM";undoStack=[];redoStack=[];setLayout(loadWorkingLayout(labelType),false); renderRows(); updateModeTabs();};
   if($("zoom")) $("zoom").oninput=renderCanvas;
-  if($("search")) $("search").oninput=renderRows;
+  if($("search")) $("search").oninput=function(){ if($("stageSearch")) $("stageSearch").value=this.value; renderRows(); };
   if($("safeToggle")) $("safeToggle").onchange=e=>{showSafeZone=e.target.checked;renderCanvas()};
   if($("gridToggle")) $("gridToggle").onchange=e=>{showGrid=e.target.checked;renderCanvas()};
   if($("gridPx")) $("gridPx").onchange=applyControls;
