@@ -1,4 +1,4 @@
-const APP_VERSION = "5.0.0-tightstack-labelsneeded-stickyhead";
+const APP_VERSION = "5.1.0-tight-gap-labelsneeded-tabs-sticky";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 
@@ -39,6 +39,14 @@ const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5}
     .stageMeta b{color:#fff}
     .table thead th{position:sticky;top:0;z-index:8;background:#0f172a;box-shadow:0 1px 0 rgba(255,255,255,.08)}
     .table{border-collapse:separate;border-spacing:0}
+
+    .table thead th{position:sticky!important;top:0!important;z-index:50!important;background:#121a2c!important;color:#e5e7eb!important;box-shadow:0 2px 0 rgba(0,0,0,.45)!important}
+    .table{border-collapse:separate!important;border-spacing:0!important}
+    .stageStack{padding-top:26px!important;gap:18px!important}
+    .stageMeta{position:relative!important;z-index:25!important;background:#121a2c!important}
+    .modeTabs{display:inline-flex;gap:6px;align-items:center;margin-left:6px}
+    .modeTab{border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(255,255,255,.04);color:#e5e7eb;padding:8px 12px;font-size:13px;font-weight:800;cursor:pointer}
+    .modeTab.active{border-color:#60a5fa;background:rgba(96,165,250,.18)}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
@@ -193,7 +201,7 @@ async function loadCsv(){
       tray:o["Tray Type"]||"",
       labelColor:o["Label Color"]||"",
       quantity:o["Quantity"]||"1",
-      labelsNeeded:o["Labels Needed"]||"1",
+      labelsNeeded:normalizeLabelCount(o["Labels Needed"]||"1"),
       week:currentWeekNumber()
     };
   }).filter(r=>r.wo);
@@ -266,6 +274,54 @@ function colorMeta(name){
   if(probe.style.color) return {bg:key,fg:"#111827",label:raw.toUpperCase()};
   return {bg:"rgba(255,255,255,.08)",fg:"#e5e7eb",label:raw.toUpperCase()||"UNKNOWN"};
 }
+
+function normalizeLabelCount(v){
+  const n=parseFloat(String(v??"").replace(/,/g,"").trim());
+  if(isFinite(n)) return String(Math.max(1,Math.ceil(n)));
+  const raw=String(v??"").trim();
+  return raw || "1";
+}
+function displayLabelsNeeded(row){
+  return normalizeLabelCount(row && row.labelsNeeded);
+}
+function measureTextPx(text,fontPx,fontFamily){
+  try{
+    const c=measureTextPx._c||(measureTextPx._c=document.createElement("canvas"));
+    const ctx=c.getContext("2d");
+    ctx.font=`900 ${Number(fontPx||22)}px "${fontFamily||"Times New Roman"}", Georgia, serif`;
+    return Math.ceil(ctx.measureText(String(text||"")).width);
+  }catch(e){
+    return Math.ceil(String(text||"").length*Number(fontPx||22)*0.62);
+  }
+}
+function ensureModeTabs(){
+  const sel=$("labelType");
+  if(!sel||document.getElementById("modeTabs"))return;
+  sel.style.display="none";
+  const tabs=document.createElement("div");
+  tabs.id="modeTabs";
+  tabs.className="modeTabs";
+  tabs.innerHTML='<button type="button" class="modeTab" data-mode="POT">Pot Stakes</button><button type="button" class="modeTab" data-mode="WRAP">Wrap Ties</button>';
+  sel.parentNode.insertBefore(tabs, sel.nextSibling);
+  tabs.addEventListener("click",function(e){
+    const b=e.target.closest("[data-mode]");
+    if(!b)return;
+    labelType=b.getAttribute("data-mode");
+    selectedId="ITEM";
+    undoStack=[];
+    redoStack=[];
+    setLayout(loadWorkingLayout(labelType),false);
+    renderRows();
+    updateModeTabs();
+  });
+  updateModeTabs();
+}
+function updateModeTabs(){
+  const tabs=document.querySelectorAll(".modeTab[data-mode]");
+  tabs.forEach(b=>b.classList.toggle("active",b.getAttribute("data-mode")===labelType));
+  if($("labelType")) $("labelType").value=labelType;
+}
+
 function qrUrl(text){
   return "https://quickchart.io/qr?size=220&text="+encodeURIComponent(text||" ");
 }
@@ -274,15 +330,21 @@ function applyPotAutoStack(){
   if(labelType!=="POT"||!layout||!layout.objects)return;
   const objs=layout.objects;
   const limit=350;
+  const row=currentRow();
   if(objs.WO){objs.WO.x=3; objs.WO.y=8; objs.WO.w=66; objs.WO.h=18; objs.WO.rot=0;}
   if(objs.QR){objs.QR.w=Math.min(Number(objs.QR.w||50),50); objs.QR.h=Math.min(Number(objs.QR.h||50),50); objs.QR.x=Math.round((72-objs.QR.w)/2); objs.QR.y=30;}
-  if(objs.ITEM){objs.ITEM.x=2; objs.ITEM.y=84; objs.ITEM.w=68; objs.ITEM.rot=90; objs.ITEM.alignH='center'; objs.ITEM.alignV='middle';}
-  if(objs.WEEK){objs.WEEK.x=11; objs.WEEK.w=50; objs.WEEK.h=24; objs.WEEK.rot=0;}
   if(objs.ITEM){
+    objs.ITEM.x=2; objs.ITEM.y=84; objs.ITEM.w=68; objs.ITEM.rot=90; objs.ITEM.alignH='center'; objs.ITEM.alignV='middle';
     const weekH=(objs.WEEK&&Number(objs.WEEK.h||24))||24;
-    const itemMaxBottom=limit-weekH-6;
-    objs.ITEM.h=Math.max(40,itemMaxBottom-Number(objs.ITEM.y||0));
-    if(objs.WEEK) objs.WEEK.y=Math.min(limit-weekH, Number(objs.ITEM.y||0)+Number(objs.ITEM.h||0)+4);
+    const maxH=Math.max(40,limit-weekH-6-Number(objs.ITEM.y||0));
+    const txt=labelText("ITEM",row);
+    const measured=measureTextPx(txt,Number(objs.ITEM.fontSize||22),objs.ITEM.fontFamily);
+    objs.ITEM.h=clamp(measured+14,46,maxH);
+  }
+  if(objs.WEEK){
+    objs.WEEK.x=11; objs.WEEK.w=50; objs.WEEK.h=24; objs.WEEK.rot=0;
+    const y=(objs.ITEM?Number(objs.ITEM.y||0)+Number(objs.ITEM.h||0)+4:320);
+    objs.WEEK.y=clamp(Math.round(y),0,Math.max(0,limit-Number(objs.WEEK.h||24)));
   }
   clampAllObjects();
 }
@@ -317,6 +379,8 @@ function tightenPotLayoutAfterFit(){
 }
 
 function renderAll(){
+  ensureModeTabs();
+  updateModeTabs();
   if($("labelType")) $("labelType").value=labelType;
   if($("safeToggle")) $("safeToggle").checked=showSafeZone;
   if($("gridToggle")) $("gridToggle").checked=showGrid;
@@ -344,7 +408,7 @@ function renderCanvas(){
   meta.style.alignSelf='center';
   meta.innerHTML=`
     <span class="metaPill colorPill" style="background:${escapeHtml(cm.bg)};color:${escapeHtml(cm.fg)};border-color:${escapeHtml(cm.fg==='#ffffff'?'rgba(255,255,255,.35)':'rgba(17,24,39,.2)')}">Label Color <b style="color:${escapeHtml(cm.fg)}">${escapeHtml(cm.label)}</b></span>
-    <span class="metaPill">Qty <b>${escapeHtml(String(row.labelsNeeded||"1"))}</b></span>
+    <span class="metaPill">Qty <b>${escapeHtml(displayLabelsNeeded(row))}</b></span>
   `;
   stack.appendChild(meta);
   const stage=document.createElement("div");
@@ -393,12 +457,7 @@ function renderCanvas(){
   stack.appendChild(stage);
   host.appendChild(stack);
   autoFitTextObjects();
-  if(tightenPotLayoutAfterFit()){
-    __potTightenPass=true;
-    renderCanvas();
-    __potTightenPass=false;
-    return;
-  }
+  // Dynamic POT stack sizing is handled before render.
 }
 
 function makeTextInner(id,row,o){
@@ -694,7 +753,7 @@ function renderRows(){
   filteredRows.slice(0,300).forEach((r,i)=>{
     const tr=document.createElement("tr");
     if(i===currentRowIndex)tr.className="active";
-    tr.innerHTML=`<td>${escapeHtml(cap(r.wo))}</td><td>${escapeHtml(cap(r.act))}</td><td>${escapeHtml(cap(r.scion||""))}</td><td>${escapeHtml(cap(r.rootstock||""))}</td><td>${escapeHtml(cap(r.labelColor||""))}</td><td>${escapeHtml(String(r.labelsNeeded||"1"))}</td><td><button>Add</button></td>`;
+    tr.innerHTML=`<td>${escapeHtml(cap(r.wo))}</td><td>${escapeHtml(cap(r.act))}</td><td>${escapeHtml(cap(r.scion||""))}</td><td>${escapeHtml(cap(r.rootstock||""))}</td><td>${escapeHtml(cap(r.labelColor||""))}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
     tr.onclick=e=>{
       if(e.target.tagName==="BUTTON"){addToQueue(r);return}
       currentRowIndex=i;
@@ -720,7 +779,7 @@ function renderQueue(){
   queue.forEach(q=>{
     const d=document.createElement("div");
     d.className="queueItem";
-    d.innerHTML=`<div><b>${escapeHtml(cap(q.row.wo))}</b><div class="small">${escapeHtml(cap(q.row.scion||""))} ${q.row.rootstock?"| "+escapeHtml(cap(q.row.rootstock)):""}</div><div class="small">${escapeHtml(cap(q.row.labelColor||""))} • Qty ${escapeHtml(String(q.row.labelsNeeded||q.qty||1))}</div></div><input type="number" min="1" value="${q.qty}"><button class="danger">x</button>`;
+    d.innerHTML=`<div><b>${escapeHtml(cap(q.row.wo))}</b><div class="small">${escapeHtml(cap(q.row.scion||""))} ${q.row.rootstock?"| "+escapeHtml(cap(q.row.rootstock)):""}</div><div class="small">${escapeHtml(cap(q.row.labelColor||""))} • Qty ${escapeHtml(displayLabelsNeeded(q.row))}</div></div><input type="number" min="1" value="${q.qty}"><button class="danger">x</button>`;
     d.querySelector("input").onchange=e=>{q.qty=Math.max(1,parseInt(e.target.value||"1",10)||1);saveQueue()};
     d.querySelector("button").onclick=()=>{queue=queue.filter(x=>x.id!==q.id);saveQueue();renderQueue()};
     h.appendChild(d);
@@ -824,7 +883,8 @@ function printTextInner(id,row,o){
 }
 
 function initEvents(){
-  if($("labelType")) $("labelType").onchange=e=>{labelType=e.target.value;selectedId="ITEM";undoStack=[];redoStack=[];setLayout(loadWorkingLayout(labelType),false); renderRows();};
+  ensureModeTabs();
+  if($("labelType")) $("labelType").onchange=e=>{labelType=e.target.value;selectedId="ITEM";undoStack=[];redoStack=[];setLayout(loadWorkingLayout(labelType),false); renderRows(); updateModeTabs();};
   if($("zoom")) $("zoom").oninput=renderCanvas;
   if($("search")) $("search").oninput=renderRows;
   if($("safeToggle")) $("safeToggle").onchange=e=>{showSafeZone=e.target.checked;renderCanvas()};
