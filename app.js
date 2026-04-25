@@ -1,4 +1,4 @@
-const APP_VERSION = "6.4.0-rsch-table-wrap";
+const APP_VERSION = "6.5.0-meta-shell-wide-table-wrapfix";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
@@ -65,7 +65,7 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .wrapWoBlock{align-items:center;gap:3px;padding:1px 2px}
     .wrapWoQr{width:38px;height:38px;flex:0 0 38px;display:flex;align-items:center;justify-content:center}
     .wrapWoQr img,.wrapLotQr img,.wrapLogo img{width:100%;height:100%;display:block;image-rendering:pixelated}
-    .wrapWoText{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.86;min-width:0;flex:1;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
+    .wrapWoText{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.96;min-width:0;flex:1;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
     .wrapWoText .wo{font-size:17px}
     .wrapWoText .crop{font-size:13px}
     .wrapWoText .internal{font-size:12px}
@@ -93,6 +93,25 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .table,.tableWrap,.tableContainer,.rowsWrap,.rowsContainer,#rowsWrap,#rowsContainer{width:100%!important;max-width:none!important}
     .table{table-layout:fixed!important}
     #canvasHost,.canvasHost{overflow:visible!important;width:100%!important}
+    .stageShell{position:relative;flex:0 0 auto;display:block}
+    .stageStack{justify-content:center!important;align-items:center!important;gap:8px!important}
+    .stageMeta{margin:6px 0 0 0!important;align-self:center!important;max-width:92vw!important}
+    .app{grid-template-columns:minmax(560px,32vw) minmax(360px,1fr) 380px!important}
+    .app > aside.panel:first-of-type{min-width:560px!important;width:560px!important;max-width:none!important}
+    .app > aside.panel:first-of-type .section:first-of-type + .section{max-height:360px!important;overflow:auto!important;background:#0f172a!important}
+    .app > aside.panel:first-of-type .table{width:100%!important;min-width:760px!important;table-layout:fixed!important;background:#0f172a!important}
+    .app > aside.panel:first-of-type .table thead,
+    .app > aside.panel:first-of-type .table thead tr,
+    .app > aside.panel:first-of-type .table thead th{background:#121a2c!important;opacity:1!important;z-index:999!important}
+    .app > aside.panel:first-of-type .table tbody td{background:#0f172a!important;opacity:1!important}
+    .wrapWoBlock{gap:5px!important;padding:1px 2px!important}
+    .wrapWoText{line-height:.98!important}
+    .wrapWoText .wo{margin-bottom:1px!important}
+    .wrapWoText .crop{margin-bottom:1px!important}
+    .wrapQrBlock{gap:1px!important;padding:1px!important}
+    .wrapLotQr{width:32px!important;height:32px!important;flex-basis:32px!important}
+    .wrapLogo{width:12px!important;height:12px!important;flex-basis:12px!important;overflow:visible!important}
+    .wrapWarningBlock{font-size:4.6px!important;line-height:.82!important;padding:0 1px!important;overflow:hidden!important;background:#fff!important}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
@@ -183,10 +202,10 @@ function fallbackLayout(t){
     safeMarginPx:3,
     gridPx:4,
     objects:{
-      WO:{x:2,y:2,w:104,h:44,rot:0,fontSize:20,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ITEM:{x:108,y:2,w:260,h:44,rot:0,fontSize:32,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      QR:{x:370,y:2,w:46,h:44,rot:0,locked:false,visible:true},
-      WEEK:{x:418,y:2,w:60,h:44,rot:0,fontSize:12,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
+      WO:{x:2,y:2,w:116,h:44,rot:0,fontSize:20,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ITEM:{x:120,y:2,w:228,h:44,rot:0,fontSize:32,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      QR:{x:350,y:2,w:58,h:44,rot:0,locked:false,visible:true},
+      WEEK:{x:410,y:2,w:68,h:44,rot:0,fontSize:12,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
     }
   };
 }
@@ -311,7 +330,12 @@ function potWarningText(){ return ""; }
 function patentPieces(row){ return []; }
 function potLotQrText(row){ return String(row.wo||"").trim(); }
 function splitLotParts(row){
-  return String((row&&row.lotNumber)||"").split("|").map(s=>String(s||"").trim()).filter(Boolean);
+  return String((row&&row.lotNumber)||"")
+    .split("|")
+    .map(s=>String(s||"").trim())
+    .filter(Boolean)
+    .map(s=>s.replace(/^[-\s]+|[-\s]+$/g,""))
+    .filter(Boolean);
 }
 function isRschScion(row){
   return /rsch\s*scion/i.test(String((row&&row.scion)||"")) || /rsch\s*scion/i.test(String((row&&row.name)||""));
@@ -484,9 +508,13 @@ function renderCanvas(){
     <span class="metaPill colorPill" style="background:${escapeHtml(cm.bg)};color:${escapeHtml(cm.fg)};border-color:${escapeHtml(cm.fg==='#ffffff'?'rgba(255,255,255,.35)':'rgba(17,24,39,.2)')}">Label Color <b style="color:${escapeHtml(cm.fg)}">${escapeHtml(cm.label)}</b></span>
     <span class="metaPill">Qty <b>${escapeHtml(displayLabelsNeeded(row))}</b></span>
   `;
+  const stageShell=document.createElement("div");
+  stageShell.className="stageShell";
+  stageShell.style.width=(s.w*zoom)+"px";
+  stageShell.style.height=(s.h*zoom)+"px";
   const stage=document.createElement("div");
   stage.className="stageInner";
-  stage.style.transformOrigin="center top";
+  stage.style.transformOrigin="0 0";
   stage.style.transform=`scale(${zoom})`;
 
   const lab=document.createElement("div");
@@ -535,7 +563,8 @@ function renderCanvas(){
     attachObjectEvents(el);
   }
 
-  stack.appendChild(stage);
+  stageShell.appendChild(stage);
+  stack.appendChild(stageShell);
   stack.appendChild(meta);
   host.appendChild(stack);
   autoFitTextObjects();
@@ -656,8 +685,8 @@ function printWrapInner(id,row,o){
   const outer=`position:absolute;left:0;top:0;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
   if(id==="WO") return `<div style="${outer}display:flex;align-items:center;gap:3px;padding:1px 2px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;"><div style="width:38px;height:38px;flex:0 0 38px;"><img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.86;min-width:0;flex:1;"><div style="font-size:15px;">${escapeHtml(cap(row.wo||""))}</div><div style="font-size:12px;">${escapeHtml(cap(row.crop||""))}</div><div style="font-size:11px;">${escapeHtml(cap(row.internalId||""))}</div></div></div>`;
   if(id==="ITEM") return `<div style="${outer}display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 2px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;line-height:.84;"><div style="font-size:18px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapScionText(row))}</div><div style="font-size:18px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;"><span style="font-size:.68em;margin-right:.18em;">on</span>${escapeHtml(wrapRootstockText(row))}</div>${wrapPatentText(row)?`<div style="font-size:6px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapPatentText(row))}</div>`:""}<div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(WRAP_BENCH_LINE)}</div><div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(WRAP_ADDRESS)}</div></div>`;
-  if(id==="QR") return `<div style="${outer}display:flex;align-items:center;justify-content:center;gap:2px;padding:1px 1px;"><div style="width:36px;height:36px;flex:0 0 36px;"><img src="${qrUrl(wrapRightQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="width:14px;height:14px;flex:0 0 14px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain" onerror="this.outerHTML='SG'"/></div></div>`;
-  if(id==="WEEK") return `<div style="${outer}display:flex;align-items:center;justify-content:flex-start;padding:1px 1px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:5px;line-height:.86;">${escapeHtml(WRAP_WARNING)}</div>`;
+  if(id==="QR") return `<div style="${outer}display:flex;align-items:center;justify-content:center;gap:1px;padding:1px;"><div style="width:32px;height:32px;flex:0 0 32px;"><img src="${qrUrl(wrapRightQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="width:12px;height:12px;flex:0 0 12px;display:flex;align-items:center;justify-content:center;overflow:visible;"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain" onerror="this.outerHTML='SG'"/></div></div>`;
+  if(id==="WEEK") return `<div style="${outer}display:flex;align-items:center;justify-content:flex-start;padding:0 1px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:4.4px;line-height:.82;">${escapeHtml(WRAP_WARNING)}</div>`;
   return "";
 }
 
@@ -720,8 +749,8 @@ function autoFitWrapPreview(){
   }
   const warn=document.querySelector('.obj[data-id="WEEK"] .wrapWarningBlock');
   if(warn){
-    let fs=6.3;
-    for(; fs>=4; fs-=0.2){
+    let fs=5.2;
+    for(; fs>=3.4; fs-=0.2){
       warn.style.fontSize=fs.toFixed(1)+'px';
       if(wrapBlockFits(warn.parentElement)) break;
     }
@@ -947,25 +976,30 @@ function widenRenderTable(){
   const table=body.closest("table");
   if(table){
     table.style.width="100%";
+    table.style.minWidth="760px";
     table.style.tableLayout="fixed";
+    table.style.background="#0f172a";
   }
   let p=table?table.parentElement:null;
   let steps=0;
-  while(p && p!==document.body && steps<4){
+  while(p && p!==document.body && steps<6){
     p.style.width="100%";
     p.style.maxWidth="none";
     p.style.minWidth="0";
+    if(steps===0){p.style.background="#0f172a";p.style.position="relative";}
     steps++;
     p=p.parentElement;
-  }
-  const scrollWrap=(table&&table.parentElement)||null;
-  if(scrollWrap){
-    scrollWrap.style.background="#0f172a";
-    scrollWrap.style.position="relative";
   }
   if(table){
     table.querySelectorAll("thead, thead tr, thead th").forEach(el=>{
       el.style.background="#121a2c";
+      el.style.opacity="1";
+      el.style.zIndex="999";
+      el.style.position="sticky";
+      el.style.top="0";
+    });
+    table.querySelectorAll("tbody td").forEach(el=>{
+      el.style.background="#0f172a";
       el.style.opacity="1";
     });
   }
