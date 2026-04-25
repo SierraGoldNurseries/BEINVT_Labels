@@ -1,4 +1,4 @@
-const APP_VERSION = "4.3.0-invisible-handles-week-fix";
+const APP_VERSION = "4.4.0-smooth-invisible-handles-live-fit";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 
@@ -34,6 +34,26 @@ const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5}
     .guide{position:absolute;background:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.8);pointer-events:none;z-index:99}
     .guide.v{width:1px;top:-9999px;height:20000px}
     .guide.h{height:1px;left:-9999px;width:20000px}
+
+    /* Final override: BarTender-style selection only, invisible resize hit zones */
+    .obj .handle{
+      background:transparent!important;
+      border:0!important;
+      box-shadow:none!important;
+      opacity:0!important;
+      display:none;
+    }
+    .obj.selected .handle{display:block!important}
+    .obj.selected{outline:1px solid #facc15!important;border:1px solid #facc15!important;background:rgba(250,204,21,.04)!important}
+    .handle.n{top:-10px!important;left:10px!important;right:10px!important;height:20px!important;width:auto!important;cursor:ns-resize!important}
+    .handle.s{bottom:-10px!important;left:10px!important;right:10px!important;height:20px!important;width:auto!important;cursor:ns-resize!important}
+    .handle.e{right:-10px!important;top:10px!important;bottom:10px!important;width:20px!important;height:auto!important;cursor:ew-resize!important}
+    .handle.w{left:-10px!important;top:10px!important;bottom:10px!important;width:20px!important;height:auto!important;cursor:ew-resize!important}
+    .handle.ne{right:-12px!important;top:-12px!important;width:24px!important;height:24px!important;cursor:nesw-resize!important}
+    .handle.nw{left:-12px!important;top:-12px!important;width:24px!important;height:24px!important;cursor:nwse-resize!important}
+    .handle.se{right:-12px!important;bottom:-12px!important;width:24px!important;height:24px!important;cursor:nwse-resize!important}
+    .handle.sw{left:-12px!important;bottom:-12px!important;width:24px!important;height:24px!important;cursor:nesw-resize!important}
+    .inner{color:#000!important}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
@@ -373,6 +393,34 @@ function autoFitTextObjects(){
   }
 }
 
+
+function fitOneTextObject(id){
+  const e=document.querySelector(`.obj[data-id="${id}"]`);
+  const c=e&&e.querySelector(".inner");
+  if(!c||!layout||!layout.objects||!layout.objects[id])return;
+  const o=layout.objects[id];
+  applyInnerRotation(c,o);
+  c.style.color="#000";
+  const r=((Number(o.rot||0)%360)+360)%360, swap=(r===90||r===270);
+  const maxW=swap?o.h:o.w, maxH=swap?o.w:o.h;
+  let hi=Number(o.fontSize||16),lo=6,best=lo;
+  c.style.fontSize=hi+"px";
+  if(c.scrollWidth<=maxW && c.scrollHeight<=maxH)return;
+  while(lo<=hi){
+    const mid=Math.floor((lo+hi)/2);
+    c.style.fontSize=mid+"px";
+    if(c.scrollWidth<=maxW && c.scrollHeight<=maxH){best=mid;lo=mid+1}
+    else hi=mid-1;
+  }
+  c.style.fontSize=best+"px";
+}
+function updateLiveBox(el,id){
+  if(!layout||!layout.objects||!layout.objects[id])return;
+  const o=layout.objects[id];
+  Object.assign(el.style,{left:o.x+"px",top:o.y+"px",width:o.w+"px",height:o.h+"px"});
+  if(id!=="QR")fitOneTextObject(id);
+}
+
 function attachObjectEvents(el){
   const id=el.dataset.id;
   el.addEventListener("pointerdown",e=>{
@@ -414,8 +462,7 @@ function startMove(e,el,id){
     o.x=Math.round(sn.x);
     o.y=Math.round(sn.y);
     clampObject(id);
-    el.style.left=o.x+"px";
-    el.style.top=o.y+"px";
+    updateLiveBox(el,id);
     syncControls();
     drawGuides(sn.guides);
   }
@@ -456,7 +503,7 @@ function startResize(e,el,id,dir){
     o.y=Math.round(sn.y);
     o.w=Math.round(sn.w);
     o.h=Math.round(sn.h);
-    Object.assign(el.style,{left:o.x+"px",top:o.y+"px",width:o.w+"px",height:o.h+"px"});
+    updateLiveBox(el,id);
     syncControls();
     drawGuides(sn.guides);
   }
