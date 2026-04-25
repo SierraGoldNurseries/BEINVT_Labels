@@ -1,4 +1,4 @@
-const APP_VERSION = "6.13.0-v10-restart-top-menu-fixed";
+const APP_VERSION = "6.14.0-from-v69-safe-menu-reapply";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
@@ -99,64 +99,67 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .table tbody td{background:#0f172a!important}
     .table,.tableWrap,.tableContainer,.rowsWrap,.rowsContainer,#rowsWrap,#rowsContainer{width:100%!important;max-width:none!important}
     .table{table-layout:fixed!important}
-    #canvasHost,.canvasHost{overflow:visible!important;width:100%!important}
+    #canvasHost,.canvasHost{overflow:hidden!important;width:100%!important}
 
     /* v6.7 stage/table layout and side meta */
     .stageWrap{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;padding:10px!important;gap:10px!important;overflow:hidden!important;background:radial-gradient(circle at center, rgba(255,255,255,.08), rgba(255,255,255,.02))!important}
     #canvasHost{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;min-height:0!important;height:100%!important}
-    body.beinvt-label-pot #canvasHost{flex-direction:row!important;align-items:stretch!important;min-height:calc(100vh - 210px)!important}
+    body.beinvt-label-pot #canvasHost{flex-direction:row!important;align-items:stretch!important;min-height:calc(100vh - 190px)!important}
     #stageDataWrap{width:100%;flex:0 0 300px;max-height:44vh;min-height:210px;background:#0f172a;border:1px solid rgba(255,255,255,.14);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-    body.beinvt-label-pot #stageDataWrap{width:44%;max-width:640px;min-width:360px;flex:0 0 44%;align-self:stretch;height:auto;max-height:none;min-height:520px}
-    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(340px,56vh,520px);max-height:none;min-height:340px}
+    body.beinvt-label-pot #stageDataWrap{order:1;width:62%;max-width:none;min-width:460px;flex:1 1 62%;align-self:stretch;height:auto;max-height:none;min-height:calc(100vh - 210px)}
+    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(420px,64vh,640px);max-height:none;min-height:420px}
     #stageDataSearchRow{padding:8px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;gap:8px;align-items:center;background:#121a2c}
     #stageSearch{height:34px;width:100%;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:#0b1220;color:#e5e7eb;padding:7px 10px;font-size:13px}
     .stageTableScroll{flex:1;overflow:auto;background:#0f172a;position:relative}
     #stageRowsTable{width:100%!important;min-width:780px!important;table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important;background:#0f172a!important}
     body.beinvt-label-wrap #stageRowsTable{min-width:1040px!important}
-    body.beinvt-label-pot #stageRowsTable{min-width:720px!important}
+    body.beinvt-label-pot #stageRowsTable{min-width:980px!important}
     #stageRowsTable thead,#stageRowsTable thead tr,#stageRowsTable thead th{background:#121a2c!important;opacity:1!important;color:#e5e7eb!important}
     #stageRowsTable thead th{position:sticky!important;top:0!important;z-index:100!important;background-clip:padding-box!important;box-shadow:0 2px 0 rgba(0,0,0,.55)!important}
     #stageRowsTable tbody td{background:#0f172a!important;opacity:1!important;color:#e5e7eb!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     #stageRowsTable tr.active td{background:rgba(96,165,250,.20)!important}
     #stageRowsTable tr:hover td{background:rgba(255,255,255,.06)!important}
-    #stageLabelHost{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto;position:relative;padding:8px}
-    body.beinvt-label-pot #stageLabelHost{justify-content:center;align-items:flex-start;min-width:0;padding-top:0}
+    #stageLabelHost{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;padding:8px}
+    body.beinvt-label-pot #stageLabelHost{order:2;flex:0 0 min(360px,38%);justify-content:center;align-items:flex-start;min-width:260px;padding-top:0}
     #stageLabelHost .stageStack{padding-top:0!important;gap:8px!important;align-items:center!important;justify-content:flex-start!important}
     .wrapMainBlock .rootLine .on{text-transform:none!important}
     .wrapMainBlock .benchLine:empty{display:none!important}
-    /* v6.10 menu consolidation, wider cards, taller render tables */
-    #canvasHost,.canvasHost{overflow:hidden!important}
-    body.beinvt-label-pot #canvasHost{min-height:calc(100vh - 175px)!important;height:calc(100vh - 175px)!important;overflow:hidden!important}
-    body.beinvt-label-pot #stageDataWrap{order:1!important;width:calc(100% - 330px)!important;max-width:none!important;min-width:560px!important;flex:1 1 auto!important;align-self:stretch!important;height:auto!important;max-height:none!important;min-height:0!important}
-    body.beinvt-label-pot #stageLabelHost{order:2!important;flex:0 0 320px!important;min-width:300px!important;overflow:hidden!important;justify-content:center!important;align-items:flex-start!important;padding-top:0!important}
-    body.beinvt-label-pot #stageRowsTable{min-width:1080px!important}
-    body.beinvt-label-wrap #canvasHost{height:calc(100vh - 135px)!important;min-height:720px!important;overflow:hidden!important}
-    body.beinvt-label-wrap #stageDataWrap{flex:1 1 auto!important;min-height:580px!important;max-height:none!important;height:auto!important}
-    body.beinvt-label-wrap #stageLabelHost{flex:0 0 118px!important;min-height:118px!important;overflow:hidden!important;align-items:flex-end!important;justify-content:center!important;padding-bottom:28px!important}
+
+    body.beinvt-label-wrap #stageLabelHost{align-items:flex-end!important;justify-content:center!important;min-height:96px!important;padding-bottom:2px!important}
     body.beinvt-label-wrap #stageLabelHost .stageStack{justify-content:flex-end!important}
-    body.beinvt-label-wrap .wrapPreviewRow{align-items:flex-end!important;transform:translateY(-10px)}
-    .labelPreviewRow .stageMeta{flex:0 0 220px!important;max-width:220px!important;min-width:220px!important}
-    .stageMeta .metaPill{min-height:28px!important;padding:7px 10px!important;font-size:12px!important}
-    body.beinvt-label-pot aside.panel,body.beinvt-label-wrap aside.panel,body.beinvt-label-pot .panel.sidebar,body.beinvt-label-wrap .panel.sidebar,body.beinvt-label-pot .settingsPanel,body.beinvt-label-wrap .settingsPanel{order:-10!important;flex:0 0 330px!important;max-width:330px!important;min-width:290px!important;overflow:auto!important}
-    body.beinvt-label-pot .stageWrap,body.beinvt-label-wrap .stageWrap{order:1!important;flex:1 1 auto!important;min-width:0!important}
-    #objectPanel{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+    body.beinvt-label-wrap .wrapPreviewRow{align-items:flex-end!important}
+    .wrapTextInner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:.86;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;padding:0 1px}
+    .wrapTextInner.leftText{align-items:center;justify-content:flex-start;text-align:left}
+    .wrapTextInner.smallText{line-height:.94}
+    .wrapTextInner.rootstockInner{text-transform:none!important}
+    .wrapTextInner .wrapOn{font-size:.68em;margin-right:.18em;text-transform:none!important}
     .objectBtn{min-width:0!important;white-space:normal!important;line-height:1.1!important}
+    #objectPanel{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+    body.beinvt-label-wrap #objectPanel{grid-template-columns:repeat(2,minmax(0,1fr))!important}
     .settingsGroupTabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 10px 0;padding:8px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(15,23,42,.72);position:sticky;top:0;z-index:30}
     .settingsGroupTab{border:1px solid rgba(255,255,255,.16);border-radius:999px;background:rgba(255,255,255,.05);color:#e5e7eb;padding:7px 10px;font-size:12px;font-weight:800;cursor:pointer}
     .settingsGroupTab.active{border-color:#60a5fa;background:rgba(96,165,250,.20);color:#fff}
     .beinvt-settings-compact .section[data-settings-group].beinvt-hidden-section{display:none!important}
     .beinvt-settings-compact .section[data-settings-group]{margin-bottom:10px!important}
+
+    @media(max-width:1100px){body.beinvt-label-pot #canvasHost{flex-direction:column!important;min-height:0!important}body.beinvt-label-pot #stageDataWrap{width:100%;max-width:none;min-width:0;flex:0 0 clamp(360px,58vh,620px);height:auto;min-height:360px}body.beinvt-label-pot #stageLabelHost{flex:0 0 auto;min-width:0}}
+
+    /* v6.14 safe reapply from v6.9: do not rebuild/move the top toolbar */
+    .labelPreviewRow .stageMeta{flex:0 0 230px!important;max-width:230px!important;min-width:230px!important}
+    .stageMeta .metaPill{min-height:30px!important;padding:7px 12px!important;font-size:12px!important;overflow:hidden;text-overflow:ellipsis}
+    .stageMeta .metaPill b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+    body.beinvt-label-pot #stageDataWrap{min-width:560px!important;flex:1 1 auto!important;max-width:none!important;min-height:calc(100vh - 205px)!important}
+    body.beinvt-label-pot #stageRowsTable{min-width:1080px!important}
+    body.beinvt-label-pot #stageLabelHost{flex:0 0 330px!important;min-width:310px!important;overflow:hidden!important;align-items:flex-start!important}
+    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(520px,72vh,760px)!important;min-height:520px!important;max-height:none!important}
+    body.beinvt-label-wrap #stageLabelHost{align-items:flex-end!important;justify-content:center!important;min-height:120px!important;padding-bottom:18px!important;overflow:hidden!important}
+    body.beinvt-label-wrap .wrapPreviewRow{align-items:flex-end!important;transform:translateY(-8px)}
+    body.beinvt-label-pot aside.panel,body.beinvt-label-wrap aside.panel,body.beinvt-label-pot .panel.sidebar,body.beinvt-label-wrap .panel.sidebar,body.beinvt-label-pot .settingsPanel,body.beinvt-label-wrap .settingsPanel{order:-10!important;flex:0 0 330px!important;max-width:330px!important;min-width:290px!important;overflow:auto!important}
+    #objectPanel{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+    .objectBtn{min-width:0!important;white-space:normal!important;line-height:1.1!important}
     .wrapMainBlock{padding:1px 3px 0!important;line-height:.88!important}
     .wrapMainBlock .scionLine,.wrapMainBlock .rootLine{line-height:.86!important}
 
-    /* v6.13 restart from v6.10: keep the original top template toolbar at the top; do not rebuild it */
-    .beinvtOriginalTopMenu{order:-999!important;position:relative!important;top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;transform:none!important;z-index:250!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;flex-wrap:wrap!important;width:100%!important;max-width:100%!important;min-height:40px!important;height:auto!important;margin:0 0 8px 0!important;padding:4px 6px 8px 6px!important;box-sizing:border-box!important;background:transparent!important;overflow:visible!important}
-    .beinvtOriginalTopMenu .modeTabs{display:inline-flex!important;margin-left:4px!important;vertical-align:middle!important;position:relative!important;top:auto!important;transform:none!important}
-    .beinvtOriginalTopMenu #zoom{width:150px!important;max-width:160px!important;min-width:110px!important;vertical-align:middle!important;position:relative!important;top:auto!important;transform:none!important}
-    .beinvtOriginalTopMenu button{white-space:nowrap!important}
-    body.beinvt-label-pot .stageWrap,body.beinvt-label-wrap .stageWrap{align-content:flex-start!important;justify-content:flex-start!important}
-    body.beinvt-label-pot .stageWrap > #canvasHost,body.beinvt-label-wrap .stageWrap > #canvasHost{order:1!important;min-height:0!important}
-    @media(max-width:1100px){body.beinvt-label-pot #canvasHost{flex-direction:column!important;min-height:0!important;height:auto!important}body.beinvt-label-pot #stageDataWrap{width:100%!important;max-width:none!important;min-width:0!important;flex:0 0 clamp(360px,60vh,640px)!important;height:auto!important;min-height:360px!important}body.beinvt-label-pot #stageLabelHost{flex:0 0 auto!important;min-width:0!important}}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
@@ -182,6 +185,9 @@ const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const cap=s=>String(s??"").toUpperCase();
 const clone=o=>JSON.parse(JSON.stringify(o));
+const POT_OBJECT_ORDER=["WO","QR","ITEM","WEEK"];
+const WRAP_OBJECT_ORDER=["WO","ITEM","QR","WEEK"];
+const IMAGE_OBJECT_IDS=new Set(["QR"]);
 function cleanDisplay(v){
   const raw=String(v??"").trim();
   if(!raw) return "";
@@ -189,6 +195,9 @@ function cleanDisplay(v){
   return raw;
 }
 function capClean(v){ return cap(cleanDisplay(v)); }
+function objectOrder(type=labelType){ return type==="WRAP"?WRAP_OBJECT_ORDER:POT_OBJECT_ORDER; }
+function defaultSelectedId(type=labelType){ return "ITEM"; }
+function isImageObject(id){ return IMAGE_OBJECT_IDS.has(id); }
 function isExcludedPotActivity(act){
   const s=String(act||"").toLowerCase().replace(/[\s_-]+/g," ").trim();
   return ["pre ship sorting","pre-ship sorting","shipping request","propagation material processing"].some(x=>s===x.replace(/[\s_-]+/g," ").trim());
@@ -266,10 +275,28 @@ function fallbackLayout(t){
   };
 }
 
+function normalizeLayoutObject(baseObj, savedObj){
+  return Object.assign({}, baseObj||{}, savedObj||{});
+}
+function normalizeLayout(src){
+  const type=(src&&src.labelType)||labelType||"POT";
+  const base=fallbackLayout(type);
+  if(!src||!src.objects) return base;
+  if(type==="WRAP" && !src.objects.ITEM){
+    return base;
+  }
+  const out=Object.assign({}, base, src, {labelType:type, objects:{}});
+  for(const id of objectOrder(type)){
+    out.objects[id]=normalizeLayoutObject(base.objects[id], src.objects[id]);
+  }
+  return out;
+}
+
 function setLayout(n,keepHist=true){
   if(keepHist)pushHistory();
-  layout=clone(n);
+  layout=normalizeLayout(clone(n));
   labelType=layout.labelType||labelType;
+  if(!layout.objects[selectedId]) selectedId=defaultSelectedId(labelType);
   potAutoLayoutKey="";
   clampAllObjects();
   saveWorkingLayout();
@@ -281,9 +308,9 @@ function saveWorkingLayout(){
 function loadWorkingLayout(type){
   try{
     const s=localStorage.getItem("beinvtWorkingLayout_"+type);
-    if(s)return JSON.parse(s);
+    if(s)return normalizeLayout(JSON.parse(s));
   }catch(e){}
-  return clone(DEFAULT_LAYOUTS[type]||fallbackLayout(type));
+  return normalizeLayout(clone(DEFAULT_LAYOUTS[type]||fallbackLayout(type)));
 }
 
 function parseCsv(text){
@@ -379,6 +406,8 @@ function currentRow(){
     lotNumber:"2026",
     scionPatent:"USPP 12345",
     rootstockPatent:"USPP 67890",
+    scionRoyalty:"SCION ROYALTY",
+    rootstockRoyalty:"ROOTSTOCK ROYALTY",
     week:"52"
   };
   return filteredRows[currentRowIndex]||rows[0]||{
@@ -496,16 +525,14 @@ function ensureModeTabs(){
     const b=e.target.closest("[data-mode]");
     if(!b)return;
     labelType=b.getAttribute("data-mode");
-    selectedId="ITEM";
+    selectedId=defaultSelectedId(labelType);
     undoStack=[];
     redoStack=[];
     setLayout(loadWorkingLayout(labelType),false);
     renderRows();
     updateModeTabs();
-    keepTopMenuOriginal();
   });
   updateModeTabs();
-  keepTopMenuOriginal();
 }
 function updateModeTabs(){
   const tabs=document.querySelectorAll(".modeTab[data-mode]");
@@ -535,139 +562,13 @@ function removeGitHubWorkflowText(){
 }
 function ensureControlPanelLeft(){
   const panel=document.querySelector("aside.panel")||document.querySelector(".panel.sidebar")||document.querySelector(".settingsPanel");
-  const stage=document.querySelector(".stageWrap")||document.querySelector("#canvasHost")?.parentElement;
-  if(!panel||!stage||!panel.parentElement||panel.dataset.beinvtLeftDone) return;
-  const parent=panel.parentElement;
-  if(stage.parentElement===parent){
-    parent.style.display=parent.style.display||"flex";
-    parent.style.alignItems=parent.style.alignItems||"stretch";
-    panel.style.order="-10";
-    stage.style.order="1";
-    panel.dataset.beinvtLeftDone="1";
-  }
-}
-function settingsSectionTitle(sec,idx){
-  const heading=sec.querySelector("h1,h2,h3,h4,.sectionTitle,.title");
-  const ids=[...sec.querySelectorAll("[id]")].map(x=>String(x.id||"").toLowerCase()).join(" ");
-  const txt=String((heading&&heading.textContent)||sec.textContent||"").toLowerCase();
-  const hay=(ids+" "+txt).replace(/[_-]+/g," ");
-  if(/objectpanel|selectedname|font size|locktoggle|visibletoggle|centerh|center selected|position|width|height|rotation/.test(hay)) return "Objects";
-  if(/queuelist|addcurrent|printqueue|clearqueue|queue/.test(hay)) return "Queue";
-  if(/presetselect|savepreset|loadpreset|deletepreset|layoutjson|exportlayout|importlayout|downloadlayout|preset|layout json/.test(hay)) return "Presets";
-  if(/printcalibration|savecalibration|measuredw|measuredh|calibration/.test(hay)) return "Calibration";
-  if(/safetoggle|gridtoggle|snaptoggle|snappx|zoom|safe zone|grid|snap|preview/.test(hay)) return "Preview";
-  if(/printlabel|testmode|test mode|print current/.test(hay)) return "Print";
-  if(/labeltype|modetabs|pot stakes|wrap ties|template|label type/.test(hay)) return "Template";
-  if(/search|rowsbody|labels|table/.test(hay)) return "Table";
-  return ["Objects","Preview","Presets","Queue","Print","Calibration"][idx]||`Group ${idx+1}`;
-}
-function activateSettingsGroup(idx){
-  const tabs=document.querySelectorAll(".settingsGroupTab[data-settings-group]");
-  const secs=document.querySelectorAll(".section[data-settings-group]");
-  tabs.forEach(t=>t.classList.toggle("active",t.dataset.settingsGroup===String(idx)));
-  secs.forEach(sec=>sec.classList.toggle("beinvt-hidden-section",sec.dataset.settingsGroup!==String(idx)));
-  localStorage.setItem("beinvtSettingsGroup",String(idx));
-}
-
-function keepTopMenuOriginal(){
-  const host=$("canvasHost");
-  const sel=$("labelType");
-  const zoom=$("zoom");
-  if(!sel) return;
-  const stageWrap=(host&&host.closest&&host.closest(".stageWrap")) || document.querySelector(".stageWrap") || (host&&host.parentElement);
-
-  function scoreToolbarCandidate(el){
-    if(!el || el===document.body || el===document.documentElement) return -999;
-    if(host && (el===host || el.contains(host))) return -999;
-    const text=String(el.textContent||"").toLowerCase();
-    let score=0;
-    if(el.contains(sel)) score+=5;
-    if(zoom && el.contains(zoom)) score+=5;
-    if(text.includes("beinvt label designer")) score+=4;
-    if(text.includes("pot stakes") || text.includes("wrap ties")) score+=2;
-    if(text.includes("zoom")) score+=1;
-    if(el.matches && el.matches(".toolbar,.topbar,.header,.stageToolbar,.controls,.controlRow,.row,.bar")) score+=4;
-    const rect=el.getBoundingClientRect ? el.getBoundingClientRect() : {width:0,height:0};
-    if(rect.height>0 && rect.height<130) score+=2;
-    if(rect.width>0 && rect.width<1200) score+=1;
-    if(text.length>500) score-=5;
-    return score;
-  }
-
-  function bestAncestor(el){
-    let best=null,bestScore=-999;
-    let n=el;
-    let guard=0;
-    while(n && n!==document.body && n!==document.documentElement && guard++<8){
-      const sc=scoreToolbarCandidate(n);
-      if(sc>bestScore){best=n;bestScore=sc;}
-      if(stageWrap && n.parentElement===stageWrap) break;
-      n=n.parentElement;
-    }
-    return bestScore>0 ? best : (el.parentElement||el);
-  }
-
-  let bar=bestAncestor(sel);
-  if(zoom && (!bar || !bar.contains(zoom))){
-    const zbar=bestAncestor(zoom);
-    if(zbar && scoreToolbarCandidate(zbar)>scoreToolbarCandidate(bar)) bar=zbar;
-  }
-  if(!bar) return;
-
-  if(stageWrap && bar.parentElement && bar.parentElement!==document.body && bar.parentElement!==document.documentElement && !(host && bar.parentElement.contains(host))){
-    const parentScore=scoreToolbarCandidate(bar.parentElement);
-    if(parentScore>=scoreToolbarCandidate(bar)) bar=bar.parentElement;
-  }
-
-  bar.classList.add("beinvtOriginalTopMenu");
-  bar.style.order="-999";
-  bar.style.position="relative";
-  bar.style.top="auto";
-  bar.style.left="auto";
-  bar.style.right="auto";
-  bar.style.bottom="auto";
-  bar.style.transform="none";
-
-  if(stageWrap && stageWrap.contains(bar) && bar.parentElement===stageWrap && host && host.parentElement===stageWrap && bar.nextElementSibling!==host){
-    stageWrap.insertBefore(bar,host);
-  }else if(stageWrap && host && host.parentElement===stageWrap && !stageWrap.contains(bar) && bar.parentElement){
-    stageWrap.insertBefore(bar,host);
-  }
-
-  const modeTabs=$("modeTabs");
-  if(modeTabs && bar.contains(sel) && !bar.contains(modeTabs)){
-    if(sel.parentElement) sel.parentElement.insertBefore(modeTabs,sel.nextSibling);
-  }
-}
-
-function ensureSettingsGroups(){
-  const panel=document.querySelector("aside.panel")||document.querySelector(".panel.sidebar")||document.querySelector(".settingsPanel");
-  if(!panel||panel.querySelector("#settingsGroupTabs")) return;
-  let sections=[];
-  try{ sections=[...panel.querySelectorAll(":scope > .section")]; }catch(e){ sections=[...panel.querySelectorAll(".section")]; }
-  sections=sections.filter(sec=>!sec.querySelector("#rowsBody")&&!sec.querySelector("#stageRowsTable")&&!sec.closest("#canvasHost"));
-  if(sections.length<2) return;
-  panel.classList.add("beinvt-settings-compact");
-  const tabs=document.createElement("div");
-  tabs.id="settingsGroupTabs";
-  tabs.className="settingsGroupTabs";
-  const used={};
-  sections.forEach((sec,idx)=>{
-    sec.dataset.settingsGroup=String(idx);
-    let title=settingsSectionTitle(sec,idx);
-    used[title]=(used[title]||0)+1;
-    if(used[title]>1) title=`${title} ${used[title]}`;
-    const btn=document.createElement("button");
-    btn.type="button";
-    btn.className="settingsGroupTab";
-    btn.dataset.settingsGroup=String(idx);
-    btn.textContent=title;
-    btn.onclick=()=>activateSettingsGroup(idx);
-    tabs.appendChild(btn);
-  });
-  panel.insertBefore(tabs,sections[0]);
-  const saved=Number(localStorage.getItem("beinvtSettingsGroup")||0);
-  activateSettingsGroup(Number.isFinite(saved)&&saved>=0&&saved<sections.length?saved:0);
+  if(!panel||panel.dataset.beinvtSafeLeftDone) return;
+  panel.style.order="-10";
+  panel.style.flex="0 0 330px";
+  panel.style.maxWidth="330px";
+  panel.style.minWidth="290px";
+  panel.style.overflow="auto";
+  panel.dataset.beinvtSafeLeftDone="1";
 }
 
 function currentPotAutoKey(){
@@ -706,13 +607,64 @@ function applyPotAutoStack(){
 let __potTightenPass=false;
 function tightenPotLayoutAfterFit(){ return false; }
 
+function settingsSectionTitle(sec,idx){
+  const heading=sec.querySelector("h1,h2,h3,h4,.sectionTitle,.title");
+  const ids=[...sec.querySelectorAll("[id]")].map(x=>String(x.id||"").toLowerCase()).join(" ");
+  const txt=String((heading&&heading.textContent)||sec.textContent||"").toLowerCase();
+  const hay=(ids+" "+txt).replace(/[_-]+/g," ");
+  if(/objectpanel|selectedname|font size|locktoggle|visibletoggle|centerh|center selected|position|width|height|rotation/.test(hay)) return "Objects";
+  if(/queuelist|addcurrent|printqueue|clearqueue|queue/.test(hay)) return "Queue";
+  if(/presetselect|savepreset|loadpreset|deletepreset|layoutjson|exportlayout|importlayout|downloadlayout|preset|layout json/.test(hay)) return "Presets";
+  if(/printcalibration|savecalibration|measuredw|measuredh|calibration/.test(hay)) return "Calibration";
+  if(/safetoggle|gridtoggle|snaptoggle|snappx|zoom|safe zone|grid|snap|preview/.test(hay)) return "Preview";
+  if(/printlabel|testmode|test mode|print current/.test(hay)) return "Print";
+  if(/labeltype|modetabs|pot stakes|wrap ties|template|label type/.test(hay)) return "Template";
+  if(/search|rowsbody|labels|table/.test(hay)) return "Table";
+  return ["Objects","Preview","Presets","Queue","Print","Calibration"][idx]||`Group ${idx+1}`;
+}
+function activateSettingsGroup(idx){
+  const tabs=document.querySelectorAll(".settingsGroupTab[data-settings-group]");
+  const secs=document.querySelectorAll(".section[data-settings-group]");
+  tabs.forEach(t=>t.classList.toggle("active",t.dataset.settingsGroup===String(idx)));
+  secs.forEach(sec=>sec.classList.toggle("beinvt-hidden-section",sec.dataset.settingsGroup!==String(idx)));
+  localStorage.setItem("beinvtSettingsGroup",String(idx));
+}
+function ensureSettingsGroups(){
+  const panel=document.querySelector("aside.panel")||document.querySelector(".panel.sidebar")||document.querySelector(".settingsPanel");
+  if(!panel||panel.querySelector("#settingsGroupTabs")) return;
+  let sections=[];
+  try{ sections=[...panel.querySelectorAll(":scope > .section")]; }catch(e){ sections=[...panel.querySelectorAll(".section")]; }
+  sections=sections.filter(sec=>!sec.querySelector("#rowsBody")&&!sec.querySelector("#stageRowsTable")&&!sec.closest("#canvasHost"));
+  if(sections.length<2) return;
+  panel.classList.add("beinvt-settings-compact");
+  const tabs=document.createElement("div");
+  tabs.id="settingsGroupTabs";
+  tabs.className="settingsGroupTabs";
+  const used={};
+  sections.forEach((sec,idx)=>{
+    sec.dataset.settingsGroup=String(idx);
+    let title=settingsSectionTitle(sec,idx);
+    used[title]=(used[title]||0)+1;
+    if(used[title]>1) title=`${title} ${used[title]}`;
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="settingsGroupTab";
+    btn.dataset.settingsGroup=String(idx);
+    btn.textContent=title;
+    btn.onclick=()=>activateSettingsGroup(idx);
+    tabs.appendChild(btn);
+  });
+  panel.insertBefore(tabs,sections[0]);
+  const saved=Number(localStorage.getItem("beinvtSettingsGroup")||0);
+  activateSettingsGroup(Number.isFinite(saved)&&saved>=0&&saved<sections.length?saved:0);
+}
+
 function renderAll(){
   applyModeClass();
   removeGitHubWorkflowText();
   ensureControlPanelLeft();
-  ensureSettingsGroups();
   ensureModeTabs();
-  keepTopMenuOriginal();
+  ensureSettingsGroups();
   updateModeTabs();
   if($("labelType")) $("labelType").value=labelType;
   if($("safeToggle")) $("safeToggle").checked=showSafeZone;
@@ -760,10 +712,11 @@ function effectiveStageZoom(requested,s,labelHost){
   if(!isFinite(z)||z<=0) z=1;
   const hostW=Math.max(1,(labelHost&&labelHost.clientWidth)||window.innerWidth||900);
   const hostH=Math.max(1,(labelHost&&labelHost.clientHeight)||window.innerHeight||500);
-  const metaW=226, gap=18;
-  const maxByW=(hostW-metaW-gap-12)/Math.max(1,s.w);
+  const metaW=236, gap=18;
+  let maxByW=(hostW-metaW-gap-18)/Math.max(1,s.w);
   const maxByH=(hostH-18)/Math.max(1,s.h);
   const hardMax=labelType==="WRAP"?1.04:1.22;
+  if(labelType==="POT") maxByW=(hostW-metaW-gap-8)/Math.max(1,s.w);
   const maxZ=Math.max(0.25,Math.min(hardMax,maxByW,maxByH));
   return clamp(z,0.25,maxZ);
 }
@@ -824,7 +777,7 @@ function renderCanvas(){
     lab.appendChild(safe);
   }
 
-  for(const id of ["WO","QR","ITEM","WEEK"]){
+  for(const id of objectOrder()){
     const o=layout.objects[id];
     if(!o||o.visible===false)continue;
     const el=document.createElement("div");
@@ -937,6 +890,54 @@ function wrapPatentText(row){
   if(rr) parts.push(rr);
   return parts.join(" | ");
 }
+function wrapObjectText(id,row){
+  if(id==="WO") return capClean(row.wo);
+  if(id==="CROP") return capClean(row.crop);
+  if(id==="INTERNAL") return capClean(row.internalId);
+  if(id==="SCION") return wrapScionText(row);
+  if(id==="SCION_ROYALTY") return wrapScionRoyaltyText(row);
+  if(id==="ROOTSTOCK") return wrapRootstockText(row);
+  if(id==="ROOTSTOCK_ROYALTY") return wrapRootstockRoyaltyText(row);
+  if(id==="LOT") return wrapLotLine(row);
+  if(id==="ADDRESS") return WRAP_ADDRESS;
+  if(id==="WARNING") return WRAP_WARNING;
+  return "";
+}
+function makeWrapTextInner(id,row,o){
+  const c=document.createElement("div");
+  c.className="wrapTextInner"+(id==="ROOTSTOCK"?" rootstockInner":"")+(["WO","CROP","INTERNAL","WARNING"].includes(id)?" leftText":"")+(["SCION_ROYALTY","ROOTSTOCK_ROYALTY","LOT","ADDRESS","WARNING"].includes(id)?" smallText":"");
+  c.style.fontSize=(o.fontSize||8)+"px";
+  c.style.justifyContent=alignH(o.alignH);
+  c.style.alignItems=alignV(o.alignV);
+  c.style.textAlign=(o.alignH==="left"?"left":o.alignH==="right"?"right":"center");
+  if(id==="ROOTSTOCK") c.innerHTML=`<span class="wrapOn">on</span>${escapeHtml(wrapRootstockText(row))}`;
+  else c.textContent=wrapObjectText(id,row);
+  return c;
+}
+function makeSgLogoInner(){
+  const c=document.createElement("div");
+  c.className="wrapLogo";
+  c.style.width="100%";
+  c.style.height="100%";
+  c.style.flex="0 0 auto";
+  const img=document.createElement("img");
+  img.src=SG_LOGO_URL;
+  img.alt="SG";
+  img.onerror=function(){ c.innerHTML='<div class="wrapLogoFallback">SG</div>'; };
+  c.appendChild(img);
+  return c;
+}
+function makeWrapObjectInner(id,row,o){
+  const c=document.createElement("div");
+  c.style.position="absolute";
+  c.style.inset="0";
+  c.style.overflow="hidden";
+  if(id==="WO_QR"){ renderQrInto(c,wrapLeftQrText(row)); return c; }
+  if(id==="LOT_QR"){ const qrText=wrapRightQrText(row); if(qrText) renderQrInto(c,qrText); return c; }
+  if(id==="LOGO") return makeSgLogoInner();
+  return makeWrapTextInner(id,row,o);
+}
+
 function makeWrapWoInner(row){
   const c=document.createElement("div");
   c.className="wrapWoBlock";
@@ -1048,6 +1049,7 @@ function autoFitWrapPreview(){
     const hasRoyalty=royalties.length>0;
     let big=hasRoyalty?26:30;
     const minBig=hasRoyalty?11:14;
+    mainBlock.style.lineHeight='.88';
     for(; big>=minBig; big--){
       if(sLine) sLine.style.fontSize=big+'px';
       if(rLine) rLine.style.fontSize=big+'px';
@@ -1232,9 +1234,12 @@ function objectDisplayName(id){
 function renderObjectPanel(){
   const h=$("objectPanel");
   if(!h)return;
+  if(!layout.objects[selectedId]) selectedId=defaultSelectedId(labelType);
   h.innerHTML="";
-  for(const id of["WO","QR","ITEM","WEEK"]){
-    const o=layout.objects[id],b=document.createElement("button");
+  for(const id of objectOrder()){
+    const o=layout.objects[id];
+    if(!o) continue;
+    const b=document.createElement("button");
     b.className="objectBtn"+(selectedId===id?" active":"");
     b.innerHTML=`<span>${escapeHtml(objectDisplayName(id))}</span><span class="badge">${o.locked?"LOCKED":"UNLOCKED"}</span>`;
     b.onclick=()=>selectObject(id);
@@ -1249,6 +1254,7 @@ function selectObject(id){
 }
 
 function syncControls(){
+  if(!layout.objects[selectedId]) selectedId=defaultSelectedId(labelType);
   const o=layout.objects[selectedId];
   if(!o)return;
   if($("selectedName")) $("selectedName").textContent=objectDisplayName(selectedId);
@@ -1256,7 +1262,7 @@ function syncControls(){
     const inp=$(k);
     if(inp)inp.value=Math.round(Number(o[k]||0));
   }
-  if($("fontSize")) $("fontSize").disabled=selectedId==="QR";
+  if($("fontSize")) $("fontSize").disabled=isImageObject(selectedId);
   if($("lockToggle")) $("lockToggle").checked=!!o.locked;
   if($("visibleToggle")) $("visibleToggle").checked=o.visible!==false;
   if($("safeMargin")) $("safeMargin").value=Number(layout.safeMarginPx||0);
@@ -1265,6 +1271,7 @@ function syncControls(){
 }
 
 function applyControls(){
+  if(!layout.objects[selectedId]) selectedId=defaultSelectedId(labelType);
   pushHistory();
   const o=layout.objects[selectedId];
   for(const k of["x","y","w","h","rot"]){
@@ -1272,7 +1279,7 @@ function applyControls(){
     const v=Number(inp&&inp.value);
     if(isFinite(v))o[k]=v;
   }
-  if(selectedId!=="QR"){
+  if(!isImageObject(selectedId)){
     const fs=Number($("fontSize")&&$("fontSize").value);
     if(isFinite(fs)&&fs>0)o.fontSize=fs;
     o.fontFamily="Times New Roman";
@@ -1357,7 +1364,7 @@ function renderQueue(){
   queue.forEach(q=>{
     const d=document.createElement("div");
     d.className="queueItem";
-    d.innerHTML=`<div><b>${escapeHtml(capClean(q.row.wo))}</b><div class="small">${escapeHtml(capClean(q.row.scion||""))} ${cleanDisplay(q.row.rootstock)?"| "+escapeHtml(capClean(q.row.rootstock)):""}</div><div class="small">${escapeHtml(capClean(q.row.labelColor||""))} • Qty ${escapeHtml(displayLabelsNeeded(q.row))}</div></div><input type="number" min="1" value="${q.qty}"><button class="danger">x</button>`;
+    d.innerHTML=`<div><b>${escapeHtml(cap(q.row.wo))}</b><div class="small">${escapeHtml(capClean(q.row.scion||""))} ${cleanDisplay(q.row.rootstock)?"| "+escapeHtml(capClean(q.row.rootstock)):""}</div><div class="small">${escapeHtml(capClean(q.row.labelColor||""))} • Qty ${escapeHtml(displayLabelsNeeded(q.row))}</div></div><input type="number" min="1" value="${q.qty}"><button class="danger">x</button>`;
     d.querySelector("input").onchange=e=>{q.qty=Math.max(1,parseInt(e.target.value||"1",10)||1);saveQueue()};
     d.querySelector("button").onclick=()=>{queue=queue.filter(x=>x.id!==q.id);saveQueue();renderQueue()};
     h.appendChild(d);
@@ -1440,7 +1447,7 @@ function printRows(items){
 }
 function renderPrintPage(row,b){
   let out=`<div class="page">`;
-  for(const id of["WO","QR","ITEM","WEEK"]){
+  for(const id of objectOrder()){
     const o=layout.objects[id];
     if(!o||o.visible===false)continue;
     if(labelType!=="WRAP" && id==="WEEK"&&!row.week)continue;
@@ -1451,6 +1458,18 @@ function renderPrintPage(row,b){
   }
   return out+"</div>";
 }
+function printWrapObjectInner(id,row,o){
+  if(id==="WO_QR") return `<img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/>`;
+  if(id==="LOT_QR") { const qrText=wrapRightQrText(row); return qrText?`<img src="${qrUrl(qrText)}" style="width:100%;height:100%;image-rendering:pixelated"/>`:""; }
+  if(id==="LOGO") return `<img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain;image-rendering:auto" onerror="this.outerHTML='SG'"/>`;
+  const alignHVal=alignH(o.alignH), alignVVal=alignV(o.alignV);
+  const textAlign=o.alignH==="left"?"left":o.alignH==="right"?"right":"center";
+  const common=`position:absolute;inset:0;display:flex;align-items:${alignVVal};justify-content:${alignHVal};overflow:hidden;text-align:${textAlign};white-space:normal;word-break:break-word;overflow-wrap:anywhere;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize||8}px;line-height:.86;padding:0 1px;`;
+  if(id==="ROOTSTOCK") return `<div style="${common}text-transform:none;"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(wrapRootstockText(row))}</div>`;
+  if(id==="WARNING") return `<div style="${common}text-transform:uppercase;white-space:pre-line;line-height:.82;">${escapeHtml(WRAP_WARNING)}</div>`;
+  return `<div style="${common}text-transform:uppercase;">${escapeHtml(wrapObjectText(id,row))}</div>`;
+}
+
 function printTextInner(id,row,o){
   const r=((Number(o.rot||0)%360)+360)%360, swap=(r===90||r===270);
   const left=swap?((o.w-o.h)/2):0, top=swap?((o.h-o.w)/2):0, w=swap?o.h:o.w, h=swap?o.w:o.h;
@@ -1489,8 +1508,10 @@ function bindDirectionalButtons(){
 
 function initEvents(){
   ensureModeTabs();
+  ensureSettingsGroups();
+  removeGitHubWorkflowText();
   bindDirectionalButtons();
-  if($("labelType")) $("labelType").onchange=e=>{labelType=e.target.value;selectedId="ITEM";undoStack=[];redoStack=[];setLayout(loadWorkingLayout(labelType),false); renderRows(); updateModeTabs();};
+  if($("labelType")) $("labelType").onchange=e=>{labelType=e.target.value;selectedId=defaultSelectedId(labelType);undoStack=[];redoStack=[];setLayout(loadWorkingLayout(labelType),false); renderRows(); updateModeTabs();};
   if($("zoom")) $("zoom").oninput=renderCanvas;
   if($("search")) $("search").oninput=function(){ if($("stageSearch")) $("stageSearch").value=this.value; renderRows(); };
   if($("safeToggle")) $("safeToggle").onchange=e=>{showSafeZone=e.target.checked;renderCanvas()};
@@ -1542,12 +1563,10 @@ function initEvents(){
 function boot(){
   removeGitHubWorkflowText();
   ensureControlPanelLeft();
-  ensureSettingsGroups();
   loadDefaults().then(()=>{
     layout=loadWorkingLayout(labelType);
     initEvents();
-    keepTopMenuOriginal();
-    loadCsv().catch(console.warn).finally(()=>{renderAll(); setTimeout(keepTopMenuOriginal,0); setTimeout(keepTopMenuOriginal,250);});
+    loadCsv().catch(console.warn).finally(renderAll);
   });
 }
 boot();
