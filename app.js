@@ -1,4 +1,4 @@
-const APP_VERSION = "6.12.0-force-top-toolbar";
+const APP_VERSION = "6.13.0-v10-restart-top-menu-fixed";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
@@ -148,19 +148,15 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .beinvt-settings-compact .section[data-settings-group]{margin-bottom:10px!important}
     .wrapMainBlock{padding:1px 3px 0!important;line-height:.88!important}
     .wrapMainBlock .scionLine,.wrapMainBlock .rootLine{line-height:.86!important}
+
+    /* v6.13 restart from v6.10: keep the original top template toolbar at the top; do not rebuild it */
+    .beinvtOriginalTopMenu{order:-999!important;position:relative!important;top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;transform:none!important;z-index:250!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;flex-wrap:wrap!important;width:100%!important;max-width:100%!important;min-height:40px!important;height:auto!important;margin:0 0 8px 0!important;padding:4px 6px 8px 6px!important;box-sizing:border-box!important;background:transparent!important;overflow:visible!important}
+    .beinvtOriginalTopMenu .modeTabs{display:inline-flex!important;margin-left:4px!important;vertical-align:middle!important;position:relative!important;top:auto!important;transform:none!important}
+    .beinvtOriginalTopMenu #zoom{width:150px!important;max-width:160px!important;min-width:110px!important;vertical-align:middle!important;position:relative!important;top:auto!important;transform:none!important}
+    .beinvtOriginalTopMenu button{white-space:nowrap!important}
+    body.beinvt-label-pot .stageWrap,body.beinvt-label-wrap .stageWrap{align-content:flex-start!important;justify-content:flex-start!important}
+    body.beinvt-label-pot .stageWrap > #canvasHost,body.beinvt-label-wrap .stageWrap > #canvasHost{order:1!important;min-height:0!important}
     @media(max-width:1100px){body.beinvt-label-pot #canvasHost{flex-direction:column!important;min-height:0!important;height:auto!important}body.beinvt-label-pot #stageDataWrap{width:100%!important;max-width:none!important;min-width:0!important;flex:0 0 clamp(360px,60vh,640px)!important;height:auto!important;min-height:360px!important}body.beinvt-label-pot #stageLabelHost{flex:0 0 auto!important;min-width:0!important}}
-    /* v6.12: force the original/template controls back into one real top toolbar */
-    body.beinvt-label-pot .stageWrap > #canvasHost,body.beinvt-label-wrap .stageWrap > #canvasHost{order:1!important;flex:1 1 auto!important;min-height:0!important}
-    body.beinvt-label-pot .stageWrap > :not(#canvasHost):not(#beinvtTopControlsBar),body.beinvt-label-wrap .stageWrap > :not(#canvasHost):not(#beinvtTopControlsBar){flex:0 0 auto!important;min-height:0!important}
-    #beinvtTopControlsBar{order:-100!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;flex-wrap:wrap!important;width:100%!important;min-height:38px!important;padding:4px 6px 8px!important;margin:0!important;box-sizing:border-box!important;position:relative!important;z-index:200!important;background:transparent!important}
-    #beinvtTopControlsBar .beinvtTopTitle{font-weight:900;color:#fff;margin-right:8px;white-space:nowrap}
-    #beinvtTopControlsBar .beinvtTopLabelText,#beinvtTopControlsBar .beinvtTopZoomText{font-size:12px;color:#9ca3af;white-space:nowrap}
-    #beinvtTopControlsBar .modeTabs{display:inline-flex!important;vertical-align:middle!important;margin-left:0!important}
-    #beinvtTopControlsBar .modeTab{padding:7px 12px!important}
-    #beinvtTopControlsBar input#zoom{width:145px!important;max-width:145px!important;vertical-align:middle!important}
-    #beinvtTopControlsBar button{white-space:nowrap!important}
-    .beinvtOldToolbarHidden{display:none!important}
-    .beinvtTopMenuKeep{position:static!important;transform:none!important}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
@@ -506,9 +502,10 @@ function ensureModeTabs(){
     setLayout(loadWorkingLayout(labelType),false);
     renderRows();
     updateModeTabs();
-    restoreTopControlsBar();
+    keepTopMenuOriginal();
   });
   updateModeTabs();
+  keepTopMenuOriginal();
 }
 function updateModeTabs(){
   const tabs=document.querySelectorAll(".modeTab[data-mode]");
@@ -571,90 +568,76 @@ function activateSettingsGroup(idx){
   secs.forEach(sec=>sec.classList.toggle("beinvt-hidden-section",sec.dataset.settingsGroup!==String(idx)));
   localStorage.setItem("beinvtSettingsGroup",String(idx));
 }
-function keepOriginalTopMenu(){
+
+function keepTopMenuOriginal(){
   const host=$("canvasHost");
   const sel=$("labelType");
   const zoom=$("zoom");
-  if(!host || !sel) return;
-  const stageWrap=host.closest(".stageWrap") || host.parentElement;
-  if(!stageWrap) return;
+  if(!sel) return;
+  const stageWrap=(host&&host.closest&&host.closest(".stageWrap")) || document.querySelector(".stageWrap") || (host&&host.parentElement);
 
-  function markAndLift(el){
-    if(!el || el===host || el.contains(host) || !stageWrap.contains(el)) return;
-    el.classList.add("beinvtTopMenuKeep");
-    if(el.parentElement===stageWrap && el.nextElementSibling!==host){
-      stageWrap.insertBefore(el,host);
-    }
+  function scoreToolbarCandidate(el){
+    if(!el || el===document.body || el===document.documentElement) return -999;
+    if(host && (el===host || el.contains(host))) return -999;
+    const text=String(el.textContent||"").toLowerCase();
+    let score=0;
+    if(el.contains(sel)) score+=5;
+    if(zoom && el.contains(zoom)) score+=5;
+    if(text.includes("beinvt label designer")) score+=4;
+    if(text.includes("pot stakes") || text.includes("wrap ties")) score+=2;
+    if(text.includes("zoom")) score+=1;
+    if(el.matches && el.matches(".toolbar,.topbar,.header,.stageToolbar,.controls,.controlRow,.row,.bar")) score+=4;
+    const rect=el.getBoundingClientRect ? el.getBoundingClientRect() : {width:0,height:0};
+    if(rect.height>0 && rect.height<130) score+=2;
+    if(rect.width>0 && rect.width<1200) score+=1;
+    if(text.length>500) score-=5;
+    return score;
   }
 
-  function compactAncestorFor(el, other){
-    if(!el) return null;
-    const preferred=el.closest(".toolbar,.topbar,.header,.stageToolbar,.controls,.row,.bar");
-    if(preferred && !preferred.contains(host) && stageWrap.contains(preferred)) return preferred;
-    let n=el.parentElement;
-    while(n && n!==document.body && n!==stageWrap){
-      if(n.contains(host)) return el.parentElement;
-      if(other && n.contains(other) && !n.contains(host)) return n;
+  function bestAncestor(el){
+    let best=null,bestScore=-999;
+    let n=el;
+    let guard=0;
+    while(n && n!==document.body && n!==document.documentElement && guard++<8){
+      const sc=scoreToolbarCandidate(n);
+      if(sc>bestScore){best=n;bestScore=sc;}
+      if(stageWrap && n.parentElement===stageWrap) break;
       n=n.parentElement;
     }
-    return el.parentElement;
+    return bestScore>0 ? best : (el.parentElement||el);
   }
 
-  const selBar=compactAncestorFor(sel,zoom);
-  markAndLift(selBar);
-
-  if(zoom && selBar && !selBar.contains(zoom)){
-    const zoomBar=compactAncestorFor(zoom,sel);
-    markAndLift(zoomBar);
+  let bar=bestAncestor(sel);
+  if(zoom && (!bar || !bar.contains(zoom))){
+    const zbar=bestAncestor(zoom);
+    if(zbar && scoreToolbarCandidate(zbar)>scoreToolbarCandidate(bar)) bar=zbar;
   }
-}
+  if(!bar) return;
 
-function restoreTopControlsBar(){
-  const host=$("canvasHost");
-  if(!host) return;
-  const stageWrap=host.closest(".stageWrap") || host.parentElement;
-  if(!stageWrap) return;
-  let bar=$("beinvtTopControlsBar");
-  if(!bar){
-    bar=document.createElement("div");
-    bar.id="beinvtTopControlsBar";
+  if(stageWrap && bar.parentElement && bar.parentElement!==document.body && bar.parentElement!==document.documentElement && !(host && bar.parentElement.contains(host))){
+    const parentScore=scoreToolbarCandidate(bar.parentElement);
+    if(parentScore>=scoreToolbarCandidate(bar)) bar=bar.parentElement;
+  }
+
+  bar.classList.add("beinvtOriginalTopMenu");
+  bar.style.order="-999";
+  bar.style.position="relative";
+  bar.style.top="auto";
+  bar.style.left="auto";
+  bar.style.right="auto";
+  bar.style.bottom="auto";
+  bar.style.transform="none";
+
+  if(stageWrap && stageWrap.contains(bar) && bar.parentElement===stageWrap && host && host.parentElement===stageWrap && bar.nextElementSibling!==host){
     stageWrap.insertBefore(bar,host);
-  }else if(bar.parentElement!==stageWrap || bar.nextElementSibling!==host){
+  }else if(stageWrap && host && host.parentElement===stageWrap && !stageWrap.contains(bar) && bar.parentElement){
     stageWrap.insertBefore(bar,host);
   }
-  if(!bar.querySelector(".beinvtTopTitle")){
-    const title=document.createElement("span");
-    title.className="beinvtTopTitle";
-    title.textContent="BEINVT Label Designer v3";
-    bar.appendChild(title);
+
+  const modeTabs=$("modeTabs");
+  if(modeTabs && bar.contains(sel) && !bar.contains(modeTabs)){
+    if(sel.parentElement) sel.parentElement.insertBefore(modeTabs,sel.nextSibling);
   }
-  const sel=$("labelType"), modeTabs=$("modeTabs"), zoom=$("zoom");
-  if(!bar.querySelector(".beinvtTopLabelText")){
-    const label=document.createElement("span");
-    label.className="beinvtTopLabelText";
-    label.textContent="Label";
-    bar.appendChild(label);
-  }
-  if(modeTabs && modeTabs.parentElement!==bar) bar.appendChild(modeTabs);
-  else if(sel && !modeTabs && sel.parentElement!==bar) bar.appendChild(sel);
-  if(zoom){
-    if(!bar.querySelector(".beinvtTopZoomText")){
-      const zlbl=document.createElement("span");
-      zlbl.className="beinvtTopZoomText";
-      zlbl.textContent="Zoom";
-      bar.appendChild(zlbl);
-    }
-    if(zoom.parentElement!==bar) bar.appendChild(zoom);
-  }
-  ["undoBtn","redoBtn","printLabel","printQueue","testMode"].forEach(id=>{
-    const el=$(id);
-    if(el && el.parentElement!==bar) bar.appendChild(el);
-  });
-  Array.from(stageWrap.children).forEach(ch=>{
-    if(ch===bar || ch===host) return;
-    if(ch.id==="stageDataWrap" || ch.id==="stageLabelHost") return;
-    ch.classList.add("beinvtOldToolbarHidden");
-  });
 }
 
 function ensureSettingsGroups(){
@@ -729,7 +712,7 @@ function renderAll(){
   ensureControlPanelLeft();
   ensureSettingsGroups();
   ensureModeTabs();
-  restoreTopControlsBar();
+  keepTopMenuOriginal();
   updateModeTabs();
   if($("labelType")) $("labelType").value=labelType;
   if($("safeToggle")) $("safeToggle").checked=showSafeZone;
@@ -1506,9 +1489,8 @@ function bindDirectionalButtons(){
 
 function initEvents(){
   ensureModeTabs();
-  restoreTopControlsBar();
   bindDirectionalButtons();
-  if($("labelType")) $("labelType").onchange=e=>{labelType=e.target.value;selectedId="ITEM";undoStack=[];redoStack=[];setLayout(loadWorkingLayout(labelType),false); renderRows(); updateModeTabs(); restoreTopControlsBar();};
+  if($("labelType")) $("labelType").onchange=e=>{labelType=e.target.value;selectedId="ITEM";undoStack=[];redoStack=[];setLayout(loadWorkingLayout(labelType),false); renderRows(); updateModeTabs();};
   if($("zoom")) $("zoom").oninput=renderCanvas;
   if($("search")) $("search").oninput=function(){ if($("stageSearch")) $("stageSearch").value=this.value; renderRows(); };
   if($("safeToggle")) $("safeToggle").onchange=e=>{showSafeZone=e.target.checked;renderCanvas()};
@@ -1564,7 +1546,8 @@ function boot(){
   loadDefaults().then(()=>{
     layout=loadWorkingLayout(labelType);
     initEvents();
-    loadCsv().catch(console.warn).finally(renderAll);
+    keepTopMenuOriginal();
+    loadCsv().catch(console.warn).finally(()=>{renderAll(); setTimeout(keepTopMenuOriginal,0); setTimeout(keepTopMenuOriginal,250);});
   });
 }
 boot();
