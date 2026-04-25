@@ -1,6 +1,10 @@
-const APP_VERSION = "6.1.0-restore-potstake-wraptie-layout";
+const APP_VERSION = "6.2.0-pot-fill-wraptie-composite";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
+const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
+const WRAP_ADDRESS = "SIERRA GOLD NURSERIES YUBA CITY, CA 95991";
+const WRAP_BENCH_LINE = "BENCH CRAFT | PRUNE NORTH | HARDWOOD CUTTING | PRUNE SOUTH";
+const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTINGS\nWHETHER FOR SALE\nOR OWN USE IS\nPROHIBITED UNDER\nU.S. PLANT PATENT LAWS.\nSALES OUTSIDE THE\nU.S. ARE PROHIBITED.";
 
 /*
   APP.JS ONLY UPDATE
@@ -57,6 +61,26 @@ const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5}
     .potWarningText{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-start;text-align:left;line-height:1.02;padding:2px 3px;white-space:pre-line;font-weight:900}
     .potStatic{position:absolute;pointer-events:none}
     .potLogo{object-fit:contain;image-rendering:auto;background:#fff}
+    .wrapWoBlock,.wrapMainBlock,.wrapQrBlock,.wrapWarningBlock{position:absolute;inset:0;display:flex;overflow:hidden}
+    .wrapWoBlock{align-items:center;gap:6px;padding:2px 3px}
+    .wrapWoQr{width:44px;height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:center}
+    .wrapWoQr img,.wrapLotQr img,.wrapLogo img{width:100%;height:100%;display:block;image-rendering:pixelated}
+    .wrapWoText{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.92;min-width:0;flex:1;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
+    .wrapWoText .wo{font-size:17px}
+    .wrapWoText .crop{font-size:14px}
+    .wrapWoText .internal{font-size:13px}
+    .wrapMainBlock{flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:1px 4px;line-height:.9;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
+    .wrapMainBlock .scionLine{font-size:24px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+    .wrapMainBlock .rootLine{font-size:24px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+    .wrapMainBlock .rootLine .on{font-size:.7em;margin-right:.18em}
+    .wrapMainBlock .patentLine{font-size:9px;line-height:1;margin-top:1px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+    .wrapMainBlock .benchLine{font-size:8px;line-height:1;margin-top:1px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+    .wrapMainBlock .addressLine{font-size:8px;line-height:1.02;margin-top:1px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+    .wrapQrBlock{align-items:center;justify-content:center;gap:4px;padding:2px 2px}
+    .wrapLotQr{width:40px;height:40px;flex:0 0 40px}
+    .wrapLogo{width:18px;height:18px;flex:0 0 18px;display:flex;align-items:center;justify-content:center}
+    .wrapLogoFallback{font-size:8px;font-weight:900;border:1px solid #000;border-radius:999px;padding:1px 3px;line-height:1}
+    .wrapWarningBlock{align-items:center;justify-content:flex-start;padding:2px 2px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;font-size:7px;line-height:.96}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
@@ -147,10 +171,10 @@ function fallbackLayout(t){
     safeMarginPx:3,
     gridPx:4,
     objects:{
-      WO:{x:8,y:10,w:94,h:28,rot:0,fontSize:20,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      QR:{x:108,y:5,w:40,h:40,rot:0,locked:false,visible:true},
-      ITEM:{x:152,y:4,w:305,h:40,rot:0,fontSize:32,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      WEEK:{x:462,y:8,w:30,h:30,rot:0,fontSize:12,fontFamily:"Times New Roman",locked:false,visible:false,alignH:"center",alignV:"middle"}
+      WO:{x:2,y:2,w:106,h:44,rot:0,fontSize:20,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ITEM:{x:110,y:2,w:238,h:44,rot:0,fontSize:32,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      QR:{x:350,y:2,w:64,h:44,rot:0,locked:false,visible:true},
+      WEEK:{x:416,y:2,w:61,h:44,rot:0,fontSize:12,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
     }
   };
 }
@@ -273,12 +297,17 @@ function currentRow(){
 function potWarningText(){ return ""; }
 function patentPieces(row){ return []; }
 function potLotQrText(row){ return String(row.wo||"").trim(); }
+function displayPotItem(row){
+  const olive=/olive/i.test(row.crop||"");
+  let txt=olive?(row.scion||row.rootstock||"ITEM"):(row.rootstock||row.scion||"ITEM");
+  if(/^platinum\s+pistachio\s+rootstock$/i.test(String(txt||"").trim())) txt = "Platinum";
+  return cap(txt);
+}
 function labelText(id,row){
   if(id==="WO")return cap(row.wo||"WO");
   if(id==="ITEM"){
     if(labelType==="WRAP") return cap(row.rootstock||row.scion||row.crop||"ITEM");
-    const olive=/olive/i.test(row.crop||"");
-    return cap(olive?(row.scion||row.rootstock||"ITEM"):(row.rootstock||row.scion||"ITEM"));
+    return displayPotItem(row);
   }
   if(id==="WEEK")return cap(currentWeekNumber());
   return "";
@@ -370,20 +399,16 @@ function applyPotAutoStack(){
   if(labelType!=="POT"||!layout||!layout.objects)return;
   const objs=layout.objects;
   const limit=350;
-  const row=currentRow();
   const wo=objs.WO, qr=objs.QR, item=objs.ITEM, week=objs.WEEK;
   if(wo){wo.rot=0; wo.x=3; wo.y=8; wo.w=66; wo.h=18;}
   if(qr){qr.rot=0; qr.w=clamp(Number(qr.w||50),34,50); qr.h=clamp(Number(qr.h||50),34,50); qr.x=Math.round((72-qr.w)/2); qr.y=(wo?Number(wo.y||0)+Number(wo.h||18)+2:28);}
+  if(week){week.rot=0; week.w=50; week.h=24; week.x=Math.round((72-week.w)/2); week.y=Math.max(0,limit-week.h);}
   if(item){
     item.x=2; item.w=68; item.rot=90; item.alignH='center'; item.alignV='middle';
     item.y=(qr?Number(qr.y||0)+Number(qr.h||0)+2:84);
-    const weekH=(week&&Number(week.h||24))||24;
-    const maxH=Math.max(38,limit-weekH-2-Number(item.y||0));
-    const txt=labelText("ITEM",row);
-    const measured=measureTextPx(txt,Number(item.fontSize||22),item.fontFamily);
-    item.h=clamp(measured+4,38,maxH);
+    const targetBottom=week?Number(week.y||limit):limit;
+    item.h=Math.max(38,targetBottom-Number(item.y||0)-2);
   }
-  if(week){week.rot=0; week.w=50; week.h=24; week.x=Math.round((72-week.w)/2); week.y=clamp(Math.round((item?Number(item.y||0)+Number(item.h||0)+2:320)),0,Math.max(0,limit-Number(week.h||24)));}
   clampAllObjects();
 }
 
@@ -461,8 +486,15 @@ function renderCanvas(){
     el.className="obj"+(selectedId===id?" selected":"")+(o.locked?" locked":"");
     el.dataset.id=id;
     Object.assign(el.style,{left:o.x+"px",top:o.y+"px",width:o.w+"px",height:o.h+"px"});
-    if(id==="QR") renderQrInto(el,row.wo);
-    else el.appendChild(makeTextInner(id,row,o));
+    if(labelType==="WRAP"){
+      if(id==="WO") el.appendChild(makeWrapWoInner(row));
+      else if(id==="ITEM") el.appendChild(makeWrapMainInner(row));
+      else if(id==="QR") el.appendChild(makeWrapQrInner(row));
+      else if(id==="WEEK") el.appendChild(makeWrapWarningInner());
+    }else{
+      if(id==="QR") renderQrInto(el,row.wo);
+      else el.appendChild(makeTextInner(id,row,o));
+    }
     lab.appendChild(el);
     attachObjectEvents(el);
   }
@@ -516,10 +548,83 @@ function renderQrInto(el,text){
   el.appendChild(img);
 }
 
+function wrapLeftQrText(row){
+  return String(row.wo||"").trim() || " ";
+}
+function wrapRightQrText(row){
+  const lot=String(row.lotNumber||"").trim();
+  const wo=String(row.wo||"").trim();
+  return lot ? `LOT ${lot} | ${wo}` : (wo || " ");
+}
+function wrapScionText(row){
+  return cap(row.scion || row.crop || row.rootstock || "ITEM");
+}
+function wrapRootstockText(row){
+  return cap(row.rootstock || row.scion || row.crop || "ROOTSTOCK");
+}
+function wrapPatentText(row){
+  const parts=[];
+  if(String(row.scionPatent||"").trim()) parts.push(cap(row.scionPatent));
+  if(String(row.rootstockPatent||"").trim()) parts.push(cap(row.rootstockPatent));
+  const lot=String(row.lotNumber||"").trim();
+  if(lot) parts.push(`LOT ${cap(lot)}`);
+  return parts.join(" | ");
+}
+function makeWrapWoInner(row){
+  const c=document.createElement("div");
+  c.className="wrapWoBlock";
+  const qr=document.createElement("div");
+  qr.className="wrapWoQr";
+  renderQrInto(qr,wrapLeftQrText(row));
+  const t=document.createElement("div");
+  t.className="wrapWoText";
+  t.innerHTML=`<div class="wo">${escapeHtml(cap(row.wo||""))}</div><div class="crop">${escapeHtml(cap(row.crop||""))}</div><div class="internal">${escapeHtml(cap(row.internalId||""))}</div>`;
+  c.appendChild(qr); c.appendChild(t);
+  return c;
+}
+function makeWrapMainInner(row){
+  const c=document.createElement("div");
+  c.className="wrapMainBlock";
+  const patent=wrapPatentText(row);
+  c.innerHTML=`<div class="scionLine">${escapeHtml(wrapScionText(row))}</div><div class="rootLine"><span class="on">on</span>${escapeHtml(wrapRootstockText(row))}</div>${patent?`<div class="patentLine">${escapeHtml(patent)}</div>`:""}<div class="benchLine">${escapeHtml(WRAP_BENCH_LINE)}</div><div class="addressLine">${escapeHtml(WRAP_ADDRESS)}</div>`;
+  return c;
+}
+function makeWrapQrInner(row){
+  const c=document.createElement("div");
+  c.className="wrapQrBlock";
+  const qr=document.createElement("div");
+  qr.className="wrapLotQr";
+  renderQrInto(qr,wrapRightQrText(row));
+  const logo=document.createElement("div");
+  logo.className="wrapLogo";
+  const img=document.createElement("img");
+  img.src=SG_LOGO_URL;
+  img.alt="SG";
+  img.onerror=function(){ logo.innerHTML='<div class="wrapLogoFallback">SG</div>'; };
+  logo.appendChild(img);
+  c.appendChild(qr); c.appendChild(logo);
+  return c;
+}
+function makeWrapWarningInner(){
+  const c=document.createElement("div");
+  c.className="wrapWarningBlock";
+  c.textContent=WRAP_WARNING;
+  return c;
+}
+function printWrapInner(id,row,o){
+  const outer=`position:absolute;left:0;top:0;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
+  if(id==="WO") return `<div style="${outer}display:flex;align-items:center;gap:6px;padding:2px 3px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;"><div style="width:44px;height:44px;flex:0 0 44px;"><img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.92;min-width:0;flex:1;"><div style="font-size:17px;">${escapeHtml(cap(row.wo||""))}</div><div style="font-size:14px;">${escapeHtml(cap(row.crop||""))}</div><div style="font-size:13px;">${escapeHtml(cap(row.internalId||""))}</div></div></div>`;
+  if(id==="ITEM") return `<div style="${outer}display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:1px 4px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;line-height:.9;"><div style="font-size:24px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(wrapScionText(row))}</div><div style="font-size:24px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;"><span style="font-size:.7em;margin-right:.18em;">on</span>${escapeHtml(wrapRootstockText(row))}</div>${wrapPatentText(row)?`<div style="font-size:9px;line-height:1;margin-top:1px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(wrapPatentText(row))}</div>`:""}<div style="font-size:8px;line-height:1;margin-top:1px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(WRAP_BENCH_LINE)}</div><div style="font-size:8px;line-height:1.02;margin-top:1px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(WRAP_ADDRESS)}</div></div>`;
+  if(id==="QR") return `<div style="${outer}display:flex;align-items:center;justify-content:center;gap:4px;padding:2px 2px;"><div style="width:40px;height:40px;flex:0 0 40px;"><img src="${qrUrl(wrapRightQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="width:18px;height:18px;flex:0 0 18px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain" onerror="this.outerHTML='SG'"/></div></div>`;
+  if(id==="WEEK") return `<div style="${outer}display:flex;align-items:center;justify-content:flex-start;padding:2px 2px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:7px;line-height:.96;">${escapeHtml(WRAP_WARNING)}</div>`;
+  return "";
+}
+
 function alignH(v){return v==="left"?"flex-start":v==="right"?"flex-end":"center"}
 function alignV(v){return v==="top"?"flex-start":v==="bottom"?"flex-end":"center"}
 
 function autoFitTextObjects(){
+  if(labelType==="WRAP") return;
   for(const id of["WO","ITEM","WEEK"]){
     const e=document.querySelector(`.obj[data-id="${id}"]`);
     if(!e)continue;
@@ -879,9 +984,10 @@ function renderPrintPage(row,b){
   for(const id of["WO","QR","ITEM","WEEK"]){
     const o=layout.objects[id];
     if(!o||o.visible===false)continue;
-    if(id==="WEEK"&&!row.week)continue;
+    if(labelType!=="WRAP" && id==="WEEK"&&!row.week)continue;
     const outer=`position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
-    if(id==="QR") out+=`<div style="${outer}"><img src="${qrUrl(row.wo)}" style="width:100%;height:100%;image-rendering:pixelated"/></div>`;
+    if(labelType==="WRAP") out+=`<div style="${outer}">${printWrapInner(id,row,o)}</div>`;
+    else if(id==="QR") out+=`<div style="${outer}"><img src="${qrUrl(row.wo)}" style="width:100%;height:100%;image-rendering:pixelated"/></div>`;
     else out+=`<div style="${outer}">${printTextInner(id,row,o)}</div>`;
   }
   return out+"</div>";
