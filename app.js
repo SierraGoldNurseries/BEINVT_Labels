@@ -1,6 +1,6 @@
-const APP_VERSION = "6.0.0-potstake-horizontal-composite";
+const APP_VERSION = "6.1.0-restore-potstake-wraptie-layout";
 const INCH = 96;
-const LABEL_SIZES = { POT:{widthIn:5,heightIn:.75}, WRAP:{widthIn:5,heightIn:.5} };
+const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 
 /*
   APP.JS ONLY UPDATE
@@ -130,27 +130,27 @@ async function loadDefaults(){
 
 function fallbackLayout(t){
   if(t==="POT") return {
-    name:"Pot Standard v6",
+    name:"Pot Standard restored",
     labelType:"POT",
-    safeMarginPx:4,
+    safeMarginPx:5,
     gridPx:4,
     objects:{
-      QR:{x:6,y:14,w:34,h:34,rot:0,locked:false,visible:true},
-      WO:{x:44,y:5,w:86,h:60,rot:0,fontSize:16,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
-      ITEM:{x:128,y:4,w:190,h:60,rot:0,fontSize:26,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      WEEK:{x:396,y:4,w:80,h:62,rot:0,fontSize:7,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"}
+      WO:{x:3,y:8,w:66,h:18,rot:0,fontSize:16,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      QR:{x:11,y:30,w:50,h:50,rot:0,locked:false,visible:true},
+      ITEM:{x:2,y:84,w:68,h:230,rot:90,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      WEEK:{x:11,y:320,w:50,h:24,rot:0,fontSize:18,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
     }
   };
   return {
-    name:"Wrap Standard v4",
+    name:"Wrap Tie Standard",
     labelType:"WRAP",
     safeMarginPx:3,
     gridPx:4,
     objects:{
-      WO:{x:8,y:13,w:96,h:18,rot:0,fontSize:16,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      QR:{x:104,y:4,w:40,h:40,rot:0,locked:false,visible:true},
-      ITEM:{x:142,y:5,w:315,h:38,rot:0,fontSize:30,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      WEEK:{x:460,y:12,w:18,h:24,rot:-90,fontSize:12,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
+      WO:{x:8,y:10,w:94,h:28,rot:0,fontSize:20,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      QR:{x:108,y:5,w:40,h:40,rot:0,locked:false,visible:true},
+      ITEM:{x:152,y:4,w:305,h:40,rot:0,fontSize:32,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      WEEK:{x:462,y:8,w:30,h:30,rot:0,fontSize:12,fontFamily:"Times New Roman",locked:false,visible:false,alignH:"center",alignV:"middle"}
     }
   };
 }
@@ -270,44 +270,17 @@ function currentRow(){
   };
 }
 
-function potWarningText(){
-  return `WARNING: ASEXUAL
-REPRODUCTION OF SCIONS,
-BUDS, OR CUTTINGS
-WHETHER FOR SALE
-OR OWN USE IS
-PROHIBITED UNDER
-U.S. PLANT PATENT LAWS.
-SALES OUTSIDE THE
-U.S. ARE PROHIBITED.`;
-}
-function patentPieces(row){
-  const out=[];
-  const sp=cap(row.scionPatent||"").trim();
-  const rp=cap(row.rootstockPatent||"").trim();
-  if(sp) out.push(sp);
-  if(rp) out.push(rp);
-  return out;
-}
-function potLotQrText(row){
-  return String(row.lotNumber||row.internalId||row.wo||"").trim() || String(row.wo||"").trim();
-}
+function potWarningText(){ return ""; }
+function patentPieces(row){ return []; }
+function potLotQrText(row){ return String(row.wo||"").trim(); }
 function labelText(id,row){
-  if(id==="WO"){
-    if(labelType==="POT") return [cap(row.wo||"WO"), cap(row.crop||""), cap(row.internalId||"")].filter(Boolean).join("\n");
-    return cap(row.wo||"WO");
-  }
+  if(id==="WO")return cap(row.wo||"WO");
   if(id==="ITEM"){
-    const sc=cap(row.scion||"").trim();
-    const rt=cap(row.rootstock||row.scion||"ITEM").trim();
-    if(labelType==="POT") return [sc||cap(row.crop||""), rt].filter(Boolean).join(" ");
+    if(labelType==="WRAP") return cap(row.rootstock||row.scion||row.crop||"ITEM");
     const olive=/olive/i.test(row.crop||"");
     return cap(olive?(row.scion||row.rootstock||"ITEM"):(row.rootstock||row.scion||"ITEM"));
   }
-  if(id==="WEEK"){
-    if(labelType==="POT") return potWarningText();
-    return cap(currentWeekNumber());
-  }
+  if(id==="WEEK")return cap(currentWeekNumber());
   return "";
 }
 
@@ -399,74 +372,23 @@ function applyPotAutoStack(){
   const limit=350;
   const row=currentRow();
   const wo=objs.WO, qr=objs.QR, item=objs.ITEM, week=objs.WEEK;
-
-  if(wo){
-    wo.rot=0;
-    wo.x=3; wo.y=8; wo.w=66; wo.h=18;
-  }
-
-  if(qr){
-    qr.rot=0;
-    qr.w=clamp(Number(qr.w||46),34,50);
-    qr.h=clamp(Number(qr.h||46),34,50);
-    qr.x=Math.round((72-qr.w)/2);
-    qr.y=(wo?Number(wo.y||0)+Number(wo.h||18)+2:28);
-  }
-
+  if(wo){wo.rot=0; wo.x=3; wo.y=8; wo.w=66; wo.h=18;}
+  if(qr){qr.rot=0; qr.w=clamp(Number(qr.w||50),34,50); qr.h=clamp(Number(qr.h||50),34,50); qr.x=Math.round((72-qr.w)/2); qr.y=(wo?Number(wo.y||0)+Number(wo.h||18)+2:28);}
   if(item){
-    item.x=2;
-    item.w=68;
-    item.rot=90;
-    item.alignH='center';
-    item.alignV='middle';
-    item.y=(qr?Number(qr.y||0)+Number(qr.h||0)+2:82);
-
+    item.x=2; item.w=68; item.rot=90; item.alignH='center'; item.alignV='middle';
+    item.y=(qr?Number(qr.y||0)+Number(qr.h||0)+2:84);
     const weekH=(week&&Number(week.h||24))||24;
     const maxH=Math.max(38,limit-weekH-2-Number(item.y||0));
     const txt=labelText("ITEM",row);
     const measured=measureTextPx(txt,Number(item.fontSize||22),item.fontFamily);
     item.h=clamp(measured+4,38,maxH);
   }
-
-  if(week){
-    week.rot=0;
-    week.w=50;
-    week.h=24;
-    week.x=Math.round((72-week.w)/2);
-    week.y=clamp(Math.round((item?Number(item.y||0)+Number(item.h||0)+2:320)),0,Math.max(0,limit-Number(week.h||24)));
-  }
-
+  if(week){week.rot=0; week.w=50; week.h=24; week.x=Math.round((72-week.w)/2); week.y=clamp(Math.round((item?Number(item.y||0)+Number(item.h||0)+2:320)),0,Math.max(0,limit-Number(week.h||24)));}
   clampAllObjects();
 }
 
 let __potTightenPass=false;
-function tightenPotLayoutAfterFit(){
-  if(labelType!=="POT"||!layout||!layout.objects||__potTightenPass)return false;
-  const item=layout.objects.ITEM, week=layout.objects.WEEK;
-  const itemEl=document.querySelector('.obj[data-id="ITEM"]');
-  const inner=itemEl&&itemEl.querySelector('.inner');
-  if(!item||!week||!itemEl||!inner)return false;
-  try{
-    const z=Number(($("zoom")&&$("zoom").value)||1)||1;
-    const rg=document.createRange();
-    rg.selectNodeContents(inner);
-    const tr=rg.getBoundingClientRect();
-    const neededH=Math.max(40,Math.ceil(tr.height/z)+8);
-    const limit=activeBottomLimit();
-    const weekH=Number(week.h||24);
-    const maxH=Math.max(40,limit-weekH-6-Number(item.y||0));
-    const nextH=clamp(neededH,40,maxH);
-    const nextWeekY=clamp(Math.round(Number(item.y||0)+nextH+4),0,Math.max(0,limit-weekH));
-    const changed=Math.abs(nextH-Number(item.h||0))>1 || Math.abs(nextWeekY-Number(week.y||0))>1;
-    if(!changed)return false;
-    item.h=Math.round(nextH);
-    week.y=Math.round(nextWeekY);
-    clampAllObjects();
-    return true;
-  }catch(err){
-    return false;
-  }
-}
+function tightenPotLayoutAfterFit(){ return false; }
 
 function renderAll(){
   ensureModeTabs();
@@ -532,8 +454,7 @@ function renderCanvas(){
     lab.appendChild(safe);
   }
 
-  const ids=(labelType==="POT")?["QR","WO","ITEM","WEEK"]:["WO","QR","ITEM","WEEK"];
-  for(const id of ids){
+  for(const id of ["WO","QR","ITEM","WEEK"]){
     const o=layout.objects[id];
     if(!o||o.visible===false)continue;
     const el=document.createElement("div");
@@ -546,20 +467,6 @@ function renderCanvas(){
     attachObjectEvents(el);
   }
 
-  if(labelType==="POT"){
-    const lot=document.createElement("div");
-    lot.className='potStatic';
-    Object.assign(lot.style,{left:'330px',top:'8px',width:'38px',height:'38px'});
-    renderQrInto(lot,potLotQrText(row));
-    lab.appendChild(lot);
-
-    const logo=document.createElement('img');
-    logo.className='potStatic potLogo';
-    logo.src='https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=';
-    Object.assign(logo.style,{left:'374px',top:'12px',width:'22px',height:'22px'});
-    lab.appendChild(logo);
-  }
-
   stack.appendChild(stage);
   host.appendChild(stack);
   autoFitTextObjects();
@@ -569,35 +476,12 @@ function makeTextInner(id,row,o){
   const c=document.createElement("div");
   c.className="inner";
   c.dataset.textId=id;
+  c.textContent=labelText(id,row);
   c.style.fontSize=(o.fontSize||16)+"px";
   c.style.fontFamily=`"${o.fontFamily||"Times New Roman"}", Georgia, serif`;
   c.style.justifyContent=alignH(o.alignH);
   c.style.alignItems=alignV(o.alignV);
   c.style.textAlign="center";
-
-  if(labelType==="POT" && id==="WO"){
-    c.className='potMetaText';
-    c.textContent=labelText(id,row);
-    c.style.fontSize=(o.fontSize||16)+"px";
-    return c;
-  }
-  if(labelType==="POT" && id==="ITEM"){
-    const sc=cap(row.scion||"").trim() || cap(row.crop||"").trim() || "SCION";
-    const rt=cap(row.rootstock||"").trim() || "ROOTSTOCK";
-    const patents=patentPieces(row);
-    c.className='potMain';
-    c.innerHTML=`<div class="scion">${escapeHtml(sc)}</div><div class="onLine"><span class="onWord">ON</span><span class="rootstock">${escapeHtml(rt)}</span></div>${patents.length?`<div class="patentLine">${escapeHtml(patents.join(' | '))}</div>`:''}`;
-    c.style.fontSize=(o.fontSize||26)+"px";
-    return c;
-  }
-  if(labelType==="POT" && id==="WEEK"){
-    c.className='potWarningText';
-    c.textContent=potWarningText();
-    c.style.fontSize=(o.fontSize||7)+"px";
-    return c;
-  }
-
-  c.textContent=labelText(id,row);
   if(id==="ITEM"){
     c.style.justifyContent='center';
     c.style.alignItems='center';
