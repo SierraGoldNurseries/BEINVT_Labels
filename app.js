@@ -1,4 +1,5 @@
-const APP_VERSION = "6.2.0-pot-fill-wraptie-composite";
+
+const APP_VERSION = "6.3.0-wrap-fit-pot-expand";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
@@ -62,25 +63,25 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .potStatic{position:absolute;pointer-events:none}
     .potLogo{object-fit:contain;image-rendering:auto;background:#fff}
     .wrapWoBlock,.wrapMainBlock,.wrapQrBlock,.wrapWarningBlock{position:absolute;inset:0;display:flex;overflow:hidden}
-    .wrapWoBlock{align-items:center;gap:6px;padding:2px 3px}
-    .wrapWoQr{width:44px;height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:center}
+    .wrapWoBlock{align-items:center;gap:4px;padding:1px 2px}
+    .wrapWoQr{width:40px;height:40px;flex:0 0 40px;display:flex;align-items:center;justify-content:center}
     .wrapWoQr img,.wrapLotQr img,.wrapLogo img{width:100%;height:100%;display:block;image-rendering:pixelated}
-    .wrapWoText{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.92;min-width:0;flex:1;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
-    .wrapWoText .wo{font-size:17px}
+    .wrapWoText{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.88;min-width:0;flex:1;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
+    .wrapWoText .wo{font-size:18px}
     .wrapWoText .crop{font-size:14px}
     .wrapWoText .internal{font-size:13px}
-    .wrapMainBlock{flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:1px 4px;line-height:.9;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
-    .wrapMainBlock .scionLine{font-size:24px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-    .wrapMainBlock .rootLine{font-size:24px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-    .wrapMainBlock .rootLine .on{font-size:.7em;margin-right:.18em}
-    .wrapMainBlock .patentLine{font-size:9px;line-height:1;margin-top:1px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-    .wrapMainBlock .benchLine{font-size:8px;line-height:1;margin-top:1px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-    .wrapMainBlock .addressLine{font-size:8px;line-height:1.02;margin-top:1px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-    .wrapQrBlock{align-items:center;justify-content:center;gap:4px;padding:2px 2px}
-    .wrapLotQr{width:40px;height:40px;flex:0 0 40px}
-    .wrapLogo{width:18px;height:18px;flex:0 0 18px;display:flex;align-items:center;justify-content:center}
+    .wrapMainBlock{flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 3px;line-height:.86;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
+    .wrapMainBlock .scionLine{font-size:30px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+    .wrapMainBlock .rootLine{font-size:30px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+    .wrapMainBlock .rootLine .on{font-size:.68em;margin-right:.18em}
+    .wrapMainBlock .patentLine{font-size:9px;line-height:.96;margin-top:0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+    .wrapMainBlock .benchLine{font-size:7px;line-height:.96;margin-top:0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+    .wrapMainBlock .addressLine{font-size:7px;line-height:.96;margin-top:0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+    .wrapQrBlock{align-items:center;justify-content:center;gap:3px;padding:1px 1px}
+    .wrapLotQr{width:38px;height:38px;flex:0 0 38px}
+    .wrapLogo{width:16px;height:16px;flex:0 0 16px;display:flex;align-items:center;justify-content:center}
     .wrapLogoFallback{font-size:8px;font-weight:900;border:1px solid #000;border-radius:999px;padding:1px 3px;line-height:1}
-    .wrapWarningBlock{align-items:center;justify-content:flex-start;padding:2px 2px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;font-size:7px;line-height:.96}
+    .wrapWarningBlock{align-items:center;justify-content:flex-start;padding:1px 1px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;font-size:6.3px;line-height:.9}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
@@ -171,10 +172,10 @@ function fallbackLayout(t){
     safeMarginPx:3,
     gridPx:4,
     objects:{
-      WO:{x:2,y:2,w:106,h:44,rot:0,fontSize:20,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ITEM:{x:110,y:2,w:238,h:44,rot:0,fontSize:32,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      QR:{x:350,y:2,w:64,h:44,rot:0,locked:false,visible:true},
-      WEEK:{x:416,y:2,w:61,h:44,rot:0,fontSize:12,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
+      WO:{x:2,y:2,w:112,h:44,rot:0,fontSize:20,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ITEM:{x:116,y:2,w:244,h:44,rot:0,fontSize:32,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      QR:{x:362,y:2,w:58,h:44,rot:0,locked:false,visible:true},
+      WEEK:{x:422,y:2,w:56,h:44,rot:0,fontSize:12,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
     }
   };
 }
@@ -401,11 +402,11 @@ function applyPotAutoStack(){
   const limit=350;
   const wo=objs.WO, qr=objs.QR, item=objs.ITEM, week=objs.WEEK;
   if(wo){wo.rot=0; wo.x=3; wo.y=8; wo.w=66; wo.h=18;}
-  if(qr){qr.rot=0; qr.w=clamp(Number(qr.w||50),34,50); qr.h=clamp(Number(qr.h||50),34,50); qr.x=Math.round((72-qr.w)/2); qr.y=(wo?Number(wo.y||0)+Number(wo.h||18)+2:28);}
+  if(qr){qr.rot=0; qr.w=clamp(Number(qr.w||50),34,50); qr.h=clamp(Number(qr.h||50),34,50); qr.x=Math.round((72-qr.w)/2); qr.y=(wo?Number(wo.y||0)+Number(wo.h||18)+1:27);}
   if(week){week.rot=0; week.w=50; week.h=24; week.x=Math.round((72-week.w)/2); week.y=Math.max(0,limit-week.h);}
   if(item){
     item.x=2; item.w=68; item.rot=90; item.alignH='center'; item.alignV='middle';
-    item.y=(qr?Number(qr.y||0)+Number(qr.h||0)+2:84);
+    item.y=(qr?Number(qr.y||0)+Number(qr.h||0)+1:83);
     const targetBottom=week?Number(week.y||limit):limit;
     item.h=Math.max(38,targetBottom-Number(item.y||0)-2);
   }
@@ -502,6 +503,7 @@ function renderCanvas(){
   stack.appendChild(stage);
   host.appendChild(stack);
   autoFitTextObjects();
+  autoFitWrapPreview();
 }
 
 function makeTextInner(id,row,o){
@@ -520,7 +522,8 @@ function makeTextInner(id,row,o){
     c.style.whiteSpace="normal";
     c.style.wordBreak="break-word";
     c.style.overflowWrap="anywhere";
-    c.style.padding="1px 2px";
+    c.style.lineHeight="0.88";
+    c.style.padding="0px";
   }
   applyInnerRotation(c,o);
   return c;
@@ -613,10 +616,10 @@ function makeWrapWarningInner(){
 }
 function printWrapInner(id,row,o){
   const outer=`position:absolute;left:0;top:0;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
-  if(id==="WO") return `<div style="${outer}display:flex;align-items:center;gap:6px;padding:2px 3px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;"><div style="width:44px;height:44px;flex:0 0 44px;"><img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.92;min-width:0;flex:1;"><div style="font-size:17px;">${escapeHtml(cap(row.wo||""))}</div><div style="font-size:14px;">${escapeHtml(cap(row.crop||""))}</div><div style="font-size:13px;">${escapeHtml(cap(row.internalId||""))}</div></div></div>`;
-  if(id==="ITEM") return `<div style="${outer}display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:1px 4px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;line-height:.9;"><div style="font-size:24px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(wrapScionText(row))}</div><div style="font-size:24px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;"><span style="font-size:.7em;margin-right:.18em;">on</span>${escapeHtml(wrapRootstockText(row))}</div>${wrapPatentText(row)?`<div style="font-size:9px;line-height:1;margin-top:1px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(wrapPatentText(row))}</div>`:""}<div style="font-size:8px;line-height:1;margin-top:1px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(WRAP_BENCH_LINE)}</div><div style="font-size:8px;line-height:1.02;margin-top:1px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(WRAP_ADDRESS)}</div></div>`;
-  if(id==="QR") return `<div style="${outer}display:flex;align-items:center;justify-content:center;gap:4px;padding:2px 2px;"><div style="width:40px;height:40px;flex:0 0 40px;"><img src="${qrUrl(wrapRightQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="width:18px;height:18px;flex:0 0 18px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain" onerror="this.outerHTML='SG'"/></div></div>`;
-  if(id==="WEEK") return `<div style="${outer}display:flex;align-items:center;justify-content:flex-start;padding:2px 2px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:7px;line-height:.96;">${escapeHtml(WRAP_WARNING)}</div>`;
+  if(id==="WO") return `<div style="${outer}display:flex;align-items:center;gap:4px;padding:1px 2px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;"><div style="width:40px;height:40px;flex:0 0 40px;"><img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.88;min-width:0;flex:1;"><div style="font-size:16px;">${escapeHtml(cap(row.wo||""))}</div><div style="font-size:12px;">${escapeHtml(cap(row.crop||""))}</div><div style="font-size:11px;">${escapeHtml(cap(row.internalId||""))}</div></div></div>`;
+  if(id==="ITEM") return `<div style="${outer}display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 3px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;line-height:.86;"><div style="font-size:22px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(wrapScionText(row))}</div><div style="font-size:22px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;"><span style="font-size:.68em;margin-right:.18em;">on</span>${escapeHtml(wrapRootstockText(row))}</div>${wrapPatentText(row)?`<div style="font-size:7px;line-height:.96;margin-top:0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(wrapPatentText(row))}</div>`:""}<div style="font-size:6px;line-height:.96;margin-top:0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(WRAP_BENCH_LINE)}</div><div style="font-size:6px;line-height:.96;margin-top:0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(WRAP_ADDRESS)}</div></div>`;
+  if(id==="QR") return `<div style="${outer}display:flex;align-items:center;justify-content:center;gap:3px;padding:1px 1px;"><div style="width:38px;height:38px;flex:0 0 38px;"><img src="${qrUrl(wrapRightQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="width:16px;height:16px;flex:0 0 16px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain" onerror="this.outerHTML='SG'"/></div></div>`;
+  if(id==="WEEK") return `<div style="${outer}display:flex;align-items:center;justify-content:flex-start;padding:1px 1px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:5.4px;line-height:.88;">${escapeHtml(WRAP_WARNING)}</div>`;
   return "";
 }
 
@@ -632,9 +635,7 @@ function autoFitTextObjects(){
     if(!c)continue;
     const o=layout.objects[id], r=((Number(o.rot||0)%360)+360)%360, swap=(r===90||r===270);
     const maxW=swap?o.h:o.w, maxH=swap?o.w:o.h;
-    let hi=Number(o.fontSize||16), lo=6, best=lo;
-    c.style.fontSize=hi+"px";
-    if(c.scrollWidth<=maxW && c.scrollHeight<=maxH)continue;
+    let lo=6, hi=(id==="ITEM"?160:80), best=6;
     while(lo<=hi){
       const mid=Math.floor((lo+hi)/2);
       c.style.fontSize=mid+"px";
@@ -642,6 +643,50 @@ function autoFitTextObjects(){
       else hi=mid-1;
     }
     c.style.fontSize=best+"px";
+    if(o) o.fontSize=best;
+  }
+}
+
+function wrapBlockFits(el){
+  return el.scrollWidth<=el.clientWidth+1 && el.scrollHeight<=el.clientHeight+1;
+}
+function autoFitWrapPreview(){
+  if(labelType!=="WRAP") return;
+  const wo=document.querySelector('.obj[data-id="WO"] .wrapWoText');
+  if(wo){
+    const a=wo.querySelector('.wo'), b=wo.querySelector('.crop'), c=wo.querySelector('.internal');
+    let main=18;
+    for(; main>=10; main--){
+      if(a) a.style.fontSize=main+'px';
+      if(b) b.style.fontSize=Math.max(8,Math.round(main*0.78))+'px';
+      if(c) c.style.fontSize=Math.max(7,Math.round(main*0.72))+'px';
+      if(wrapBlockFits(wo.parentElement)) break;
+    }
+  }
+  const mainBlock=document.querySelector('.obj[data-id="ITEM"] .wrapMainBlock');
+  if(mainBlock){
+    const s=mainBlock.querySelector('.scionLine');
+    const r=mainBlock.querySelector('.rootLine');
+    const p=mainBlock.querySelector('.patentLine');
+    const b=mainBlock.querySelector('.benchLine');
+    const a=mainBlock.querySelector('.addressLine');
+    let big=30;
+    for(; big>=11; big--){
+      if(s) s.style.fontSize=big+'px';
+      if(r) r.style.fontSize=big+'px';
+      if(p) p.style.fontSize=Math.max(6,Math.round(big*0.30))+'px';
+      if(b) b.style.fontSize=Math.max(5,Math.round(big*0.24))+'px';
+      if(a) a.style.fontSize=Math.max(5,Math.round(big*0.24))+'px';
+      if(wrapBlockFits(mainBlock)) break;
+    }
+  }
+  const warn=document.querySelector('.obj[data-id="WEEK"] .wrapWarningBlock');
+  if(warn){
+    let fs=6.3;
+    for(; fs>=4; fs-=0.2){
+      warn.style.fontSize=fs.toFixed(1)+'px';
+      if(wrapBlockFits(warn.parentElement)) break;
+    }
   }
 }
 
@@ -995,7 +1040,7 @@ function renderPrintPage(row,b){
 function printTextInner(id,row,o){
   const r=((Number(o.rot||0)%360)+360)%360, swap=(r===90||r===270);
   const left=swap?((o.w-o.h)/2):0, top=swap?((o.h-o.w)/2):0, w=swap?o.h:o.w, h=swap?o.w:o.h;
-  const white=id==="ITEM"?"white-space:normal;word-break:break-word;overflow-wrap:anywhere;padding:1px 2px;":"white-space:nowrap;";
+  const white=id==="ITEM"?"white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:.88;padding:0;":"white-space:nowrap;";
   const jc=id==="ITEM"?'center':alignH(o.alignH);
   const ai=id==="ITEM"?'center':alignV(o.alignV);
   const ta='center';
