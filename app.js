@@ -1,5 +1,4 @@
-
-const APP_VERSION = "6.3.0-wrap-fit-pot-expand";
+const APP_VERSION = "6.4.0-rsch-table-wrap";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
@@ -63,25 +62,37 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .potStatic{position:absolute;pointer-events:none}
     .potLogo{object-fit:contain;image-rendering:auto;background:#fff}
     .wrapWoBlock,.wrapMainBlock,.wrapQrBlock,.wrapWarningBlock{position:absolute;inset:0;display:flex;overflow:hidden}
-    .wrapWoBlock{align-items:center;gap:4px;padding:1px 2px}
-    .wrapWoQr{width:40px;height:40px;flex:0 0 40px;display:flex;align-items:center;justify-content:center}
+    .wrapWoBlock{align-items:center;gap:3px;padding:1px 2px}
+    .wrapWoQr{width:38px;height:38px;flex:0 0 38px;display:flex;align-items:center;justify-content:center}
     .wrapWoQr img,.wrapLotQr img,.wrapLogo img{width:100%;height:100%;display:block;image-rendering:pixelated}
-    .wrapWoText{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.88;min-width:0;flex:1;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
-    .wrapWoText .wo{font-size:18px}
-    .wrapWoText .crop{font-size:14px}
-    .wrapWoText .internal{font-size:13px}
-    .wrapMainBlock{flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 3px;line-height:.86;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
-    .wrapMainBlock .scionLine{font-size:30px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-    .wrapMainBlock .rootLine{font-size:30px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+    .wrapWoText{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.86;min-width:0;flex:1;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
+    .wrapWoText .wo{font-size:17px}
+    .wrapWoText .crop{font-size:13px}
+    .wrapWoText .internal{font-size:12px}
+    .wrapMainBlock{flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 2px;line-height:.84;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900}
+    .wrapMainBlock .scionLine,.wrapMainBlock .rootLine{display:block;width:100%;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%}
+    .wrapMainBlock .scionLine{font-size:30px}
+    .wrapMainBlock .rootLine{font-size:30px}
     .wrapMainBlock .rootLine .on{font-size:.68em;margin-right:.18em}
-    .wrapMainBlock .patentLine{font-size:9px;line-height:.96;margin-top:0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-    .wrapMainBlock .benchLine{font-size:7px;line-height:.96;margin-top:0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-    .wrapMainBlock .addressLine{font-size:7px;line-height:.96;margin-top:0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-    .wrapQrBlock{align-items:center;justify-content:center;gap:3px;padding:1px 1px}
-    .wrapLotQr{width:38px;height:38px;flex:0 0 38px}
-    .wrapLogo{width:16px;height:16px;flex:0 0 16px;display:flex;align-items:center;justify-content:center}
+    .wrapMainBlock .patentLine,.wrapMainBlock .benchLine,.wrapMainBlock .addressLine{display:block;width:100%;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%}
+    .wrapMainBlock .patentLine{font-size:8px;line-height:.94;margin-top:0}
+    .wrapMainBlock .benchLine{font-size:6.2px;line-height:.94;margin-top:0}
+    .wrapMainBlock .addressLine{font-size:6.2px;line-height:.94;margin-top:0}
+    .wrapQrBlock{align-items:center;justify-content:center;gap:2px;padding:1px 1px}
+    .wrapLotQr{width:36px;height:36px;flex:0 0 36px}
+    .wrapLogo{width:14px;height:14px;flex:0 0 14px;display:flex;align-items:center;justify-content:center}
     .wrapLogoFallback{font-size:8px;font-weight:900;border:1px solid #000;border-radius:999px;padding:1px 3px;line-height:1}
-    .wrapWarningBlock{align-items:center;justify-content:flex-start;padding:1px 1px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;font-size:6.3px;line-height:.9}
+    .wrapWarningBlock{align-items:center;justify-content:flex-start;padding:1px 1px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;font-size:5.9px;line-height:.88;background:#fff}
+    /* v6.4 overrides */
+    .stageStack{gap:10px!important}
+    .stageMeta{margin-top:6px!important;margin-bottom:0!important;background:#121a2c!important;position:relative!important;z-index:25!important}
+    .table,.table thead,.table thead tr,.table thead th{background:#121a2c!important;opacity:1!important}
+    .table thead,.table thead tr{position:sticky!important;top:0!important;z-index:49!important}
+    .table thead th{background-clip:padding-box!important;box-shadow:0 2px 0 rgba(0,0,0,.45)!important}
+    .table tbody td{background:#0f172a!important}
+    .table,.tableWrap,.tableContainer,.rowsWrap,.rowsContainer,#rowsWrap,#rowsContainer{width:100%!important;max-width:none!important}
+    .table{table-layout:fixed!important}
+    #canvasHost,.canvasHost{overflow:visible!important;width:100%!important}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
@@ -172,10 +183,10 @@ function fallbackLayout(t){
     safeMarginPx:3,
     gridPx:4,
     objects:{
-      WO:{x:2,y:2,w:112,h:44,rot:0,fontSize:20,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ITEM:{x:116,y:2,w:244,h:44,rot:0,fontSize:32,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      QR:{x:362,y:2,w:58,h:44,rot:0,locked:false,visible:true},
-      WEEK:{x:422,y:2,w:56,h:44,rot:0,fontSize:12,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
+      WO:{x:2,y:2,w:104,h:44,rot:0,fontSize:20,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ITEM:{x:108,y:2,w:260,h:44,rot:0,fontSize:32,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      QR:{x:370,y:2,w:46,h:44,rot:0,locked:false,visible:true},
+      WEEK:{x:418,y:2,w:60,h:44,rot:0,fontSize:12,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
     }
   };
 }
@@ -233,6 +244,7 @@ async function loadCsv(){
       wo:o["Work Order"]||"",
       act,
       crop:o["Crop"]||"",
+      name:o["Name"]||"",
       scion:o["Scion"]||"",
       rootstock:o["Rootstock"]||"",
       internalId:o["Internal ID"]||"",
@@ -298,16 +310,40 @@ function currentRow(){
 function potWarningText(){ return ""; }
 function patentPieces(row){ return []; }
 function potLotQrText(row){ return String(row.wo||"").trim(); }
+function splitLotParts(row){
+  return String((row&&row.lotNumber)||"").split("|").map(s=>String(s||"").trim()).filter(Boolean);
+}
+function isRschScion(row){
+  return /rsch\s*scion/i.test(String((row&&row.scion)||"")) || /rsch\s*scion/i.test(String((row&&row.name)||""));
+}
+function isRschRootstock(row){
+  return /rsch\s*rootstock/i.test(String((row&&row.rootstock)||"")) || /rsch\s*rootstock/i.test(String((row&&row.name)||""));
+}
+function derivedScion(row){
+  const raw=String((row&&row.scion)||"").trim();
+  const parts=splitLotParts(row);
+  if(isRschScion(row)) return String(parts[0]||raw||row.crop||"").trim();
+  return raw || String((row&&row.crop)||"").trim();
+}
+function derivedRootstock(row){
+  const raw=String((row&&row.rootstock)||"").trim();
+  const parts=splitLotParts(row);
+  if(isRschRootstock(row)){
+    if(isRschScion(row)) return String(parts[1]||parts[0]||raw||"").trim();
+    return String(parts[0]||raw||"").trim();
+  }
+  return raw || String((row&&row.scion)||"").trim();
+}
 function displayPotItem(row){
   const olive=/olive/i.test(row.crop||"");
-  let txt=olive?(row.scion||row.rootstock||"ITEM"):(row.rootstock||row.scion||"ITEM");
+  let txt=olive?(derivedScion(row)||derivedRootstock(row)||"ITEM"):(derivedRootstock(row)||derivedScion(row)||"ITEM");
   if(/^platinum\s+pistachio\s+rootstock$/i.test(String(txt||"").trim())) txt = "Platinum";
   return cap(txt);
 }
 function labelText(id,row){
   if(id==="WO")return cap(row.wo||"WO");
   if(id==="ITEM"){
-    if(labelType==="WRAP") return cap(row.rootstock||row.scion||row.crop||"ITEM");
+    if(labelType==="WRAP") return cap(derivedRootstock(row)||derivedScion(row)||row.crop||"ITEM");
     return displayPotItem(row);
   }
   if(id==="WEEK")return cap(currentWeekNumber());
@@ -448,7 +484,6 @@ function renderCanvas(){
     <span class="metaPill colorPill" style="background:${escapeHtml(cm.bg)};color:${escapeHtml(cm.fg)};border-color:${escapeHtml(cm.fg==='#ffffff'?'rgba(255,255,255,.35)':'rgba(17,24,39,.2)')}">Label Color <b style="color:${escapeHtml(cm.fg)}">${escapeHtml(cm.label)}</b></span>
     <span class="metaPill">Qty <b>${escapeHtml(displayLabelsNeeded(row))}</b></span>
   `;
-  stack.appendChild(meta);
   const stage=document.createElement("div");
   stage.className="stageInner";
   stage.style.transformOrigin="center top";
@@ -501,6 +536,7 @@ function renderCanvas(){
   }
 
   stack.appendChild(stage);
+  stack.appendChild(meta);
   host.appendChild(stack);
   autoFitTextObjects();
   autoFitWrapPreview();
@@ -560,10 +596,12 @@ function wrapRightQrText(row){
   return lot ? `LOT ${lot} | ${wo}` : (wo || " ");
 }
 function wrapScionText(row){
-  return cap(row.scion || row.crop || row.rootstock || "ITEM");
+  return cap(derivedScion(row) || row.crop || derivedRootstock(row) || "ITEM");
 }
 function wrapRootstockText(row){
-  return cap(row.rootstock || row.scion || row.crop || "ROOTSTOCK");
+  let txt=derivedRootstock(row) || derivedScion(row) || row.crop || "ROOTSTOCK";
+  if(/^platinum\s+pistachio\s+rootstock$/i.test(String(txt||"").trim())) txt = "Platinum";
+  return cap(txt);
 }
 function wrapPatentText(row){
   const parts=[];
@@ -616,10 +654,10 @@ function makeWrapWarningInner(){
 }
 function printWrapInner(id,row,o){
   const outer=`position:absolute;left:0;top:0;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
-  if(id==="WO") return `<div style="${outer}display:flex;align-items:center;gap:4px;padding:1px 2px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;"><div style="width:40px;height:40px;flex:0 0 40px;"><img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.88;min-width:0;flex:1;"><div style="font-size:16px;">${escapeHtml(cap(row.wo||""))}</div><div style="font-size:12px;">${escapeHtml(cap(row.crop||""))}</div><div style="font-size:11px;">${escapeHtml(cap(row.internalId||""))}</div></div></div>`;
-  if(id==="ITEM") return `<div style="${outer}display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 3px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;line-height:.86;"><div style="font-size:22px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(wrapScionText(row))}</div><div style="font-size:22px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;"><span style="font-size:.68em;margin-right:.18em;">on</span>${escapeHtml(wrapRootstockText(row))}</div>${wrapPatentText(row)?`<div style="font-size:7px;line-height:.96;margin-top:0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(wrapPatentText(row))}</div>`:""}<div style="font-size:6px;line-height:.96;margin-top:0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(WRAP_BENCH_LINE)}</div><div style="font-size:6px;line-height:.96;margin-top:0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(WRAP_ADDRESS)}</div></div>`;
-  if(id==="QR") return `<div style="${outer}display:flex;align-items:center;justify-content:center;gap:3px;padding:1px 1px;"><div style="width:38px;height:38px;flex:0 0 38px;"><img src="${qrUrl(wrapRightQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="width:16px;height:16px;flex:0 0 16px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain" onerror="this.outerHTML='SG'"/></div></div>`;
-  if(id==="WEEK") return `<div style="${outer}display:flex;align-items:center;justify-content:flex-start;padding:1px 1px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:5.4px;line-height:.88;">${escapeHtml(WRAP_WARNING)}</div>`;
+  if(id==="WO") return `<div style="${outer}display:flex;align-items:center;gap:3px;padding:1px 2px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;"><div style="width:38px;height:38px;flex:0 0 38px;"><img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:.86;min-width:0;flex:1;"><div style="font-size:15px;">${escapeHtml(cap(row.wo||""))}</div><div style="font-size:12px;">${escapeHtml(cap(row.crop||""))}</div><div style="font-size:11px;">${escapeHtml(cap(row.internalId||""))}</div></div></div>`;
+  if(id==="ITEM") return `<div style="${outer}display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 2px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;line-height:.84;"><div style="font-size:18px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapScionText(row))}</div><div style="font-size:18px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;"><span style="font-size:.68em;margin-right:.18em;">on</span>${escapeHtml(wrapRootstockText(row))}</div>${wrapPatentText(row)?`<div style="font-size:6px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapPatentText(row))}</div>`:""}<div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(WRAP_BENCH_LINE)}</div><div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(WRAP_ADDRESS)}</div></div>`;
+  if(id==="QR") return `<div style="${outer}display:flex;align-items:center;justify-content:center;gap:2px;padding:1px 1px;"><div style="width:36px;height:36px;flex:0 0 36px;"><img src="${qrUrl(wrapRightQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="width:14px;height:14px;flex:0 0 14px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain" onerror="this.outerHTML='SG'"/></div></div>`;
+  if(id==="WEEK") return `<div style="${outer}display:flex;align-items:center;justify-content:flex-start;padding:1px 1px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:5px;line-height:.86;">${escapeHtml(WRAP_WARNING)}</div>`;
   return "";
 }
 
@@ -670,13 +708,13 @@ function autoFitWrapPreview(){
     const p=mainBlock.querySelector('.patentLine');
     const b=mainBlock.querySelector('.benchLine');
     const a=mainBlock.querySelector('.addressLine');
-    let big=30;
-    for(; big>=11; big--){
+    let big=32;
+    for(; big>=8; big--){
       if(s) s.style.fontSize=big+'px';
       if(r) r.style.fontSize=big+'px';
-      if(p) p.style.fontSize=Math.max(6,Math.round(big*0.30))+'px';
-      if(b) b.style.fontSize=Math.max(5,Math.round(big*0.24))+'px';
-      if(a) a.style.fontSize=Math.max(5,Math.round(big*0.24))+'px';
+      if(p) p.style.fontSize=Math.max(5,Math.round(big*0.28))+'px';
+      if(b) b.style.fontSize=Math.max(4,Math.round(big*0.22))+'px';
+      if(a) a.style.fontSize=Math.max(4,Math.round(big*0.22))+'px';
       if(wrapBlockFits(mainBlock)) break;
     }
   }
@@ -902,6 +940,36 @@ function centerSelected(axis){
   renderAll();
 }
 
+
+function widenRenderTable(){
+  const body=$("rowsBody");
+  if(!body)return;
+  const table=body.closest("table");
+  if(table){
+    table.style.width="100%";
+    table.style.tableLayout="fixed";
+  }
+  let p=table?table.parentElement:null;
+  let steps=0;
+  while(p && p!==document.body && steps<4){
+    p.style.width="100%";
+    p.style.maxWidth="none";
+    p.style.minWidth="0";
+    steps++;
+    p=p.parentElement;
+  }
+  const scrollWrap=(table&&table.parentElement)||null;
+  if(scrollWrap){
+    scrollWrap.style.background="#0f172a";
+    scrollWrap.style.position="relative";
+  }
+  if(table){
+    table.querySelectorAll("thead, thead tr, thead th").forEach(el=>{
+      el.style.background="#121a2c";
+      el.style.opacity="1";
+    });
+  }
+}
 function renderRows(){
   const q=(($("search")&&$("search").value)||"").toLowerCase();
   filteredRows=rows.filter(r=>{
@@ -926,6 +994,7 @@ function renderRows(){
     };
     tb.appendChild(tr);
   });
+  widenRenderTable();
 }
 
 function addToQueue(r=currentRow()){
