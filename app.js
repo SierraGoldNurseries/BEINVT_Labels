@@ -1,4 +1,4 @@
-const APP_VERSION = "4.1.0-appjs-only";
+const APP_VERSION = "4.2.0-week-number-item-resize";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 
@@ -18,16 +18,16 @@ const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5}
     .obj.locked{border-color:rgba(248,113,113,.9)}
     .inner{position:absolute;display:flex;overflow:hidden;align-items:center;justify-content:center;text-align:center;line-height:.95;white-space:nowrap;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;transform-origin:center center}
     .obj img,.obj canvas{width:100%;height:100%;display:block;image-rendering:pixelated}
-    .handle{display:none;position:absolute;width:10px;height:10px;background:#facc15;border:1px solid #111827;border-radius:3px;z-index:20}
+    .handle{display:none;position:absolute;width:16px;height:16px;background:#facc15;border:1px solid #111827;border-radius:4px;z-index:20}
     .obj.selected .handle{display:block}
-    .handle.n{top:-6px;left:50%;margin-left:-5px;cursor:ns-resize}
-    .handle.s{bottom:-6px;left:50%;margin-left:-5px;cursor:ns-resize}
-    .handle.e{right:-6px;top:50%;margin-top:-5px;cursor:ew-resize}
-    .handle.w{left:-6px;top:50%;margin-top:-5px;cursor:ew-resize}
-    .handle.ne{right:-6px;top:-6px;cursor:nesw-resize}
-    .handle.nw{left:-6px;top:-6px;cursor:nwse-resize}
-    .handle.se{right:-6px;bottom:-6px;cursor:nwse-resize}
-    .handle.sw{left:-6px;bottom:-6px;cursor:nesw-resize}
+    .handle.n{top:-8px;left:50%;margin-left:-8px;cursor:ns-resize}
+    .handle.s{bottom:-8px;left:50%;margin-left:-8px;cursor:ns-resize}
+    .handle.e{right:-8px;top:50%;margin-top:-8px;cursor:ew-resize}
+    .handle.w{left:-8px;top:50%;margin-top:-8px;cursor:ew-resize}
+    .handle.ne{right:-8px;top:-8px;cursor:nesw-resize}
+    .handle.nw{left:-8px;top:-8px;cursor:nwse-resize}
+    .handle.se{right:-8px;bottom:-8px;cursor:nwse-resize}
+    .handle.sw{left:-8px;bottom:-8px;cursor:nesw-resize}
     .gridOverlay{position:absolute;inset:0;pointer-events:none;z-index:4;opacity:.28}
     .safeZone{position:absolute;border:1px dashed rgba(239,68,68,.7);pointer-events:none;z-index:5}
     .guide{position:absolute;background:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.8);pointer-events:none;z-index:99}
@@ -47,7 +47,7 @@ if(localStorage.getItem("beinvtAppVersion") !== APP_VERSION){
 }
 
 let DEFAULT_LAYOUTS={}, labelType="POT", rows=[], filteredRows=[], currentRowIndex=0, selectedId="ITEM", layout=null;
-let showSafeZone=true, showGrid=false, testMode=false;
+let showSafeZone=true, showGrid=false, showSnap=false, showSnapGrid=false, testMode=false;
 let calibration=JSON.parse(localStorage.getItem("beinvtCalibration")||'{"scaleX":1,"scaleY":1}');
 let presets=JSON.parse(localStorage.getItem("beinvtLayoutPresets")||"{}");
 let queue=JSON.parse(localStorage.getItem("beinvtPrintQueue")||"[]");
@@ -110,10 +110,10 @@ function fallbackLayout(t){
     safeMarginPx:5,
     gridPx:4,
     objects:{
-      WO:{x:3,y:42,w:66,h:18,rot:0,fontSize:16,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      QR:{x:11,y:80,w:50,h:50,rot:0,locked:false,visible:true},
-      ITEM:{x:2,y:222,w:68,h:106,rot:-90,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      WEEK:{x:15,y:368,w:42,h:22,rot:0,fontSize:18,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
+      WO:{x:3,y:40,w:66,h:20,rot:0,fontSize:16,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      QR:{x:10,y:76,w:52,h:52,rot:0,locked:false,visible:true},
+      ITEM:{x:0,y:175,w:72,h:190,rot:-90,fontSize:26,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      WEEK:{x:15,y:382,w:42,h:24,rot:0,fontSize:18,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
     }
   };
   return {
@@ -187,7 +187,7 @@ async function loadCsv(){
       tray:o["Tray Type"]||"",
       labelColor:o["Label Color"]||"",
       labelsNeeded:o["Labels Needed"]||"1",
-      week:/initiation/i.test(act)?isoWeekNumber(d):""
+      week:isoWeekNumber(d)||isoWeekNumber(new Date())
     };
   }).filter(r=>r.wo);
   filteredRows=rows.slice();
@@ -218,7 +218,7 @@ function currentRow(){
     scion:"ARBEQUINA",
     rootstock:"TEST ROOTSTOCK",
     crop:"OLIVE",
-    week:"17",
+    week:isoWeekNumber(new Date()),
     act:"INITIATION",
     labelsNeeded:"1"
   };
@@ -230,7 +230,7 @@ function labelText(id,row){
     const olive=/\bolive\b/i.test(row.crop||"");
     return cap(olive?(row.scion||row.rootstock||"ITEM"):(row.rootstock||row.scion||"ITEM"));
   }
-  if(id==="WEEK")return cap(row.week||"");
+  if(id==="WEEK")return cap(row.week||isoWeekNumber(new Date())||"");
   return "";
 }
 
@@ -242,6 +242,8 @@ function renderAll(){
   if($("labelType")) $("labelType").value=labelType;
   if($("safeToggle")) $("safeToggle").checked=showSafeZone;
   if($("gridToggle")) $("gridToggle").checked=showGrid;
+  if($("snapToggle")) $("snapToggle").checked=showSnap;
+  if($("snapGridToggle")) $("snapGridToggle").checked=showSnapGrid;
   renderCanvas();
   renderObjectPanel();
   syncControls();
@@ -384,8 +386,7 @@ function attachObjectEvents(el){
 
 function labelBounds(){return sizePx()}
 function gridSnapVal(v){
-  const snapGrid=$("snapGridToggle");
-  if(!snapGrid||!snapGrid.checked)return v;
+  if(!showSnapGrid)return v;
   const g=Number(($("gridPx")&&$("gridPx").value)||layout.gridPx||4);
   return Math.round(v/g)*g;
 }
@@ -460,8 +461,7 @@ function startResize(e,el,id,dir){
 }
 
 function snapRect(r,id){
-  const snap=$("snapToggle");
-  if(!snap||!snap.checked)return{...r,guides:[]};
+  if(!showSnap)return{...r,guides:[]};
   const th=Number(($("snapPx")&&$("snapPx").value)||5),b=labelBounds(),xs=[0,b.w/2,b.w],ys=[0,b.h/2,b.h];
   for(const[oid,o]of Object.entries(layout.objects)){
     if(oid===id||o.visible===false)continue;
@@ -690,7 +690,6 @@ function renderPrintPage(row,b){
   for(const id of["WO","QR","ITEM","WEEK"]){
     const o=layout.objects[id];
     if(!o||o.visible===false)continue;
-    if(id==="WEEK"&&!row.week)continue;
     const outer=`position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
     if(id==="QR") out+=`<div style="${outer}"><img src="${qrUrl(row.wo)}" style="width:100%;height:100%;image-rendering:pixelated"/></div>`;
     else out+=`<div style="${outer}">${printTextInner(id,row,o)}</div>`;
@@ -709,6 +708,8 @@ function initEvents(){
   if($("search")) $("search").oninput=renderRows;
   if($("safeToggle")) $("safeToggle").onchange=e=>{showSafeZone=e.target.checked;renderCanvas()};
   if($("gridToggle")) $("gridToggle").onchange=e=>{showGrid=e.target.checked;renderCanvas()};
+  if($("snapToggle")) $("snapToggle").onchange=e=>{showSnap=e.target.checked;renderCanvas()};
+  if($("snapGridToggle")) $("snapGridToggle").onchange=e=>{showSnapGrid=e.target.checked;renderCanvas()};
   if($("gridPx")) $("gridPx").onchange=applyControls;
   if($("safeMargin")) $("safeMargin").oninput=e=>{layout.safeMarginPx=Number(e.target.value||0);if($("safeValue"))$("safeValue").textContent=layout.safeMarginPx+"px";saveWorkingLayout();renderCanvas()};
   for(const id of["x","y","w","h","rot","fontSize"]){
