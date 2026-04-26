@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.35_wrap_label_meta_realigned";
+const APP_VERSION = "8.6.37_color_list_config_fixed";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -34,35 +34,40 @@ const WRAP_LIKE_PREVIEW_CONFIG = {
 };
 
 // Shared color config for ALL templates: Pot Stakes, Finished Trees, Field Labels, Shipping Labels.
-// Add new colors here using uppercase display names. The key can include spaces.
-// bg = label pill background, fg = text color on top of that background.
+// Matches the NetSuite Label Color list exactly, in list order.
+// key = normalized NetSuite list value, label = display value, bg = label pill background, fg = text color.
 const LABEL_COLOR_CONFIG = {
-  "WHITE": { bg: "#ffffff", fg: "#111827" },
-  "YELLOW": { bg: "#facc15", fg: "#111827" },
-  "MINT": { bg: "#98ff98", fg: "#111827" },
-  "RED": { bg: "#ef4444", fg: "#ffffff" },
-  "ORANGE": { bg: "#fb923c", fg: "#111827" },
-  "PINK": { bg: "#ec4899", fg: "#111827" },
-  "HOT PINK": { bg: "#ff69b4", fg: "#111827" },
-  "FUCHSIA": { bg: "#ff00ff", fg: "#111827" },
-  "LAVENDER": { bg: "#c4b5fd", fg: "#111827" },
-  "LILAC": { bg: "#d8b4fe", fg: "#111827" },
-  "PURPLE": { bg: "#a855f7", fg: "#ffffff" },
-  "DARK PURPLE": { bg: "#581c87", fg: "#ffffff" },
-  "BLUE": { bg: "#3b82f6", fg: "#ffffff" },
-  "DARK BLUE": { bg: "#1e3a8a", fg: "#ffffff" },
-  "TURQUOISE": { bg: "#40e0d0", fg: "#111827" },
-  "GREEN": { bg: "#22c55e", fg: "#111827" },
-  "DARK GREEN": { bg: "#166534", fg: "#ffffff" },
-  "APPLE GREEN": { bg: "#8db600", fg: "#111827" },
-  "LIME": { bg: "#84cc16", fg: "#111827" },
-  "TAN": { bg: "#d2b48c", fg: "#111827" },
-  "BROWN": { bg: "#92400e", fg: "#ffffff" },
-  "GOLD": { bg: "#d4af37", fg: "#111827" },
-  "CORAL": { bg: "#ff7f50", fg: "#111827" },
-  "GREY": { bg: "#9ca3af", fg: "#111827" },
-  "GRAY": { bg: "#9ca3af", fg: "#111827" },
-  "BLACK": { bg: "#111827", fg: "#ffffff" }
+  "APPLE GREEN": { label: "Apple Green", bg: "#8db600", fg: "#111827" },
+  "BLUE": { label: "Blue", bg: "#3b82f6", fg: "#ffffff" },
+  "BROWN": { label: "Brown", bg: "#92400e", fg: "#ffffff" },
+  "CORAL": { label: "Coral", bg: "#ff7f50", fg: "#111827" },
+  "DARK BLUE": { label: "Dark Blue", bg: "#1e3a8a", fg: "#ffffff" },
+  "DARK GREEN": { label: "Dark Green", bg: "#166534", fg: "#ffffff" },
+  "DARK PURPLE": { label: "Dark Purple", bg: "#581c87", fg: "#ffffff" },
+  "FUCHSIA": { label: "Fuchsia", bg: "#ff00ff", fg: "#111827" },
+  "GOLD": { label: "Gold", bg: "#d4af37", fg: "#111827" },
+  "GREY": { label: "Grey", bg: "#9ca3af", fg: "#111827" },
+  "HOT PINK": { label: "Hot Pink", bg: "#ff69b4", fg: "#111827" },
+  "LAVENDER": { label: "Lavender", bg: "#c4b5fd", fg: "#111827" },
+  "LILAC": { label: "Lilac", bg: "#d8b4fe", fg: "#111827" },
+  "LIME": { label: "Lime", bg: "#84cc16", fg: "#111827" },
+  "MINT": { label: "Mint", bg: "#98ff98", fg: "#111827" },
+  "ORANGE": { label: "Orange", bg: "#fb923c", fg: "#111827" },
+  "PINK": { label: "Pink", bg: "#ec4899", fg: "#111827" },
+  "RED": { label: "Red", bg: "#ef4444", fg: "#ffffff" },
+  "TAN": { label: "Tan", bg: "#d2b48c", fg: "#111827" },
+  "TURQUOISE": { label: "Turquoise", bg: "#40e0d0", fg: "#111827" },
+  "WHITE": { label: "White", bg: "#ffffff", fg: "#111827" },
+  "YELLOW": { label: "Yellow", bg: "#facc15", fg: "#111827" }
+};
+
+const LABEL_COLOR_ALIASES = {
+  "GRAY": "GREY",
+  "APPLEGREEN": "APPLE GREEN",
+  "DARKBLUE": "DARK BLUE",
+  "DARKGREEN": "DARK GREEN",
+  "DARKPURPLE": "DARK PURPLE",
+  "HOTPINK": "HOT PINK"
 };
 
 const OUTER_CARD_EXTRA_WIDTH = 0;
@@ -107,6 +112,7 @@ const UI_THEME_CONFIG = {
   - v8.6.30: Wrap-like preview is left-aligned again when meta pills sit below the label; Shipping Labels mode reads BEINVT - Items.csv and shows CN/QS/Liner/Bud rows only.
   - v8.6.31: Shipping Labels hides WO/Lot objects, shifts logo + warning left, removes Qty pill, cleans topbar helper text, and avoids duplicate single-line scion/rootstock rendering.
   - v8.6.32: Adds one shared label-color config for all templates, aligns Shipping label color bar to the label width, and centers wrap-like zoom out behavior.
+  - v8.6.37: Label color config now matches the NetSuite list exactly and preserves title-case display names.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -1705,21 +1711,26 @@ function colorConfigKey(name) {
 }
 function colorMeta(name) {
   const raw = cleanDisplay(name);
-  const display = cap(raw) || "UNKNOWN";
-  const direct = LABEL_COLOR_CONFIG[colorConfigKey(raw)];
-  if (direct) return { ...direct, label: display };
+  const normalized = colorConfigKey(raw);
+  const directKey = LABEL_COLOR_ALIASES[normalized] || normalized;
+  const direct = LABEL_COLOR_CONFIG[directKey];
+  if (direct) return { ...direct, label: direct.label || raw || "Unknown" };
 
-  // Also support compact keys if someone adds/uses HOTPINK instead of HOT PINK.
-  const compact = colorConfigKey(raw).replace(/\s+/g, "");
-  const matchKey = Object.keys(LABEL_COLOR_CONFIG).find(k => k.replace(/\s+/g, "") === compact);
-  if (matchKey) return { ...LABEL_COLOR_CONFIG[matchKey], label: display };
+  // Also support compact keys if someone exports HOTPINK, DARKBLUE, etc.
+  const compact = normalized.replace(/\s+/g, "");
+  const aliasKey = LABEL_COLOR_ALIASES[compact] || compact;
+  const matchKey = Object.keys(LABEL_COLOR_CONFIG).find(k => k.replace(/\s+/g, "") === aliasKey || k.replace(/\s+/g, "") === compact);
+  if (matchKey) {
+    const cfg = LABEL_COLOR_CONFIG[matchKey];
+    return { ...cfg, label: cfg.label || raw || "Unknown" };
+  }
 
-  // Fallback: valid CSS color names still work.
+  // Fallback: valid CSS color names still work, but keep the CSV/list display text.
   const cssProbe = raw.toLowerCase().trim();
   const probe = document.createElement("span");
   probe.style.color = cssProbe;
-  if (probe.style.color) return { bg: cssProbe, fg: "#111827", label: display };
-  return { bg: "rgba(255,255,255,.08)", fg: "#e5e7eb", label: display };
+  if (probe.style.color) return { bg: cssProbe, fg: "#111827", label: raw || "Unknown" };
+  return { bg: "rgba(255,255,255,.08)", fg: "#e5e7eb", label: raw || "Unknown" };
 }
 
 function removeGitHubWorkflowText() {
