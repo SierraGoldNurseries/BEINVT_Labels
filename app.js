@@ -1,4 +1,4 @@
-const APP_VERSION = "8.0.0-full-rewrite-clean";
+const APP_VERSION = "8.1.0-right-menu-dedupe-left-controls";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -131,6 +131,8 @@ function sizePx(type = labelType) {
     .queueItem{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:7px 8px;margin-bottom:6px;background:#0d1022}
     .queueItem input{width:62px;border:1px solid rgba(255,255,255,.14);background:#080b1a;color:#fff;border-radius:8px;padding:6px}
     .small{font-size:11px;color:#aeb7d5}
+    .beinvtDuplicateSettings{display:none!important}
+    .beinvtSettingsPanel .beinvtCard{display:block!important}
 
     .stageWrap{display:flex!important;flex-direction:column!important;height:calc(100vh - 86px)!important;min-height:0!important;overflow:hidden!important;padding:10px!important;gap:10px!important;background:radial-gradient(circle at center,rgba(255,255,255,.06),rgba(255,255,255,.015))!important}
     #canvasHost{width:100%!important;height:100%!important;min-height:0!important;display:flex!important;gap:12px!important;align-items:stretch!important;justify-content:stretch!important;overflow:hidden!important}
@@ -544,7 +546,15 @@ function updateModeTabs() {
 }
 
 function findSettingsPanel() {
-  return document.querySelector("aside.panel") || document.querySelector(".panel.sidebar") || document.querySelector(".settingsPanel") || document.querySelector("aside");
+  const candidates = [...document.querySelectorAll("aside.panel,.panel.sidebar,.settingsPanel,aside")]
+    .filter(el => el && !el.closest("#canvasHost") && !el.closest("#stageDataWrap") && !el.closest("#stageLabelHost"));
+  const existing = candidates.find(el => el.classList && el.classList.contains("beinvtSettingsPanel"));
+  if (existing) return existing;
+  if (!candidates.length) return null;
+  return candidates
+    .map(el => ({ el, rect: el.getBoundingClientRect() }))
+    .filter(x => x.rect.width > 80 && x.rect.height > 80)
+    .sort((a, b) => a.rect.left - b.rect.left)[0]?.el || candidates[0];
 }
 function ensureLeftPanel() {
   const panel = findSettingsPanel();
@@ -581,7 +591,7 @@ function ensureLeftPanel() {
       <div class="beinvtCardHeader">Grid / Snap / Safe Zone</div>
       <div class="beinvtCardBody">
         <div class="checkRow">
-          <label class="checkItem"><input id="safeToggle" type="checkbox"> Safe Zone</label>
+          <label class="checkItem"><input id="safeToggle" type="checkbox"> Show Safe Zone</label>
           <label class="checkItem"><input id="gridToggle" type="checkbox"> Show Grid</label>
           <label class="checkItem"><input id="snapToggle" type="checkbox"> Snap Guides</label>
           <label class="checkItem"><input id="snapGridToggle" type="checkbox"> Snap Grid</label>
@@ -621,6 +631,49 @@ function ensureLeftPanel() {
     </details>
   `;
 }
+function nearestCleanupContainer(el) {
+  if (!el) return null;
+  return el.closest(".beinvtCard,details,fieldset,.section,.card,.panel,aside") || el.parentElement;
+}
+function textLooksLikeOldPositionCard(text) {
+  const t = String(text || "").replace(/\s+/g, " ").trim().toLowerCase();
+  return (
+    (t.includes("selected") && t.includes("font size") && t.includes("visible") && t.includes("lock") && /\bx\b/.test(t) && /\by\b/.test(t) && /\bw\b/.test(t) && /\bh\b/.test(t)) ||
+    (t.includes("position") && t.includes("size") && t.includes("rot") && t.includes("font size")) ||
+    (t.includes("grid") && t.includes("snap") && t.includes("safe")) ||
+    (t.includes("safe margin") && (t.includes("show safe") || t.includes("safe zone"))) ||
+    t.includes("print calibration")
+  );
+}
+function markDuplicateSettingsElement(el) {
+  if (!el || el.classList.contains("beinvtSettingsPanel") || el.closest(".beinvtSettingsPanel")) return;
+  if (el.closest("#canvasHost") || el.closest("#stageDataWrap") || el.closest("#stageLabelHost")) return;
+  if (el.closest(".topbar") || el.closest(".toolbar") || el.closest("header")) return;
+  el.classList.add("beinvtDuplicateSettings");
+  el.setAttribute("aria-hidden", "true");
+}
+function removeDuplicateRightMenuControls() {
+  const primary = findSettingsPanel();
+  if (!primary) return;
+  const duplicateIds = [
+    "selectedName", "x", "y", "w", "h", "rot", "fontSize", "lockToggle", "visibleToggle",
+    "safeToggle", "safeMargin", "safeValue", "gridToggle", "snapToggle", "snapGridToggle", "gridPx", "snapPx",
+    "printCalibration", "saveCalibration", "measuredW", "measuredH", "calStatus"
+  ];
+  for (const id of duplicateIds) {
+    document.querySelectorAll('[id="' + id + '"]').forEach(el => {
+      if (primary.contains(el)) return;
+      const box = nearestCleanupContainer(el);
+      markDuplicateSettingsElement(box || el);
+    });
+  }
+  document.querySelectorAll("aside.panel,.panel.sidebar,.settingsPanel,aside,.section,.card,details,fieldset").forEach(el => {
+    if (!el || el === primary || primary.contains(el)) return;
+    if (el.closest("#canvasHost") || el.closest("#stageDataWrap") || el.closest("#stageLabelHost")) return;
+    if (textLooksLikeOldPositionCard(el.textContent || "")) markDuplicateSettingsElement(el);
+  });
+}
+
 function objectDisplayName(id) {
   if (labelType === "WRAP") {
     return {
@@ -649,12 +702,16 @@ function renderObjectPanel() {
 }
 function startPanelWatchdog() {
   let passes = 0;
-  const timer = setInterval(() => {
+  const tick = () => {
     passes++;
     ensureLeftPanel();
+    removeDuplicateRightMenuControls();
     renderObjectPanel();
-    if (passes > 20) clearInterval(timer);
-  }, 250);
+    syncControls();
+    if (passes > 40) clearInterval(timer);
+  };
+  const timer = setInterval(tick, 200);
+  tick();
 }
 
 function ensureStageShell() {
@@ -715,6 +772,7 @@ function renderAll() {
   applyModeClass();
   removeGitHubWorkflowText();
   ensureLeftPanel();
+  removeDuplicateRightMenuControls();
   ensureModeTabs();
   updateModeTabs();
   renderRows();
@@ -1388,6 +1446,7 @@ function nudgeSelected(dx, dy) {
 }
 function initEvents() {
   ensureLeftPanel();
+  removeDuplicateRightMenuControls();
   ensureModeTabs();
   bindDirectionalButtons();
   if ($("labelType")) $("labelType").onchange = ev => { labelType = ev.target.value; selectedId = defaultSelectedId(labelType); undoStack = []; redoStack = []; setLayout(loadWorkingLayout(labelType), false); };
@@ -1442,6 +1501,7 @@ function boot() {
   loadDefaults();
   layout = loadWorkingLayout(labelType);
   ensureLeftPanel();
+  removeDuplicateRightMenuControls();
   initEvents();
   loadCsv().catch(console.warn).finally(() => {
     renderAll();
