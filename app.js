@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.26-row-x-logo-height-panel-match";
+const APP_VERSION = "8.6.27-logo-width-row-negative-x";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -36,6 +36,7 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - v8.6.24: stage is fixed beside the objects pane so the table cannot overlap it; Field Row marker uses a taller box with smaller upright portrait text.
   - v8.6.25: Field left object is renamed Row; Row text prints as one sideways word instead of stacked R/O/W.
   - v8.6.26: Field Row default X is -2; Finished Trees/Field SG Logo height is 50; left pane height is synced to the right stage bottom.
+  - v8.6.27: Finished Trees/Field SG Logo defaults to x=390 and width=30; Field Row object can use negative X values.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -749,7 +750,7 @@ function fallbackLayout(type) {
       LOT: { x: 119, y: 37, w: 234, h: 6, rot: 0, fontSize: 5, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       ADDRESS: { x: 119, y: 43, w: 234, h: 5, rot: 0, fontSize: 4.6, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       LOT_QR: { x: 359, y: 7, w: 34, h: 34, rot: 0, locked: false, visible: true },
-      LOGO: { x: 399, y: 4, w: 18, h: 50, rot: 0, locked: false, visible: true },
+      LOGO: { x: 390, y: 4, w: 30, h: 50, rot: 0, locked: false, visible: true },
       WARNING: { x: 420, y: 2, w: 58, h: 44, rot: 0, fontSize: 3.2, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" }
     }
   };
@@ -777,6 +778,8 @@ function normalizeLayout(src) {
     out.objects.WO_QR.visible = true;
   }
   if (isWrapLikeMode(type) && out.objects && out.objects.LOGO) {
+    out.objects.LOGO.x = 390;
+    out.objects.LOGO.w = 30;
     out.objects.LOGO.h = 50;
   }
   return out;
@@ -3058,7 +3061,10 @@ function clampObject(id) {
   const limH = activeBottomLimit();
   o.w = clamp(Number(o.w || 10), 4, b.w);
   o.h = clamp(Number(o.h || 10), 4, limH);
-  o.x = clamp(Number(o.x || 0), 0, Math.max(0, b.w - o.w));
+  // v8.6.27: Field Labels ROW marker needs to sit slightly off the left edge.
+  // Keep all other objects constrained at 0.
+  const minX = (labelType === "FIELD" && id === "WO_QR") ? -20 : 0;
+  o.x = clamp(Number(o.x || 0), minX, Math.max(minX, b.w - o.w));
   o.y = clamp(Number(o.y || 0), 0, Math.max(0, limH - o.h));
 }
 function clampAllObjects() {
