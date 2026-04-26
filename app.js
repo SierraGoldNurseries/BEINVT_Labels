@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.14-debug-manual-table-width";
+const APP_VERSION = "8.6.15-top-menu-sum-debug-set";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -8,7 +8,7 @@ const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=15
 const GENEVA_SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=260263&c=11150895&h=NMkHvroppy8Yi93204J1rZiq_7V-dJBmcFNuScfEc2hRzqB9";
 const GENEVA_LOGO_SHIFT_Y = -1;
 const OUTER_CARD_EXTRA_WIDTH = 0;
-const TABLE_CARD_WIDTH_EXTRA_BY_LABEL = { POT: 196, WRAP: 194 };
+const TABLE_CARD_WIDTH_EXTRA_BY_LABEL = { POT: 196, WRAP: 194 }; // reference: target missing width; actual layout now fills to top menu right edge
 const DEBUG_LAYER_LABELS_DEFAULT = false;
 
 /*
@@ -32,14 +32,14 @@ const OUTER_CARD_SIZE_CONFIG = {
   heightMode: "fitViewport",
   // 0.95 trims the render area height by 5% so the normal page does not create a browser scrollbar.
   pageHeightScale: 0.95,
-  // Preserve the current table/label width, but visually shift A right when it overlaps the left object/settings menu.
-  preserveCurrentWidthOnShift: true,
+  // v8.6.15: A starts exactly after the left panel and ends at the top control card right edge.
+  preserveCurrentWidthOnShift: false,
   shiftRightFromLeftPanel: true,
   manualWidth: 1600,
   fallbackWidth: 1600,
   extraWidth: 0,
-  rightMargin: 6,
-  leftGap: 6,
+  rightMargin: 0,
+  leftGap: 0,
   minWidth: 700,
   height: 1193,
   minHeight: 520,
@@ -140,9 +140,13 @@ function sizePx(type = labelType) {
     localStorage.removeItem("beinvtWorkingLayout_POT");
     localStorage.removeItem("beinvtWorkingLayout_WRAP");
     // Clear old debug-forced A sizes so the new 5% height trim and right-shift logic can apply.
-    localStorage.removeItem("beinvtOuterCardDebugWidth_v8610");
-    localStorage.removeItem("beinvtOuterCardDebugHeight_v8610");
+    localStorage.removeItem("beinvtOuterCardDebugWidth_v8615");
+    localStorage.removeItem("beinvtOuterCardDebugHeight_v8615");
+    localStorage.removeItem("beinvtOuterCardDebugWidth_v8615");
+    localStorage.removeItem("beinvtOuterCardDebugHeight_v8615");
     localStorage.removeItem("beinvtDebugLayerManualSizes");
+    localStorage.removeItem("beinvtLayerManualSizes_v8612");
+    localStorage.removeItem("beinvtLayerManualSizes_v8615");
     localStorage.setItem("beinvtAppVersion", APP_VERSION);
   }
 })();
@@ -357,6 +361,42 @@ function sizePx(type = labelType) {
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v869-outer-card-topbar-width-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
+(function injectTopMenuSumV8615Css(){
+  const css = `
+    /* v8.6.15: final width authority. A fills the exact space remaining after the left panel. */
+    body.beinvt-label-pot,body.beinvt-label-wrap{overflow-x:hidden!important;overflow-y:hidden!important}
+    body.beinvt-label-pot .stageWrap,body.beinvt-label-wrap .stageWrap{
+      max-width:var(--beinvt-outer-card-width)!important;
+      min-width:var(--beinvt-outer-card-width)!important;
+      width:var(--beinvt-outer-card-width)!important;
+      flex:0 0 var(--beinvt-outer-card-width)!important;
+      flex-basis:var(--beinvt-outer-card-width)!important;
+    }
+    body.beinvt-label-pot #canvasHost,body.beinvt-label-wrap #canvasHost{
+      width:100%!important;
+      max-width:100%!important;
+      min-width:0!important;
+      overflow:hidden!important;
+    }
+    body.beinvt-label-pot #stageDataWrap{
+      flex:1 1 auto!important;
+      width:auto!important;
+      min-width:0!important;
+      max-width:none!important;
+    }
+    body.beinvt-label-pot #stageLabelHost{
+      flex:0 0 360px!important;
+      width:360px!important;
+      min-width:360px!important;
+      max-width:360px!important;
+    }
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-v8615-top-menu-sum-css", "1");
   tag.textContent = css;
   document.head.appendChild(tag);
 })();
@@ -909,8 +949,8 @@ function ensureLeftPanel() {
 function outerCardSizeRuntimeConfig() {
   const override = window.BEINVT_OUTER_CARD_SIZE_CONFIG && typeof window.BEINVT_OUTER_CARD_SIZE_CONFIG === "object" ? window.BEINVT_OUTER_CARD_SIZE_CONFIG : {};
   const cfg = Object.assign({}, OUTER_CARD_SIZE_CONFIG, override);
-  const storedW = localStorage.getItem("beinvtOuterCardDebugWidth_v8610");
-  const storedH = localStorage.getItem("beinvtOuterCardDebugHeight_v8610");
+  const storedW = localStorage.getItem("beinvtOuterCardDebugWidth_v8615");
+  const storedH = localStorage.getItem("beinvtOuterCardDebugHeight_v8615");
   if (storedW !== null && storedW !== "") {
     cfg.widthMode = "manual";
     cfg.manualWidth = Number(storedW) || cfg.manualWidth;
@@ -1045,11 +1085,16 @@ function outerCardLayoutMetrics(stage) {
   const minW = Math.max(300, Number(cfg.minWidth || 700));
   const desiredLeft = outerCardDesiredLeft();
   const naturalLeft = outerCardNaturalLeft(stage);
-  const correction = cfg.shiftRightFromLeftPanel === false ? 0 : Math.max(0, Math.round(desiredLeft - naturalLeft));
+
+  // v8.6.15: allow a small negative OR positive correction so A lines up to the left panel's right edge.
+  // Previous versions only shifted right, which left unused space on the right and made C impossible to widen.
+  const correction = cfg.shiftRightFromLeftPanel === false ? 0 : Math.round(desiredLeft - naturalLeft);
   const actualLeft = naturalLeft + correction;
   const rightLimit = outerCardRightLimit();
-  // Preserve current table/label width while shifting right. This fixes the left menu overlap without squeezing the table.
-  const widthAnchorLeft = cfg.preserveCurrentWidthOnShift === false ? actualLeft : naturalLeft;
+
+  // v8.6.15: width is anchored to actualLeft, not naturalLeft.
+  // This makes: LEFT PANEL width + A width = TOP MENU width (minus configured margins/gaps).
+  const widthAnchorLeft = actualLeft;
   const rawAvailable = Math.floor(rightLimit - widthAnchorLeft);
   const availableWidth = rawAvailable >= minW ? rawAvailable : Math.max(300, rawAvailable);
   return { desiredLeft, naturalLeft, correction, actualLeft, rightLimit, availableWidth, widthAnchorLeft };
@@ -1066,10 +1111,12 @@ function outerCardTargetWidth(stage) {
   const cfg = outerCardSizeRuntimeConfig();
   const mode = String(cfg.widthMode || "fitTopMenu").toLowerCase();
   const extra = Number(cfg.extraWidth ?? OUTER_CARD_EXTRA_WIDTH ?? 0) || 0;
-  const tableExtra = tableCardExtraWidth();
   const available = outerCardAvailableWidth(stage);
+
+  // v8.6.15: fit modes fill the exact usable width to the top menu right edge.
+  // Do NOT add TABLE_CARD_WIDTH_EXTRA here; that pushed the card beyond the menu/right screen.
   if (mode === "fittopmenu" || mode === "fitviewport" || mode === "fit" || mode === "available" || mode === "safe" || mode === "topbar") {
-    return Math.max(300, Math.round(available + extra + tableExtra));
+    return Math.max(300, Math.round(available + extra));
   }
   const requested = Math.max(300, Math.round(Number(cfg.manualWidth || cfg.width || cfg.fallbackWidth || 1600) + extra));
   return cfg.capManualToAvailable === false ? requested : Math.min(requested, available);
@@ -1169,6 +1216,31 @@ function forceOuterCardSize() {
     host.style.setProperty("max-width", "100%", "important");
     host.style.setProperty("max-height", "100%", "important");
     host.style.setProperty("overflow", "hidden", "important");
+    host.style.setProperty("display", "flex", "important");
+  }
+
+  // v8.6.15: make C absorb all remaining width after D so left panel + C + D reaches the top menu width.
+  const dataWrap = $("stageDataWrap");
+  const labelHost = $("stageLabelHost");
+  if (dataWrap && !readDebugLayerManualSizes().C) {
+    dataWrap.style.setProperty("flex", "1 1 auto", "important");
+    dataWrap.style.setProperty("flex-grow", "1", "important");
+    dataWrap.style.setProperty("flex-shrink", "1", "important");
+    dataWrap.style.setProperty("flex-basis", "auto", "important");
+    dataWrap.style.setProperty("width", "auto", "important");
+    dataWrap.style.setProperty("min-width", "0px", "important");
+    dataWrap.style.setProperty("max-width", "none", "important");
+  }
+  if (labelHost && !readDebugLayerManualSizes().D) {
+    if (labelType === "POT") {
+      labelHost.style.setProperty("flex", "0 0 360px", "important");
+      labelHost.style.setProperty("width", "360px", "important");
+      labelHost.style.setProperty("min-width", "360px", "important");
+      labelHost.style.setProperty("max-width", "360px", "important");
+    } else {
+      labelHost.style.removeProperty("width");
+      labelHost.style.setProperty("max-width", "none", "important");
+    }
   }
 }
 function dockStageAwayFromLeftPanel() {
@@ -1352,6 +1424,22 @@ function ensureDebugLayerPanel() {
   }
   positionDebugPanel(panel);
   makeDebugPanelMovable(panel);
+  if (panel.dataset.beinvtSetDelegated !== "1") {
+    panel.dataset.beinvtSetDelegated = "1";
+    panel.addEventListener("click", ev => {
+      const btn = ev.target && ev.target.closest ? ev.target.closest("button[data-debug-apply-size]") : null;
+      if (!btn) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      applyDebugLayerSizeFromPanel(btn.getAttribute("data-debug-apply-size"));
+    }, true);
+    panel.addEventListener("keydown", ev => {
+      const inp = ev.target && ev.target.matches && ev.target.matches("input[data-debug-dim-key][data-dim]") ? ev.target : null;
+      if (!inp || ev.key !== "Enter") return;
+      ev.preventDefault();
+      applyDebugLayerSizeFromPanel(inp.getAttribute("data-debug-dim-key"));
+    }, true);
+  }
   return panel;
 }
 function debugLayerElement(target) {
@@ -1371,8 +1459,8 @@ function debugDimensionInputs(t) {
   const active = document.activeElement;
   const activeW = active && active.matches && active.matches(`input[data-debug-dim-key="${CSS.escape(t.key)}"][data-dim="w"]`) ? active.value : null;
   const activeH = active && active.matches && active.matches(`input[data-debug-dim-key="${CSS.escape(t.key)}"][data-dim="h"]`) ? active.value : null;
-  const storedOuterW = t.key === "A" ? localStorage.getItem("beinvtOuterCardDebugWidth_v8610") : null;
-  const storedOuterH = t.key === "A" ? localStorage.getItem("beinvtOuterCardDebugHeight_v8610") : null;
+  const storedOuterW = t.key === "A" ? localStorage.getItem("beinvtOuterCardDebugWidth_v8615") : null;
+  const storedOuterH = t.key === "A" ? localStorage.getItem("beinvtOuterCardDebugHeight_v8615") : null;
   const w = activeW !== null ? activeW : (manual && manual.width ? manual.width : (t.key === "A" && storedOuterW ? Number(storedOuterW) : (t.key === "A" ? outerCardTargetWidth() : (r ? r.width : ""))));
   const h = activeH !== null ? activeH : (manual && manual.height ? manual.height : (t.key === "A" && storedOuterH ? Number(storedOuterH) : (t.key === "A" ? outerCardTargetHeight() : (r ? r.height : ""))));
   if (t.key === "T") {
@@ -1432,7 +1520,7 @@ function updateDebugLayerLabels() {
     return `<div class="row" title="${escapeHtml(t.note)}"><div class="key" style="color:${escapeHtml(t.color)}">${escapeHtml(t.key)}</div><div class="name">${escapeHtml(t.name)}</div><div class="size">${escapeHtml(size)}</div>${debugDimensionInputs(t)}</div>`;
   }).join("");
   const ocInfo = outerCardDebugInfo();
-  panel.innerHTML = `<b>Layer Debug: ON</b> <span class="muted">drag this panel anywhere</span><div class="muted">T is the top control card containing Pot Stakes / Wrap Ties / Zoom / print buttons. Found: <code>${escapeHtml(ocInfo.topbarFound)}</code>. A target: <code>${escapeHtml(ocInfo.targetWidth)}x${escapeHtml(ocInfo.targetHeight)}</code>. C table extra: <code>${escapeHtml(ocInfo.tableExtraWidth)}</code>. Width mode: <code>${escapeHtml(ocInfo.mode)}</code>. Height mode: <code>${escapeHtml(ocInfo.heightMode)}</code>. T left/width/right/bottom: <code>${escapeHtml(ocInfo.topbarLeft)}/${escapeHtml(ocInfo.topbarWidth)}/${escapeHtml(ocInfo.topbarRight)}/${escapeHtml(ocInfo.topbarBottom)}</code>. A left/right/available/shift: <code>${escapeHtml(ocInfo.targetLeft)}/${escapeHtml(ocInfo.rightLimit)}/${escapeHtml(ocInfo.availableWidth)}/${escapeHtml(ocInfo.leftCorrection)}</code>. Inline: <code>${escapeHtml(ocInfo.inlineWidth)}</code>. Computed: <code>${escapeHtml(ocInfo.computedWidth)}</code>.</div><div class="topBtns"><button type="button" id="beinvtDebugOffBtn">Hide labels</button><button type="button" id="beinvtDebugRefreshBtn">Refresh</button><button type="button" id="beinvtDebugClearBtn">Clear manual sizes</button><button type="button" id="beinvtDebugCopyBtn">Copy sizes</button></div><div class="muted">Type W/H values and press <code>Set</code>. Manual sizes now persist for debug layers instead of snapping back. Clear manual sizes returns A to fitTopMenu/fitViewport. T is reference-only.</div>${rows}`;
+  panel.innerHTML = `<b>Layer Debug: ON</b> <span class="muted">drag this panel anywhere</span><div class="muted">T is the top control card containing Pot Stakes / Wrap Ties / Zoom / print buttons. Found: <code>${escapeHtml(ocInfo.topbarFound)}</code>. A target: <code>${escapeHtml(ocInfo.targetWidth)}x${escapeHtml(ocInfo.targetHeight)}</code>. Width rule: <code>L + A = T</code>. C table target gain ref: <code>${escapeHtml(ocInfo.tableExtraWidth)}</code>. Width mode: <code>${escapeHtml(ocInfo.mode)}</code>. Height mode: <code>${escapeHtml(ocInfo.heightMode)}</code>. T left/width/right/bottom: <code>${escapeHtml(ocInfo.topbarLeft)}/${escapeHtml(ocInfo.topbarWidth)}/${escapeHtml(ocInfo.topbarRight)}/${escapeHtml(ocInfo.topbarBottom)}</code>. A left/right/available/shift: <code>${escapeHtml(ocInfo.targetLeft)}/${escapeHtml(ocInfo.rightLimit)}/${escapeHtml(ocInfo.availableWidth)}/${escapeHtml(ocInfo.leftCorrection)}</code>. Inline: <code>${escapeHtml(ocInfo.inlineWidth)}</code>. Computed: <code>${escapeHtml(ocInfo.computedWidth)}</code>.</div><div class="topBtns"><button type="button" id="beinvtDebugOffBtn">Hide labels</button><button type="button" id="beinvtDebugRefreshBtn">Refresh</button><button type="button" id="beinvtDebugClearBtn">Clear manual sizes</button><button type="button" id="beinvtDebugCopyBtn">Copy sizes</button></div><div class="muted">Type W/H values and press <code>Set</code>. Manual sizes now persist for debug layers instead of snapping back. Clear manual sizes returns A to fitTopMenu/fitViewport. T is reference-only.</div>${rows}`;
   const offBtn = document.getElementById("beinvtDebugOffBtn");
   const refreshBtn = document.getElementById("beinvtDebugRefreshBtn");
   const clearBtn = document.getElementById("beinvtDebugClearBtn");
@@ -1446,7 +1534,7 @@ function updateDebugLayerLabels() {
     inp.addEventListener("keydown", ev => { if (ev.key === "Enter") applyDebugLayerSizeFromPanel(inp.getAttribute("data-debug-dim-key")); });
   });
 }
-const DEBUG_LAYER_MANUAL_SIZES_KEY = "beinvtLayerManualSizes_v8612";
+const DEBUG_LAYER_MANUAL_SIZES_KEY = "beinvtLayerManualSizes_v8615";
 function readDebugLayerManualSizes() {
   try { return JSON.parse(localStorage.getItem(DEBUG_LAYER_MANUAL_SIZES_KEY) || "{}"); } catch (e) { return {}; }
 }
@@ -1468,10 +1556,26 @@ function applyDebugManualSizeToElement(key, el, size) {
   el.style.setProperty("width", w + "px", "important");
   el.style.setProperty("min-width", w + "px", "important");
   el.style.setProperty("max-width", w + "px", "important");
+  el.style.setProperty("inline-size", w + "px", "important");
+  el.style.setProperty("min-inline-size", w + "px", "important");
+  el.style.setProperty("max-inline-size", w + "px", "important");
   el.style.setProperty("height", h + "px", "important");
   el.style.setProperty("min-height", h + "px", "important");
   el.style.setProperty("max-height", h + "px", "important");
-  if (key === "B" || key === "C" || key === "D" || key === "I") el.style.setProperty("flex-basis", w + "px", "important");
+
+  // v8.6.15: flex shorthand must be forced, otherwise existing !important CSS flex rules keep winning.
+  if (key === "B" || key === "C" || key === "D" || key === "E" || key === "F" || key === "G" || key === "H" || key === "I") {
+    el.style.setProperty("flex", "0 0 " + w + "px", "important");
+    el.style.setProperty("flex-basis", w + "px", "important");
+    el.style.setProperty("flex-grow", "0", "important");
+    el.style.setProperty("flex-shrink", "0", "important");
+  }
+  if (key === "C") {
+    // Keep the table internally scrollable; only its card gets debug-sized.
+    el.style.setProperty("overflow", "hidden", "important");
+    const scroller = el.querySelector(".stageTableScroll");
+    if (scroller) scroller.style.setProperty("overflow-y", "auto", "important");
+  }
 }
 function applyPersistentDebugLayerSizes(includeOuter = true) {
   const sizes = readDebugLayerManualSizes();
@@ -1513,8 +1617,8 @@ function setDebugLayerSize(key, width, height) {
   if (key === "A") {
     const cfg = outerCardSizeRuntimeConfig();
     window.BEINVT_OUTER_CARD_SIZE_CONFIG = Object.assign({}, cfg, { widthMode: "manual", heightMode: "manual", manualWidth: w, height: h, capManualToAvailable: false });
-    localStorage.setItem("beinvtOuterCardDebugWidth_v8610", String(w));
-    localStorage.setItem("beinvtOuterCardDebugHeight_v8610", String(h));
+    localStorage.setItem("beinvtOuterCardDebugWidth_v8615", String(w));
+    localStorage.setItem("beinvtOuterCardDebugHeight_v8615", String(h));
     forceOuterCardSize();
     console.log(`[BEINVT layer debug] A outer card manual size -> ${w}x${h}`, window.BEINVT_OUTER_CARD_SIZE_CONFIG);
     updateDebugLayerLabels();
@@ -1522,6 +1626,7 @@ function setDebugLayerSize(key, width, height) {
   }
 
   applyDebugManualSizeToElement(key, el, { width: w, height: h });
+  window.requestAnimationFrame(() => applyPersistentDebugLayerSizes(false));
   console.log(`[BEINVT layer debug] ${key} ${target.name}: manual size -> ${w}x${h}`, el);
   updateDebugLayerLabels();
 }
@@ -1540,8 +1645,12 @@ function clearDebugWidthTests() {
   });
   window.BEINVT_OUTER_CARD_SIZE_CONFIG = Object.assign({}, OUTER_CARD_SIZE_CONFIG);
   localStorage.removeItem(DEBUG_LAYER_MANUAL_SIZES_KEY);
+  localStorage.removeItem("beinvtLayerManualSizes_v8612");
+  localStorage.removeItem("beinvtLayerManualSizes_v8615");
   localStorage.removeItem("beinvtOuterCardDebugWidth_v8610");
   localStorage.removeItem("beinvtOuterCardDebugHeight_v8610");
+  localStorage.removeItem("beinvtOuterCardDebugWidth_v8615");
+  localStorage.removeItem("beinvtOuterCardDebugHeight_v8615");
   localStorage.removeItem("beinvtOuterCardManualDebugWidth");
   forceOuterCardSize();
 }
@@ -1555,7 +1664,7 @@ function copyDebugLayerSizes() {
 }
 function installDebugLayerLabels() {
   window.BEINVT_DEBUG_LAYERS = { update: updateDebugLayerLabels, snapshot: debugLayerSnapshot, setSize: setDebugLayerSize, widen: widenDebugLayer, clear: clearDebugWidthTests, copySizes: copyDebugLayerSizes, applyManualSizes: applyPersistentDebugLayerSizes, on: () => setDebugLayerLabels(true), off: () => setDebugLayerLabels(false), config: LAYER_DEBUG_CONFIG, tableExtraByLabel: TABLE_CARD_WIDTH_EXTRA_BY_LABEL };
-  window.BEINVT_OUTER_CARD_SIZE = { apply: forceOuterCardSize, config: OUTER_CARD_SIZE_CONFIG, info: outerCardDebugInfo, setManualWidth: w => { window.BEINVT_OUTER_CARD_SIZE_CONFIG = Object.assign({}, outerCardSizeRuntimeConfig(), { widthMode: "manual", manualWidth: Number(w) || outerCardTargetWidth(), capManualToAvailable: false }); localStorage.setItem("beinvtOuterCardDebugWidth_v8610", String(Number(w) || outerCardTargetWidth())); forceOuterCardSize(); updateDebugLayerLabelsSoft(); }, setManualSize: (w,h) => setDebugLayerSize("A", w, h) };
+  window.BEINVT_OUTER_CARD_SIZE = { apply: forceOuterCardSize, config: OUTER_CARD_SIZE_CONFIG, info: outerCardDebugInfo, setManualWidth: w => { window.BEINVT_OUTER_CARD_SIZE_CONFIG = Object.assign({}, outerCardSizeRuntimeConfig(), { widthMode: "manual", manualWidth: Number(w) || outerCardTargetWidth(), capManualToAvailable: false }); localStorage.setItem("beinvtOuterCardDebugWidth_v8615", String(Number(w) || outerCardTargetWidth())); forceOuterCardSize(); updateDebugLayerLabelsSoft(); }, setManualSize: (w,h) => setDebugLayerSize("A", w, h) };
   if (!window.beinvtLayerDebugInterval) window.beinvtLayerDebugInterval = window.setInterval(() => { forceOuterCardSize(); applyPersistentDebugLayerSizes(false); updateDebugLayerLabelsSoft(); }, 650);
   if (!window.beinvtOuterCardForceBurst) {
     let n = 0;
