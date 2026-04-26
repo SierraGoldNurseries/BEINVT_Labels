@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.10-outer-card-fit-debug-inputs";
+const APP_VERSION = "8.6.11-stable-right-align-debug-topbar";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -11,12 +11,14 @@ const OUTER_CARD_EXTRA_WIDTH = 0;
 const DEBUG_LAYER_LABELS_DEFAULT = false;
 
 /*
-  v8.6.10 config:
+  v8.6.11 config:
   - A = outer dark card (.stageWrap).
   - Debug tools stay installed, but OFF by default.
   - Change LAYER_DEBUG_CONFIG.enabled from false to true to show/debug/move labels.
   - Debug panel can be dragged anywhere on screen and remembers position.
   - Outer card default width is fitViewport: it fills from the right edge of the left menu to the visible right edge of the page, without forcing the top menu/body wider than the screen.
+  - v8.6.11 fixes left/right oscillation by using a stable natural-left + fixed correction calculation.
+  - Debug now includes T = top menu bar reference layer.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -25,8 +27,8 @@ const OUTER_CARD_SIZE_CONFIG = {
   widthMode: "fitViewport",
   manualWidth: 1600,
   fallbackWidth: 1600,
-  extraWidth: -12,
-  rightMargin: 10,
+  extraWidth: 0,
+  rightMargin: 4,
   leftGap: 6,
   minWidth: 900,
   height: 1193,
@@ -891,20 +893,23 @@ function shouldForceOuterCardSize() {
 function viewportWidthNow() {
   return Math.max(300, Math.round(window.innerWidth || document.documentElement.clientWidth || 0));
 }
+function topMenuElement() {
+  return document.querySelector(".topbar,.toolbar,header");
+}
 function topMenuBounds() {
   const viewportW = viewportWidthNow();
-  const topbar = document.querySelector(".topbar,.toolbar,header");
-  if (!topbar) return { left: 0, right: viewportW, width: viewportW };
+  const topbar = topMenuElement();
+  if (!topbar) return { left: 0, right: viewportW, width: viewportW, element: null };
   const r = topbar.getBoundingClientRect();
   const left = Math.max(0, Math.round((r && r.left) || 0));
   const right = Math.min(viewportW, Math.round((r && r.right) || viewportW));
   const width = Math.max(0, right - left);
-  return { left, right, width: width || viewportW };
+  return { left, right, width: width || viewportW, element: topbar };
 }
 function measureTopMenuBarWidth() {
   return topMenuBounds().width;
 }
-function outerCardTargetLeft() {
+function outerCardDesiredLeft() {
   const cfg = outerCardSizeRuntimeConfig();
   const gap = Math.max(0, Number(cfg.leftGap || 0));
   const panel = findSettingsPanel();
@@ -913,6 +918,9 @@ function outerCardTargetLeft() {
   if (stage) return Math.max(0, Math.ceil(stage.getBoundingClientRect().left));
   return 0;
 }
+function outerCardTargetLeft() {
+  return outerCardDesiredLeft();
+}
 function outerCardRightLimit() {
   const cfg = outerCardSizeRuntimeConfig();
   const rightMargin = Math.max(0, Number(cfg.rightMargin || 0));
@@ -920,19 +928,34 @@ function outerCardRightLimit() {
   const top = topMenuBounds();
   return Math.max(300, Math.min(viewportW, top.right || viewportW) - rightMargin);
 }
-function outerCardAvailableWidth() {
+function outerCardNaturalLeft(stage) {
+  const el = stage || document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
+  if (!el) return outerCardDesiredLeft();
+  const r = el.getBoundingClientRect();
+  const currentMargin = parseFloat(getComputedStyle(el).marginLeft || "0") || 0;
+  if (!r || !Number.isFinite(r.left)) return outerCardDesiredLeft();
+  return Math.round(r.left - currentMargin);
+}
+function outerCardLayoutMetrics(stage) {
   const cfg = outerCardSizeRuntimeConfig();
   const minW = Math.max(300, Number(cfg.minWidth || 900));
-  const left = outerCardTargetLeft();
-  const right = outerCardRightLimit();
-  return Math.max(minW, Math.floor(right - left));
+  const desiredLeft = outerCardDesiredLeft();
+  const naturalLeft = outerCardNaturalLeft(stage);
+  const correction = Math.max(0, Math.ceil(desiredLeft - naturalLeft));
+  const actualLeft = naturalLeft + correction;
+  const rightLimit = outerCardRightLimit();
+  const availableWidth = Math.max(minW, Math.floor(rightLimit - actualLeft));
+  return { desiredLeft, naturalLeft, correction, actualLeft, rightLimit, availableWidth };
 }
-function outerCardTargetWidth() {
+function outerCardAvailableWidth(stage) {
+  return outerCardLayoutMetrics(stage).availableWidth;
+}
+function outerCardTargetWidth(stage) {
   const cfg = outerCardSizeRuntimeConfig();
   const mode = String(cfg.widthMode || "manual").toLowerCase();
   const extra = Number(cfg.extraWidth ?? OUTER_CARD_EXTRA_WIDTH ?? 0) || 0;
   if (mode === "fitviewport" || mode === "fit" || mode === "available" || mode === "safe" || mode === "topbar") {
-    return Math.max(300, Math.round(outerCardAvailableWidth() + extra));
+    return Math.max(300, Math.round(outerCardAvailableWidth(stage) + extra));
   }
   return Math.max(300, Math.round(Number(cfg.manualWidth || cfg.width || cfg.fallbackWidth || 1600) + extra));
 }
@@ -970,17 +993,11 @@ function forceOuterCardSize() {
 
   releaseOuterCardAncestors(stage);
 
-  const desiredLeft = outerCardTargetLeft();
-  const sr = stage.getBoundingClientRect();
-  if (sr && Number.isFinite(sr.left) && sr.left < desiredLeft - 1) {
-    const currentMargin = parseFloat(getComputedStyle(stage).marginLeft || "0") || 0;
-    stage.style.setProperty("margin-left", Math.max(0, currentMargin + desiredLeft - sr.left) + "px", "important");
-  } else {
-    stage.style.setProperty("margin-left", "0px", "important");
-  }
+  const metrics = outerCardLayoutMetrics(stage);
+  stage.style.setProperty("margin-left", metrics.correction + "px", "important");
   stage.style.setProperty("margin-right", "0px", "important");
 
-  const width = outerCardTargetWidth();
+  const width = outerCardTargetWidth(stage);
   const height = outerCardTargetHeight();
 
   document.documentElement.style.setProperty("--beinvt-outer-card-width", width + "px");
@@ -989,6 +1006,8 @@ function forceOuterCardSize() {
   stage.style.setProperty("--beinvt-outer-card-height", height + "px");
   stage.dataset.beinvtOuterCardTarget = width + "x" + height;
   stage.dataset.beinvtOuterCardWidthMode = String(outerCardSizeRuntimeConfig().widthMode || "manual");
+  stage.dataset.beinvtOuterCardLeft = String(metrics.actualLeft);
+  stage.dataset.beinvtOuterCardRightLimit = String(metrics.rightLimit);
 
   stage.style.setProperty("box-sizing", "border-box", "important");
   stage.style.setProperty("width", width + "px", "important");
@@ -1025,50 +1044,41 @@ function dockStageAwayFromLeftPanel() {
     return;
   }
 
-  const topbar = document.querySelector(".topbar,.toolbar,header");
-  const pageRight = Math.floor((topbar && Math.min(topbar.getBoundingClientRect().right, viewportWidthNow())) || viewportWidthNow() || 1200) - 1;
-  const pr = panel.getBoundingClientRect();
-  const targetLeft = Math.ceil(pr.right + 1);
-  const extraWidth = Number(window.BEINVT_OUTER_CARD_EXTRA_WIDTH ?? OUTER_CARD_EXTRA_WIDTH ?? 0);
+  const metrics = outerCardLayoutMetrics(stage);
+  const width = Math.max(700, metrics.availableWidth + Number(window.BEINVT_OUTER_CARD_EXTRA_WIDTH ?? OUTER_CARD_EXTRA_WIDTH ?? 0));
 
   stage.style.setProperty("box-sizing", "border-box", "important");
-  stage.style.setProperty("margin-left", "0px", "important");
+  stage.style.setProperty("margin-left", metrics.correction + "px", "important");
   stage.style.setProperty("margin-right", "0px", "important");
   stage.style.setProperty("min-width", "0px", "important");
   stage.style.setProperty("max-width", "none", "important");
-  stage.style.setProperty("flex", "0 0 auto", "important");
+  stage.style.setProperty("flex", "0 0 " + width + "px", "important");
+  stage.style.setProperty("flex-basis", width + "px", "important");
   stage.style.setProperty("align-self", "stretch", "important");
   stage.style.setProperty("overflow", "hidden", "important");
-
-  const sr = stage.getBoundingClientRect();
-  const correction = Math.ceil(targetLeft - sr.left);
-  if (correction > 0) stage.style.setProperty("margin-left", correction + "px", "important");
-
-  const desiredWidth = Math.max(700, pageRight - targetLeft + 1 + extraWidth);
-  stage.style.setProperty("width", desiredWidth + "px", "important");
-  stage.style.setProperty("min-width", desiredWidth + "px", "important");
-  stage.style.setProperty("max-width", desiredWidth + "px", "important");
-  stage.style.setProperty("flex-basis", desiredWidth + "px", "important");
-
-  const host = $("canvasHost");
-  if (host) {
-    host.style.setProperty("width", "100%", "important");
-    host.style.setProperty("min-width", "0px", "important");
-    host.style.setProperty("max-width", "100%", "important");
-  }
+  stage.style.setProperty("width", width + "px", "important");
+  stage.style.setProperty("max-width", width + "px", "important");
+  stage.style.setProperty("min-width", width + "px", "important");
 }
+
 function outerCardDebugInfo() {
   const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
   const cs = stage ? getComputedStyle(stage) : null;
+  const cfg = outerCardSizeRuntimeConfig();
   const top = topMenuBounds();
+  const metrics = outerCardLayoutMetrics(stage);
   return {
-    mode: String(outerCardSizeRuntimeConfig().widthMode || "manual"),
+    mode: cfg.widthMode,
     topbarWidth: measureTopMenuBarWidth(),
+    topbarLeft: top.left,
     topbarRight: top.right,
-    targetLeft: outerCardTargetLeft(),
-    rightLimit: outerCardRightLimit(),
-    availableWidth: outerCardAvailableWidth(),
-    targetWidth: outerCardTargetWidth(),
+    targetLeft: metrics.actualLeft,
+    desiredLeft: metrics.desiredLeft,
+    naturalLeft: metrics.naturalLeft,
+    leftCorrection: metrics.correction,
+    rightLimit: metrics.rightLimit,
+    availableWidth: metrics.availableWidth,
+    targetWidth: outerCardTargetWidth(stage),
     targetHeight: outerCardTargetHeight(),
     inlineWidth: stage ? (stage.style.getPropertyValue("width") || "") : "",
     computedWidth: cs ? cs.width : "",
@@ -1078,6 +1088,7 @@ function outerCardDebugInfo() {
 
 function debugLayerTargets() {
   return [
+    { key: "T", color: "#a3e635", name: "TOP MENU .topbar", selector: ".topbar,.toolbar,header", note: "reference width/right edge used to align A outer card; read only" },
     { key: "A", color: "#ff4d6d", name: "OUTER CARD .stageWrap", selector: ".stageWrap", note: "big dark card that contains table plus preview" },
     { key: "B", color: "#fb923c", name: "SPLIT HOST #canvasHost", selector: "#canvasHost", note: "inside A; holds table card and preview area" },
     { key: "C", color: "#facc15", name: "TABLE CARD #stageDataWrap", selector: "#stageDataWrap", note: "WO/search table area" },
@@ -1210,6 +1221,9 @@ function debugDimensionInputs(t) {
   const r = t.rect;
   const w = t.key === "A" ? outerCardTargetWidth() : (r ? r.width : "");
   const h = t.key === "A" ? outerCardTargetHeight() : (r ? r.height : "");
+  if (t.key === "T") {
+    return `<div class="dimControls"><input type="number" step="1" min="1" value="${escapeHtml(w)}" readonly title="Top menu width px"><input type="number" step="1" min="1" value="${escapeHtml(h)}" readonly title="Top menu height px"><span class="readonlyRef">ref</span></div>`;
+  }
   return `<div class="dimControls"><input type="number" step="1" min="1" value="${escapeHtml(w)}" data-debug-dim-key="${escapeHtml(t.key)}" data-dim="w" title="Width px"><input type="number" step="1" min="1" value="${escapeHtml(h)}" data-debug-dim-key="${escapeHtml(t.key)}" data-dim="h" title="Height px"><button type="button" data-debug-apply-size="${escapeHtml(t.key)}">Set</button></div>`;
 }
 function updateDebugLayerLabels() {
@@ -1256,7 +1270,7 @@ function updateDebugLayerLabels() {
     return `<div class="row" title="${escapeHtml(t.note)}"><div class="key" style="color:${escapeHtml(t.color)}">${escapeHtml(t.key)}</div><div class="name">${escapeHtml(t.name)}</div><div class="size">${escapeHtml(size)}</div>${debugDimensionInputs(t)}</div>`;
   }).join("");
   const ocInfo = outerCardDebugInfo();
-  panel.innerHTML = `<b>Layer Debug: ON</b> <span class="muted">drag this panel anywhere</span><div class="muted">A default mode now fits the visible right edge, not the full body width. A target: <code>${escapeHtml(ocInfo.targetWidth)}x${escapeHtml(ocInfo.targetHeight)}</code>. Mode: <code>${escapeHtml(ocInfo.mode)}</code>. Topbar visible width/right: <code>${escapeHtml(ocInfo.topbarWidth)}/${escapeHtml(ocInfo.topbarRight)}</code>. A left/right limit/available: <code>${escapeHtml(ocInfo.targetLeft)}/${escapeHtml(ocInfo.rightLimit)}/${escapeHtml(ocInfo.availableWidth)}</code>. Inline: <code>${escapeHtml(ocInfo.inlineWidth)}</code>. Computed: <code>${escapeHtml(ocInfo.computedWidth)}</code>.</div><div class="topBtns"><button type="button" id="beinvtDebugOffBtn">Hide labels</button><button type="button" id="beinvtDebugRefreshBtn">Refresh</button><button type="button" id="beinvtDebugClearBtn">Clear manual sizes</button><button type="button" id="beinvtDebugCopyBtn">Copy sizes</button></div><div class="muted">Type W/H values and press <code>Set</code>. Setting <code>A</code> switches the outer card to manual size. Clear manual sizes returns A to fitViewport.</div>${rows}`;
+  panel.innerHTML = `<b>Layer Debug: ON</b> <span class="muted">drag this panel anywhere</span><div class="muted">T is the top menu reference. A right edge is aligned to T right edge minus safety margin. A target: <code>${escapeHtml(ocInfo.targetWidth)}x${escapeHtml(ocInfo.targetHeight)}</code>. Mode: <code>${escapeHtml(ocInfo.mode)}</code>. T left/width/right: <code>${escapeHtml(ocInfo.topbarLeft)}/${escapeHtml(ocInfo.topbarWidth)}/${escapeHtml(ocInfo.topbarRight)}</code>. A actual left/right/available: <code>${escapeHtml(ocInfo.targetLeft)}/${escapeHtml(ocInfo.rightLimit)}/${escapeHtml(ocInfo.availableWidth)}</code>. Natural left/correction: <code>${escapeHtml(ocInfo.naturalLeft)}/${escapeHtml(ocInfo.leftCorrection)}</code>. Inline: <code>${escapeHtml(ocInfo.inlineWidth)}</code>. Computed: <code>${escapeHtml(ocInfo.computedWidth)}</code>.</div><div class="topBtns"><button type="button" id="beinvtDebugOffBtn">Hide labels</button><button type="button" id="beinvtDebugRefreshBtn">Refresh</button><button type="button" id="beinvtDebugClearBtn">Clear manual sizes</button><button type="button" id="beinvtDebugCopyBtn">Copy sizes</button></div><div class="muted">Type W/H values and press <code>Set</code>. Setting <code>A</code> switches the outer card to manual size. Clear manual sizes returns A to fitViewport. T top menu is reference-only.</div>${rows}`;
   const offBtn = document.getElementById("beinvtDebugOffBtn");
   const refreshBtn = document.getElementById("beinvtDebugRefreshBtn");
   const clearBtn = document.getElementById("beinvtDebugClearBtn");
