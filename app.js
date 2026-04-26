@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.44_gui_db_import_modal";
+const APP_VERSION = "8.6.45_pot_center_import_header_rules";
 const WRAP_QR_BALANCE_VERSION = "8.6.44";
 const INCH = 96;
 const LABEL_SIZES = {
@@ -4449,6 +4449,8 @@ function initEvents() {
       body.beinvt-light-theme .beinvtZoomPercent{background:#eef2ff!important;color:#111827!important;border-color:rgba(15,23,42,.22)!important}
       .objectBtn .objectBtnTop{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:6px!important;width:100%!important}
       .objectBtn .objectIcons{display:inline-flex!important;gap:4px!important;align-items:center!important;font-size:13px!important;line-height:1!important}
+      .objectIconBtn{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:22px!important;height:22px!important;border-radius:7px!important;border:1px solid rgba(255,255,255,.18)!important;background:rgba(255,255,255,.06)!important;cursor:pointer!important;user-select:none!important}
+      .objectIconBtn:hover{background:rgba(255,255,255,.16)!important;transform:translateY(-1px)}
       .objectBtn .objectName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .operatorHint{font-size:10px!important;color:#aeb7d5!important;font-weight:800!important;margin-top:3px!important}
       .queueToolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
@@ -4911,24 +4913,40 @@ function initEvents() {
   function parseDelimitedImportV8644(text) {
     const raw = String(text || "").trim();
     if (!raw) return [];
-    const delim = raw.includes("\t") ? "\t" : ",";
-    const rows = parseCsv(raw.replace(/\t/g, delim));
+    const lines = raw.split(/\r?\n/).filter(line => cleanDisplay(line));
+    if (!lines.length) return [];
+    const firstLine = lines[0] || "";
+    const isTab = firstLine.includes("\t");
+    const rows = isTab ? lines.map(line => line.split("\t")) : parseCsv(raw);
     if (!rows.length) return [];
     const headers = rows[0].map(h => cleanDisplay(h));
-    const hasHeader = headers.some(h => /^(crop|scion|rootstock|root stock|internal|internal id|wo|work order|color|label color|qty|quantity|sales format)$/i.test(h));
+    const headerKeys = headers.map(normCsvKey);
+    const acceptedHeaders = new Set([
+      "crop", "scion", "rootstock", "rootstockitem", "rootstockname", "rootstocktext", "rootstockitemname", "rootstockstock",
+      "rootstockid", "rootstockitemid", "rootstockitemnumber", "rootstocknumber", "rootstockvariety", "rootstockcultivar",
+      "rootstockdescription", "rootstockpatent", "rootstockpatentnumber", "rootstockroyalty",
+      "rootstockroyaltyfee", "rootstockpatentfee", "rootstockitemdescription", "rootstockitemname", "rootstockitem",
+      "rootstock", "rootstock", "internal", "internalid", "id", "wo", "workorder", "color", "labelcolor", "qty", "quantity",
+      "labels", "labelsneeded", "salesformat", "format", "custom", "customtext", "text"
+    ]);
+    const hasHeader = headerKeys.some(k => acceptedHeaders.has(k));
     const dataRows = hasHeader ? rows.slice(1) : rows;
     return dataRows.map(line => {
       const obj = {};
-      if (hasHeader) headers.forEach((h, i) => obj[h] = line[i] || "");
-      else {
-        obj["custom"] = line[0] || "";
-        obj["rootstock"] = line[1] || "";
-        obj["scion"] = line[2] || "";
-        obj["internal id"] = line[3] || "";
-        obj["wo"] = line[4] || "";
+      if (hasHeader) {
+        headers.forEach((h, i) => { obj[h || ("Column " + (i + 1))] = line[i] || ""; });
+      } else {
+        const cells = (line || []).map(v => cleanDisplay(v));
+        obj.custom = cells[0] || "";
+        obj.rootstock = cells[1] || "";
+        obj.scion = cells[2] || "";
+        obj["internal id"] = cells[3] || "";
+        obj.wo = cells[4] || "";
+        obj.crop = cells[5] || "";
       }
+      obj.__hasImportHeader = hasHeader;
       return obj;
-    }).filter(obj => Object.values(obj).some(v => cleanDisplay(v)));
+    }).filter(obj => Object.entries(obj).some(([k, v]) => k !== "__hasImportHeader" && cleanDisplay(v)));
   }
   function importValV8644(obj, names) {
     for (const name of names) {
@@ -4952,22 +4970,66 @@ function initEvents() {
       wo: cleanDisplay($("importWo") && $("importWo").value),
       labelColor: baseColor,
       qty: baseQty,
-      salesFormat: cleanDisplay($("importSalesFormat") && $("importSalesFormat").value)
+      salesFormat: cleanDisplay($("importSalesFormat") && $("importSalesFormat").value),
+      __hasImportHeader: false
     };
-    const sourceRows = pasteRows.length ? pasteRows : [manualObj].filter(obj => Object.values(obj).some(v => cleanDisplay(v)));
+    const sourceRows = pasteRows.length ? pasteRows : [manualObj].filter(obj => Object.entries(obj).some(([k, v]) => k !== "__hasImportHeader" && cleanDisplay(v)));
     const rows = sourceRows.map(obj => {
       const crop = importValV8644(obj, ["Crop"]) || manualObj.crop;
-      const scion = importValV8644(obj, ["Scion", "Custom", "Custom Text", "Text"]) || manualObj.scion;
-      const rootstock = importValV8644(obj, ["Rootstock", "Root Stock"]) || manualObj.rootstock;
+      const explicitScion = importValV8644(obj, ["Scion", "Custom", "Custom Text", "Text"]);
+      const explicitRootstock = importValV8644(obj, ["Rootstock", "Root Stock"]);
+      const scion = explicitScion || manualObj.scion;
+      const rootstock = explicitRootstock || manualObj.rootstock;
       const internalId = importValV8644(obj, ["Internal ID", "Internal", "ID"]) || manualObj.internalId;
       const wo = importValV8644(obj, ["WO", "Work Order"]) || manualObj.wo;
       const color = importValV8644(obj, ["Label Color", "Color"]) || baseColor;
       const qty = normalizeLabelCount(importValV8644(obj, ["Labels Needed", "Labels", "Qty", "Quantity"]) || baseQty);
       const sales = controlledSalesFormat(importValV8644(obj, ["Sales Format", "Format"]) || manualObj.salesFormat);
+      const singleText = scion || rootstock || crop || internalId || wo || "CUSTOM";
       if (type === "POT") {
-        return { wo: wo || internalId || "", act: "MANUAL IMPORT", crop, scion: "", rootstock: rootstock || scion || crop || "CUSTOM", name: rootstock || scion || crop || "CUSTOM", internalId, lotNumber: "", scionPatent: "", rootstockPatent: "", labelColor: color, quantity: qty, labelsNeeded: qty, week: "", salesFormat: sales, __manualImport: true };
+        const potText = rootstock || scion || crop || singleText;
+        return {
+          wo: wo || internalId || "",
+          act: "MANUAL IMPORT",
+          crop,
+          scion: "",
+          rootstock: potText,
+          name: potText,
+          internalId,
+          lotNumber: "",
+          scionPatent: "",
+          rootstockPatent: "",
+          labelColor: color,
+          quantity: qty,
+          labelsNeeded: qty,
+          week: "",
+          salesFormat: sales,
+          __manualImport: true,
+          __hideWeek: true
+        };
       }
-      return { wo, act: "MANUAL IMPORT", crop, scion, rootstock, name: [crop, scion, rootstock, sales].filter(Boolean).join(" | "), internalId, lotNumber: "", scionPatent: "", rootstockPatent: "", labelColor: color, quantity: qty, labelsNeeded: qty, week: "", salesFormat: sales, __manualImport: true, __importNoWo: !cleanDisplay(wo) };
+      return {
+        wo,
+        act: "MANUAL IMPORT",
+        crop,
+        scion,
+        rootstock,
+        name: [crop, scion, rootstock, sales].filter(Boolean).join(" | ") || singleText,
+        internalId,
+        lotNumber: "",
+        scionPatent: "",
+        rootstockPatent: "",
+        labelColor: color,
+        quantity: qty,
+        labelsNeeded: qty,
+        week: "",
+        salesFormat: sales,
+        __manualImport: true,
+        __importHasScion: !!cleanDisplay(scion),
+        __importHasRootstock: !!cleanDisplay(rootstock),
+        __importNoWo: !cleanDisplay(wo),
+        __importNoLot: true
+      };
     });
     return { rows, type, size };
   }
@@ -5036,6 +5098,147 @@ function initEvents() {
     updateOperatorLabelsV8644();
     updateZoomPercentV8644();
   }, 0);
+})();
+
+
+/* v8.6.45 pot preview centering + clickable object icons + import header rules */
+(function installPotCenterAndImportRulesV8645(){
+  const STYLE_ID = "beinvt-v8645-pot-center-import-rules-css";
+  function injectCssV8645() {
+    if (document.getElementById(STYLE_ID)) return;
+    const css = `
+      body.beinvt-label-pot #stageLabelHost{
+        align-items:center!important;
+        justify-content:center!important;
+        padding:8px!important;
+      }
+      body.beinvt-label-pot #stageLabelHost .stageStack{
+        width:100%!important;
+        height:100%!important;
+        max-width:100%!important;
+        align-items:center!important;
+        justify-content:center!important;
+      }
+      body.beinvt-label-pot .labelPreviewRow.potPreviewRow{
+        width:100%!important;
+        max-width:100%!important;
+        height:auto!important;
+        flex-direction:column!important;
+        align-items:center!important;
+        justify-content:center!important;
+        gap:8px!important;
+        margin:0 auto!important;
+      }
+      body.beinvt-label-pot .labelPreviewRow.potPreviewRow .stageMeta{
+        order:0!important;
+        align-self:center!important;
+        margin-left:auto!important;
+        margin-right:auto!important;
+        width:min(288px,100%)!important;
+        max-width:288px!important;
+      }
+      body.beinvt-label-pot .labelPreviewRow.potPreviewRow .stageFrame{
+        order:1!important;
+        align-self:center!important;
+        margin-left:auto!important;
+        margin-right:auto!important;
+        transform-origin:top center!important;
+      }
+      body.beinvt-label-pot .labelPreviewRow.potPreviewRow .stageInner{
+        transform-origin:0 0!important;
+      }
+      .objectIconBtn{pointer-events:auto!important;}
+      .objectIconBtn:focus{outline:2px solid rgba(147,197,253,.75)!important;outline-offset:1px!important;}
+    `;
+    const tag = document.createElement("style");
+    tag.id = STYLE_ID;
+    tag.textContent = css;
+    document.head.appendChild(tag);
+  }
+
+  const previousRenderObjectPanel = renderObjectPanel;
+  renderObjectPanel = function() {
+    const panel = $("objectPanel");
+    if (!panel || !layout || !layout.objects) return previousRenderObjectPanel();
+    if (!layout.objects[selectedId]) selectedId = defaultSelectedId(labelType);
+    panel.innerHTML = "";
+    if ($("objectsModeNote")) $("objectsModeNote").textContent = isWrapLikeMode(labelType) ? (labelType === "SHIP" ? "Shipping Label" : (labelType === "FIELD" ? "Field Label" : "Finished Tree")) : "Pot Stake";
+    for (const id of objectOrder()) {
+      const o = layout.objects[id];
+      if (!o) continue;
+      const visible = o.visible !== false;
+      const locked = !!o.locked;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "objectBtn" + (selectedId === id ? " active" : "") + (!visible ? " hiddenObj" : "");
+      btn.innerHTML = `<span class="objectBtnTop"><span class="objectName">${escapeHtml(objectDisplayName(id))}</span><span class="objectIcons"><span class="objectIconBtn" role="button" tabindex="0" data-action="visible" title="${visible ? "Hide object" : "Show object"}">${visible ? "👁️" : "🙈"}</span><span class="objectIconBtn" role="button" tabindex="0" data-action="lock" title="${locked ? "Unlock object" : "Lock object"}">${locked ? "🔒" : "🔓"}</span></span></span><span class="operatorHint">${visible ? "Visible" : "Hidden"} • ${locked ? "Locked" : "Unlocked"}</span>`;
+      btn.onclick = () => selectObject(id, true);
+      btn.querySelectorAll(".objectIconBtn").forEach(icon => {
+        const action = icon.getAttribute("data-action");
+        const run = ev => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          selectedId = id;
+          pushHistory();
+          if (action === "visible") o.visible = o.visible === false;
+          if (action === "lock") o.locked = !o.locked;
+          saveWorkingLayout();
+          renderObjectPanel();
+          syncControls();
+          renderCanvas();
+        };
+        icon.addEventListener("pointerdown", ev => ev.stopPropagation());
+        icon.addEventListener("click", run);
+        icon.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") run(ev); });
+      });
+      panel.appendChild(btn);
+    }
+  };
+
+  const previousLabelText = labelText;
+  labelText = function(id, row) {
+    if (row && row.__manualImport) {
+      if (id === "WEEK" && row.__hideWeek) return "";
+      if (id === "ITEM") return capClean(row.rootstock || row.scion || row.name || row.crop || "CUSTOM");
+      if (id === "WO") return capClean(row.wo || row.internalId || "");
+    }
+    return previousLabelText(id, row);
+  };
+
+  const previousHasWrapObjectValue = hasWrapObjectValue;
+  hasWrapObjectValue = function(id, row) {
+    if (row && row.__manualImport) {
+      const scion = cleanDisplay(row.scion);
+      const rootstock = cleanDisplay(row.rootstock);
+      if (id === "SCION") return !!(scion || rootstock || cleanDisplay(row.crop) || cleanDisplay(row.name));
+      if (id === "ROOTSTOCK") return !!(scion && rootstock);
+      if (id === "SCION_PATENT" || id === "ROOTSTOCK_PATENT" || id === "LOT" || id === "LOT_QR") return false;
+      if (row.__importNoWo && (id === "WO" || id === "WO_QR")) return false;
+    }
+    return previousHasWrapObjectValue(id, row);
+  };
+
+  const previousWrapObjectText = wrapObjectText;
+  wrapObjectText = function(id, row) {
+    if (row && row.__manualImport) {
+      const scion = cleanDisplay(row.scion);
+      const rootstock = cleanDisplay(row.rootstock);
+      if (id === "SCION") return capClean(scion || rootstock || row.crop || row.name || "CUSTOM");
+      if (id === "ROOTSTOCK") return scion && rootstock ? capClean(rootstock) : "";
+      if (id === "SCION_PATENT" || id === "ROOTSTOCK_PATENT" || id === "LOT") return "";
+      if (id === "WO") return capClean(row.wo);
+      if (id === "CROP") return capClean(row.crop);
+      if (id === "INTERNAL") return capClean(row.internalId);
+    }
+    return previousWrapObjectText(id, row);
+  };
+
+  const previousRenderAll = renderAll;
+  renderAll = function() {
+    previousRenderAll();
+    injectCssV8645();
+  };
+  injectCssV8645();
 })();
 
 function boot() {
