@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.38_shipping_tray_sales_columns";
+const APP_VERSION = "8.6.39_print_size_orientation";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -6,6 +6,144 @@ const LABEL_SIZES = {
   FIELD: { widthIn: 5, heightIn: 0.5 },
   SHIP: { widthIn: 5, heightIn: 0.5 }
 };
+const BASE_LABEL_SIZES = JSON.parse(JSON.stringify(LABEL_SIZES));
+const PRINT_SIZE_CONFIG = {
+  storageKey: "beinvtPrintSizePrefs_v8639",
+  minWidthIn: 0.20,
+  minHeightIn: 0.20,
+  maxWidthIn: 12,
+  maxHeightIn: 12,
+  precision: 2,
+  defaultOrientationByType: {
+    POT: "portrait",
+    WRAP: "landscape",
+    FIELD: "landscape",
+    SHIP: "landscape"
+  }
+};
+let printSizePrefs = loadPrintSizePrefs();
+function loadPrintSizePrefs() {
+  try {
+    const raw = localStorage.getItem(PRINT_SIZE_CONFIG.storageKey);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+function savePrintSizePrefs() {
+  try { localStorage.setItem(PRINT_SIZE_CONFIG.storageKey, JSON.stringify(printSizePrefs || {})); } catch (e) {}
+}
+function defaultPrintOrientation(type) {
+  const base = BASE_LABEL_SIZES[type] || BASE_LABEL_SIZES.POT;
+  return (PRINT_SIZE_CONFIG.defaultOrientationByType[type] || (base.widthIn >= base.heightIn ? "landscape" : "portrait"));
+}
+function normalizePrintInches(v, fallback, min, max) {
+  const n = Number(String(v ?? "").replace(/[^0-9.]/g, ""));
+  const f = Number(fallback || 1);
+  const raw = Number.isFinite(n) && n > 0 ? n : f;
+  return Math.max(min, Math.min(max, raw));
+}
+function normalizePrintOrientation(v, type) {
+  const s = String(v || "").toLowerCase();
+  if (s === "portrait" || s === "landscape") return s;
+  return defaultPrintOrientation(type);
+}
+function normalizePrintSizeFor(type, raw) {
+  const base = BASE_LABEL_SIZES[type] || BASE_LABEL_SIZES.POT;
+  const source = raw || {};
+  let widthIn = normalizePrintInches(source.widthIn ?? source.width, base.widthIn, PRINT_SIZE_CONFIG.minWidthIn, PRINT_SIZE_CONFIG.maxWidthIn);
+  let heightIn = normalizePrintInches(source.heightIn ?? source.height, base.heightIn, PRINT_SIZE_CONFIG.minHeightIn, PRINT_SIZE_CONFIG.maxHeightIn);
+  const orientation = normalizePrintOrientation(source.orientation, type);
+  if (orientation === "landscape" && heightIn > widthIn) [widthIn, heightIn] = [heightIn, widthIn];
+  if (orientation === "portrait" && widthIn > heightIn) [widthIn, heightIn] = [heightIn, widthIn];
+  return {
+    widthIn: Number(widthIn.toFixed(PRINT_SIZE_CONFIG.precision)),
+    heightIn: Number(heightIn.toFixed(PRINT_SIZE_CONFIG.precision)),
+    orientation
+  };
+}
+function applyStoredPrintSizes() {
+  Object.keys(LABEL_SIZES).forEach(type => {
+    const normalized = normalizePrintSizeFor(type, printSizePrefs[type]);
+    LABEL_SIZES[type].widthIn = normalized.widthIn;
+    LABEL_SIZES[type].heightIn = normalized.heightIn;
+    LABEL_SIZES[type].orientation = normalized.orientation;
+    printSizePrefs[type] = normalized;
+  });
+}
+function currentPrintSize(type = labelType) {
+  const normalized = normalizePrintSizeFor(type, LABEL_SIZES[type] || BASE_LABEL_SIZES[type]);
+  if (LABEL_SIZES[type]) LABEL_SIZES[type].orientation = normalized.orientation;
+  return normalized;
+}
+function formatPrintInches(v) {
+  const n = Number(v || 0);
+  return Number.isFinite(n) ? n.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1") : "";
+}
+function scaleLayoutForPrintSizeChange(oldPx, newPx) {
+  if (!layout || !layout.objects || !oldPx || !newPx || !oldPx.w || !oldPx.h || !newPx.w || !newPx.h) return;
+  const sx = newPx.w / oldPx.w;
+  const sy = newPx.h / oldPx.h;
+  if (!Number.isFinite(sx) || !Number.isFinite(sy) || sx <= 0 || sy <= 0) return;
+  const fsScale = Math.sqrt(sx * sy);
+  Object.values(layout.objects).forEach(o => {
+    if (!o) return;
+    o.x = Math.round(Number(o.x || 0) * sx);
+    o.y = Math.round(Number(o.y || 0) * sy);
+    o.w = Math.max(4, Math.round(Number(o.w || 4) * sx));
+    o.h = Math.max(4, Math.round(Number(o.h || 4) * sy));
+    if (Number.isFinite(Number(o.fontSize)) && Number(o.fontSize) > 0) {
+      o.fontSize = Number(Math.max(1.5, Number(o.fontSize) * fsScale).toFixed(1));
+    }
+  });
+  layout.safeMarginPx = Math.max(0, Math.round(Number(layout.safeMarginPx || 0) * Math.min(sx, sy)));
+  layout.gridPx = Math.max(1, Math.round(Number(layout.gridPx || 4) * Math.min(sx, sy)));
+  layout.snapPx = Math.max(1, Math.round(Number(layout.snapPx || 5) * Math.min(sx, sy)));
+  clampAllObjects();
+}
+function setCurrentPrintSize(widthIn, heightIn, orientation, scaleLayout = true) {
+  const type = labelType;
+  const oldPx = sizePx(type);
+  const normalized = normalizePrintSizeFor(type, { widthIn, heightIn, orientation });
+  const old = currentPrintSize(type);
+  const changed = old.widthIn !== normalized.widthIn || old.heightIn !== normalized.heightIn || old.orientation !== normalized.orientation;
+  if (!changed) { syncPrintSizeControls(); return; }
+  if (layout) pushHistory();
+  LABEL_SIZES[type].widthIn = normalized.widthIn;
+  LABEL_SIZES[type].heightIn = normalized.heightIn;
+  LABEL_SIZES[type].orientation = normalized.orientation;
+  printSizePrefs[type] = normalized;
+  savePrintSizePrefs();
+  const newPx = sizePx(type);
+  if (scaleLayout) scaleLayoutForPrintSizeChange(oldPx, newPx);
+  saveWorkingLayout();
+  resetZoomToAutoMax();
+  renderAll();
+  autoFitAllTextSoon();
+}
+function syncPrintSizeControls() {
+  const width = $("printWidthIn");
+  const height = $("printHeightIn");
+  const orient = $("printOrientation");
+  const note = $("printSizeNote");
+  if (!width && !height && !orient && !note) return;
+  const s = currentPrintSize(labelType);
+  if (width && document.activeElement !== width) width.value = formatPrintInches(s.widthIn);
+  if (height && document.activeElement !== height) height.value = formatPrintInches(s.heightIn);
+  if (orient) orient.value = s.orientation;
+  if (note) note.textContent = `Print page: ${formatPrintInches(s.widthIn)}in × ${formatPrintInches(s.heightIn)}in (${s.orientation}). Objects and fonts scale with size changes.`;
+}
+function applyPrintSizeControls() {
+  const width = Number(($("printWidthIn") && $("printWidthIn").value) || 0);
+  const height = Number(($("printHeightIn") && $("printHeightIn").value) || 0);
+  const orientation = ($("printOrientation") && $("printOrientation").value) || defaultPrintOrientation(labelType);
+  setCurrentPrintSize(width, height, orientation, true);
+}
+function resetPrintSizeForCurrentLabel() {
+  const base = BASE_LABEL_SIZES[labelType] || BASE_LABEL_SIZES.POT;
+  setCurrentPrintSize(base.widthIn, base.heightIn, defaultPrintOrientation(labelType), true);
+}
+applyStoredPrintSizes();
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
 const GENEVA_SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=260263&c=11150895&h=NMkHvroppy8Yi93204J1rZiq_7V-dJBmcFNuScfEc2hRzqB9";
 const GENEVA_LOGO_SHIFT_Y = -1;
@@ -2165,6 +2303,14 @@ function ensureLeftPanel() {
           <div class="field"><label for="rot">Rot</label><input id="rot" type="number" step="1"></div>
           <div class="field"><label for="fontSize">Font Size</label><input id="fontSize" type="number" step="1"></div>
         </div>
+        <div class="smallNote" style="margin-top:10px;font-weight:900">Print Size / Orientation</div>
+        <div class="compactGrid" style="margin-top:6px">
+          <div class="field"><label for="printWidthIn">Print W (in)</label><input id="printWidthIn" type="number" min="0.2" max="12" step="0.01"></div>
+          <div class="field"><label for="printHeightIn">Print H (in)</label><input id="printHeightIn" type="number" min="0.2" max="12" step="0.01"></div>
+          <div class="field"><label for="printOrientation">Orientation</label><select id="printOrientation"><option value="landscape">Landscape</option><option value="portrait">Portrait</option></select></div>
+          <div class="field"><label>&nbsp;</label><button id="resetPrintSize" type="button" style="width:100%">Reset Size</button></div>
+        </div>
+        <div class="smallNote" id="printSizeNote" style="margin-top:6px"></div>
         <div class="buttonRow" style="margin-top:9px">
           <label class="checkItem"><input id="lockToggle" type="checkbox"> Lock</label>
           <label class="checkItem"><input id="visibleToggle" type="checkbox"> Visible</label>
@@ -3072,6 +3218,7 @@ function removeDuplicateRightMenuControls() {
   const duplicateIds = [
     "selectedName", "x", "y", "w", "h", "rot", "fontSize", "lockToggle", "visibleToggle",
     "safeToggle", "safeMargin", "safeValue", "gridToggle", "snapToggle", "snapGridToggle", "gridPx", "snapPx",
+    "printWidthIn", "printHeightIn", "printOrientation", "resetPrintSize", "printSizeNote",
     "printCalibration", "saveCalibration", "measuredW", "measuredH", "calStatus"
   ];
   for (const id of duplicateIds) {
@@ -3615,7 +3762,7 @@ function autoFitPotText() {
       inner.style.overflowWrap = "normal";
       inner.style.whiteSpace = "normal";
     }
-    let lo = 5, hi = id === "ITEM" ? 96 : 48, best = lo;
+    let lo = 5, hi = Math.max(id === "ITEM" ? 96 : 48, Number(o.fontSize || 0), Math.min(180, Math.max(maxW, maxH) * 1.25)), best = lo;
     while (lo <= hi) {
       const mid = Math.floor((lo + hi) / 2);
       inner.style.fontSize = mid + "px";
@@ -3638,7 +3785,7 @@ function autoFitWrapText() {
     const o = layout.objects[id];
     if (!obj || !inner || !o) continue;
     if (!inner.textContent.trim() && id !== "ADDRESS" && id !== "WARNING") continue;
-    let hi = range[0], lo = range[1], best = lo;
+    let hi = Math.max(range[0], Number(o.fontSize || 0), Math.min(160, Math.max(Number(o.w || 0), Number(o.h || 0)) * 1.35)), lo = range[1], best = lo;
     for (let fs = hi; fs >= lo; fs -= 0.2) {
       inner.style.fontSize = fs.toFixed(1) + "px";
       if (fits(inner)) { best = fs; break; }
@@ -3835,6 +3982,7 @@ function syncControls() {
   if ($("safeValue")) $("safeValue").textContent = "";
   if ($("gridPx")) $("gridPx").value = Number(layout.gridPx || 4);
   if ($("snapPx")) $("snapPx").value = Number(layout.snapPx || 5);
+  syncPrintSizeControls();
 }
 function applyControls() {
   if (!layout || !layout.objects) return;
@@ -4054,6 +4202,14 @@ function initEvents() {
   if ($("gridPx")) $("gridPx").onchange = applyControls;
   if ($("snapPx")) $("snapPx").onchange = applyControls;
   if ($("safeMargin")) $("safeMargin").onchange = applyControls;
+  for (const id of ["printWidthIn", "printHeightIn", "printOrientation"]) {
+    const inp = $(id);
+    if (inp) {
+      inp.onchange = applyPrintSizeControls;
+      inp.onkeydown = ev => { if (ev.key === "Enter") applyPrintSizeControls(); };
+    }
+  }
+  if ($("resetPrintSize")) $("resetPrintSize").onclick = resetPrintSizeForCurrentLabel;
   for (const id of ["x", "y", "w", "h", "rot", "fontSize"]) {
     const inp = $(id);
     if (inp) {
