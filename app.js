@@ -1,4 +1,4 @@
-const APP_VERSION = "8.1.0-right-menu-dedupe-left-controls";
+const APP_VERSION = "8.2.0-sidebar-zoom-patent-clean";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -102,7 +102,7 @@ function sizePx(type = labelType) {
     .modeTab.active{border-color:#7da2ff;background:rgba(96,165,250,.22);color:#fff}
     #zoom{accent-color:#7c6cff}
 
-    aside.panel,.panel.sidebar,.settingsPanel{height:calc(100vh - 78px)!important;min-height:0!important;overflow:auto!important;background:#121429!important;border-right:1px solid rgba(255,255,255,.14)!important}
+    aside.panel,.panel.sidebar,.settingsPanel{height:calc(100vh - 78px)!important;min-height:0!important;overflow:auto!important;background:#121429!important;border-right:1px solid rgba(255,255,255,.14)!important;width:430px!important;min-width:430px!important;max-width:430px!important;flex:0 0 430px!important}
     .beinvtSettingsPanel{display:flex;flex-direction:column;gap:8px;padding:8px 10px 12px;min-height:100%}
     .beinvtCard{border:1px solid rgba(255,255,255,.14);background:#14162d;border-radius:13px;overflow:hidden;flex:0 0 auto;box-shadow:0 8px 24px rgba(0,0,0,.15)}
     .beinvtCardHeader{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.12);font-weight:900;color:#fff;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -119,8 +119,8 @@ function sizePx(type = labelType) {
     .field label,.checkRow label{display:block;color:#aeb7d5;font-size:11px;margin:0 0 4px}
     .field input,.field select,#layoutJson{width:100%;border:1px solid rgba(255,255,255,.14);background:#080b1a;color:#fff;border-radius:8px;padding:7px 8px;font-size:13px;min-width:0}
     .field input[type=range]{padding:0;accent-color:#7c6cff}
-    .checkRow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:center}
-    .checkItem{display:flex!important;gap:6px;align-items:center;font-size:12px;color:#e5e7eb;white-space:nowrap}
+    .checkRow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 12px;align-items:center}
+    .checkItem{display:flex!important;gap:6px;align-items:center;font-size:12px;color:#e5e7eb;white-space:nowrap;min-width:0}
     .checkItem input{width:auto;margin:0}
     .buttonRow{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
     .buttonRow button,.beinvtCard button{border:1px solid rgba(255,255,255,.18);background:#0d1022;color:#fff;border-radius:9px;padding:7px 10px;font-weight:800;cursor:pointer}
@@ -139,8 +139,8 @@ function sizePx(type = labelType) {
     body.beinvt-label-pot #canvasHost{flex-direction:row!important}
     body.beinvt-label-wrap #canvasHost{flex-direction:column!important}
     #stageDataWrap{background:#0f1228;border:1px solid rgba(255,255,255,.16);border-radius:13px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 34px rgba(0,0,0,.22);min-width:0;min-height:0}
-    body.beinvt-label-pot #stageDataWrap{flex:1 1 66%;min-width:470px;height:100%}
-    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(405px,58vh,650px);width:100%}
+    body.beinvt-label-pot #stageDataWrap{flex:1 1 72%;min-width:540px;height:100%}
+    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(420px,55vh,690px);width:100%}
     #stageDataSearchRow{padding:8px;border-bottom:1px solid rgba(255,255,255,.10);background:#13162e;display:flex;gap:8px;align-items:center}
     #stageSearch{width:100%;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.15);background:#090d1f;color:#e5e7eb;padding:7px 10px;font-size:13px}
     .stageTableScroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;background:#0f1228}
@@ -153,14 +153,14 @@ function sizePx(type = labelType) {
 
     #stageLabelHost{min-width:0;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:8px;position:relative}
     body.beinvt-label-pot #stageLabelHost{flex:0 0 min(370px,34%);height:100%;align-items:center;justify-content:center;padding:10px 6px}
-    body.beinvt-label-wrap #stageLabelHost{flex:1 1 auto;align-items:center;justify-content:center;padding:10px 6px 16px}
+    body.beinvt-label-wrap #stageLabelHost{flex:1 1 auto;align-items:center;justify-content:center;padding:10px 6px 18px}
     .stageStack{display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;max-width:100%;max-height:100%}
     .labelPreviewRow{display:flex;align-items:center;justify-content:center;gap:16px;max-width:100%;max-height:100%;min-width:0;overflow:visible}
     body.beinvt-label-pot .labelPreviewRow{flex-direction:column;gap:10px}
     body.beinvt-label-wrap .labelPreviewRow{flex-direction:row;gap:16px}
     .stageMeta{display:flex;gap:8px;align-items:stretch;justify-content:center;min-width:220px;max-width:340px;padding:8px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:#171a35;color:#e5e7eb;position:relative;z-index:20;box-shadow:0 10px 28px rgba(0,0,0,.22)}
     body.beinvt-label-pot .stageMeta{width:min(100%,320px);flex-direction:column}
-    body.beinvt-label-wrap .stageMeta{width:220px;flex-direction:column;flex:0 0 220px}
+    body.beinvt-label-wrap .stageMeta{width:205px;flex-direction:column;flex:0 0 205px}
     .stageMeta .metaPill{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 10px;border-radius:11px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);font-size:12px;line-height:1.15;font-weight:800;white-space:nowrap}
     .stageMeta b{font-size:13px;color:#fff}
     .stageFrame{position:relative;flex:0 0 auto;display:block;overflow:visible}
@@ -179,7 +179,11 @@ function sizePx(type = labelType) {
     .gridOverlay{position:absolute;inset:0;pointer-events:none;z-index:2;opacity:.28}.safeZone{position:absolute;border:1px dashed rgba(239,68,68,.8);pointer-events:none;z-index:3}.guide{position:absolute;background:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.8);pointer-events:none;z-index:50}.guide.v{width:1px;top:-9999px;height:20000px}.guide.h{height:1px;left:-9999px;width:20000px}
     .wrapTextInner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;text-align:center;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:manual;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;color:#000;line-height:.86;padding:0 1px}
     .wrapTextInner.leftText{justify-content:flex-start;text-align:left}.wrapTextInner.smallText{line-height:.92}.wrapTextInner.warningText{white-space:pre-line;line-height:.80;text-align:left;justify-content:flex-start}.wrapTextInner .wrapOn{font-size:.68em;margin-right:.18em;text-transform:none!important}.wrapLogo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}.wrapLogo img{width:100%;height:100%;object-fit:contain!important;image-rendering:auto!important}.wrapLogoFallback{font-size:8px;font-weight:900;border:1px solid #000;border-radius:999px;padding:1px 3px;line-height:1}
-    @media(max-width:1100px){#canvasHost{flex-direction:column!important}body.beinvt-label-pot #stageDataWrap{flex:0 0 clamp(300px,52vh,560px);min-width:0;width:100%}body.beinvt-label-pot #stageLabelHost{flex:1 1 auto;width:100%}.compactGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.checkRow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    #gridSection .beinvtCardBody{padding-top:9px}
+    #gridSection .compactGrid{grid-template-columns:1fr 1fr 1fr auto;align-items:end}
+    #gridSection .field label{min-height:14px}
+    #stageRowsTable td,#stageRowsTable th{font-size:12px}
+    @media(max-width:1100px){aside.panel,.panel.sidebar,.settingsPanel{width:360px!important;min-width:360px!important;max-width:360px!important;flex-basis:360px!important}#canvasHost{flex-direction:column!important}body.beinvt-label-pot #stageDataWrap{flex:0 0 clamp(300px,52vh,560px);min-width:0;width:100%}body.beinvt-label-pot #stageLabelHost{flex:1 1 auto;width:100%}.compactGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.checkRow{grid-template-columns:repeat(2,minmax(0,1fr))}}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-clean-css", "1");
@@ -214,12 +218,12 @@ function fallbackLayout(type) {
       WO: { x: 42, y: 2, w: 72, h: 13, rot: 0, fontSize: 13, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
       CROP: { x: 42, y: 16, w: 72, h: 11, rot: 0, fontSize: 9, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
       INTERNAL: { x: 42, y: 29, w: 72, h: 12, rot: 0, fontSize: 10, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
-      SCION: { x: 119, y: 1, w: 234, h: 15, rot: 0, fontSize: 16, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
+      SCION: { x: 119, y: 1, w: 234, h: 18, rot: 0, fontSize: 20, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       SCION_PATENT: { x: 119, y: 16, w: 234, h: 5, rot: 0, fontSize: 4.5, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
-      ROOTSTOCK: { x: 119, y: 21, w: 234, h: 15, rot: 0, fontSize: 16, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
-      ROOTSTOCK_PATENT: { x: 119, y: 36, w: 234, h: 4, rot: 0, fontSize: 4.2, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
-      LOT: { x: 119, y: 40, w: 234, h: 4, rot: 0, fontSize: 3.8, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
-      ADDRESS: { x: 119, y: 44, w: 234, h: 4, rot: 0, fontSize: 3.8, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
+      ROOTSTOCK: { x: 119, y: 19, w: 234, h: 18, rot: 0, fontSize: 20, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
+      ROOTSTOCK_PATENT: { x: 119, y: 36, w: 234, h: 5, rot: 0, fontSize: 4.2, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
+      LOT: { x: 119, y: 37, w: 234, h: 6, rot: 0, fontSize: 5, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
+      ADDRESS: { x: 119, y: 43, w: 234, h: 5, rot: 0, fontSize: 4.6, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       LOT_QR: { x: 359, y: 7, w: 34, h: 34, rot: 0, locked: false, visible: true },
       LOGO: { x: 399, y: 15, w: 18, h: 18, rot: 0, locked: false, visible: true },
       WARNING: { x: 423, y: 3, w: 53, h: 42, rot: 0, fontSize: 3.9, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" }
@@ -484,6 +488,58 @@ function wrapObjectText(id, row) {
   if (id === "WARNING") return WRAP_WARNING;
   return "";
 }
+
+function hasWrapObjectValue(id, row) {
+  if (labelType !== "WRAP") return true;
+  if (id === "SCION_PATENT" || id === "ROOTSTOCK_PATENT") return !!cleanDisplay(wrapObjectText(id, row));
+  if (id === "LOT") return !!cleanDisplay(wrapObjectText(id, row));
+  return true;
+}
+function shouldRenderObject(id, row) {
+  if (!layout || !layout.objects || !layout.objects[id] || layout.objects[id].visible === false) return false;
+  return hasWrapObjectValue(id, row);
+}
+function applyWrapDataAwareStack(row) {
+  if (labelType !== "WRAP" || !layout || !layout.objects) return;
+  const o = layout.objects;
+  const hasScionPatent = !!cleanDisplay(wrapObjectText("SCION_PATENT", row));
+  const hasRootstockPatent = !!cleanDisplay(wrapObjectText("ROOTSTOCK_PATENT", row));
+  const mainX = 119, mainW = 234;
+  ["SCION", "SCION_PATENT", "ROOTSTOCK", "ROOTSTOCK_PATENT", "LOT", "ADDRESS"].forEach(id => {
+    if (o[id]) { o[id].x = mainX; o[id].w = mainW; o[id].rot = 0; o[id].alignH = "center"; o[id].alignV = "middle"; }
+  });
+  let y = 1;
+  if (o.SCION) {
+    o.SCION.y = y;
+    o.SCION.h = hasScionPatent ? 14 : (hasRootstockPatent ? 17 : 18);
+    y += o.SCION.h;
+  }
+  if (o.SCION_PATENT) {
+    o.SCION_PATENT.y = y;
+    o.SCION_PATENT.h = hasScionPatent ? 5 : 0;
+    if (hasScionPatent) y += o.SCION_PATENT.h;
+  }
+  if (o.ROOTSTOCK) {
+    o.ROOTSTOCK.y = y;
+    o.ROOTSTOCK.h = hasRootstockPatent ? 14 : (hasScionPatent ? 17 : 18);
+    y += o.ROOTSTOCK.h;
+  }
+  if (o.ROOTSTOCK_PATENT) {
+    o.ROOTSTOCK_PATENT.y = y;
+    o.ROOTSTOCK_PATENT.h = hasRootstockPatent ? 5 : 0;
+    if (hasRootstockPatent) y += o.ROOTSTOCK_PATENT.h;
+  }
+  if (o.LOT) {
+    o.LOT.y = y;
+    o.LOT.h = (hasScionPatent || hasRootstockPatent) ? 4 : 6;
+    y += o.LOT.h;
+  }
+  if (o.ADDRESS) {
+    o.ADDRESS.y = y;
+    o.ADDRESS.h = Math.max(4, 48 - y);
+  }
+  clampAllObjects();
+}
 function qrUrl(text) {
   return "https://quickchart.io/qr?size=220&text=" + encodeURIComponent(text || " ");
 }
@@ -597,7 +653,7 @@ function ensureLeftPanel() {
           <label class="checkItem"><input id="snapGridToggle" type="checkbox"> Snap Grid</label>
         </div>
         <div class="compactGrid" style="margin-top:9px">
-          <div class="field"><label for="safeMargin">Safe Margin <span id="safeValue"></span></label><input id="safeMargin" type="number" min="0" max="40" step="1"></div>
+          <div class="field"><label for="safeMargin">Safe Margin</label><input id="safeMargin" type="number" min="0" max="40" step="1"></div>
           <div class="field"><label for="gridPx">Grid Size PX</label><input id="gridPx" type="number" min="1" max="80" step="1"></div>
           <div class="field"><label for="snapPx">Snap Distance PX</label><input id="snapPx" type="number" min="1" max="60" step="1"></div>
           <div class="field"><label>&nbsp;</label><button id="resetLayout" type="button" style="width:100%">Reset</button></div>
@@ -750,13 +806,13 @@ function applyZoomSliderCap(labelHost) {
   const host = labelHost || $("stageLabelHost");
   const hostW = Math.max(1, (host && host.clientWidth) || window.innerWidth || 900);
   const hostH = Math.max(1, (host && host.clientHeight) || window.innerHeight || 500);
-  const metaW = labelType === "WRAP" ? 238 : 0;
+  const metaW = labelType === "WRAP" ? 215 : 0;
   const metaH = labelType === "POT" ? 118 : 0;
   const availableW = labelType === "WRAP" ? hostW - metaW - 42 : hostW - 18;
   const availableH = labelType === "POT" ? hostH - metaH - 28 : hostH - 18;
   const maxByW = availableW / Math.max(1, s.w);
   const maxByH = availableH / Math.max(1, s.h);
-  const hardMax = labelType === "WRAP" ? 2.2 : 1.65;
+  const hardMax = labelType === "WRAP" ? 2.85 : 1.65;
   const max = clamp(Math.min(maxByW, maxByH, hardMax), 0.35, hardMax);
   if (zoomInput) {
     zoomInput.min = "0.25";
@@ -871,6 +927,7 @@ function renderCanvas() {
   if (!labelHost || !layout) return;
   labelHost.innerHTML = "";
   if (labelType === "POT") syncPotAutoLayout();
+  if (labelType === "WRAP") applyWrapDataAwareStack(currentRow());
   const s = sizePx();
   const zoom = applyZoomSliderCap(labelHost);
   const row = currentRow();
@@ -901,7 +958,7 @@ function renderCanvas() {
   if (showSafeZone) addSafeZone(canvas);
   for (const id of objectOrder()) {
     const o = layout.objects[id];
-    if (!o || o.visible === false) continue;
+    if (!shouldRenderObject(id, row)) continue;
     const obj = document.createElement("div");
     obj.className = "obj" + (selectedId === id ? " selected" : "") + (o.locked ? " locked" : "");
     obj.dataset.id = id;
@@ -1055,8 +1112,8 @@ function autoFitPotText() {
 function autoFitWrapText() {
   const ranges = {
     WO: [16, 6], CROP: [11, 5], INTERNAL: [11, 5],
-    SCION: [24, 7], ROOTSTOCK: [24, 7],
-    SCION_PATENT: [6, 3], ROOTSTOCK_PATENT: [6, 3], LOT: [5, 3], ADDRESS: [5, 3], WARNING: [4.8, 2.7]
+    SCION: [28, 7], ROOTSTOCK: [28, 7],
+    SCION_PATENT: [6, 3], ROOTSTOCK_PATENT: [6, 3], LOT: [6.5, 3], ADDRESS: [5.6, 3], WARNING: [4.8, 2.7]
   };
   for (const [id, range] of Object.entries(ranges)) {
     const obj = document.querySelector(`.obj[data-id="${id}"]`);
@@ -1256,7 +1313,7 @@ function syncControls() {
   if ($("safeToggle")) $("safeToggle").checked = showSafeZone;
   if ($("gridToggle")) $("gridToggle").checked = showGrid;
   if ($("safeMargin")) $("safeMargin").value = Number(layout.safeMarginPx || 0);
-  if ($("safeValue")) $("safeValue").textContent = Number(layout.safeMarginPx || 0) + "px";
+  if ($("safeValue")) $("safeValue").textContent = "";
   if ($("gridPx")) $("gridPx").value = Number(layout.gridPx || 4);
   if ($("snapPx")) $("snapPx").value = Number(layout.snapPx || 5);
 }
@@ -1391,10 +1448,11 @@ function printRows(items) {
   win.document.close();
 }
 function renderPrintPage(row) {
+  if (labelType === "WRAP") applyWrapDataAwareStack(row);
   let out = '<div class="page">';
   for (const id of objectOrder()) {
     const o = layout.objects[id];
-    if (!o || o.visible === false) continue;
+    if (!shouldRenderObject(id, row)) continue;
     if (labelType !== "WRAP" && id === "WEEK" && !row.week) continue;
     const outer = `position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
     if (labelType === "WRAP") out += `<div style="${outer}">${printWrapObjectInner(id, row, o)}</div>`;
