@@ -3,7 +3,7 @@ name: Update label CSV
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 10 * * 1-5"
+    - cron: "5,18,35,50 * * * *"
 
 permissions:
   contents: write
@@ -29,10 +29,8 @@ jobs:
             echo "No CSV changes."
             exit 0
           fi
-
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-
           git add data/labels.csv
           git commit -m "Update label CSV"
           git push
