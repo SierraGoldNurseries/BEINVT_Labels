@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.34-theme-fix-left-meta";
+const APP_VERSION = "8.6.35_wrap_label_meta_realigned";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -893,7 +893,7 @@ function sizePx(type = labelType) {
     }
     body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow .stageFrame{
       max-width:none!important;align-self:flex-start!important;flex:0 0 auto!important;margin-left:0!important;margin-right:0!important;
-      transform-origin:center center!important;
+      transform-origin:top left!important;
     }
     body.beinvt-label-wrap .stageMeta.stageMetaBelowLabel{
       align-self:flex-start!important;margin-left:0!important;margin-right:0!important;transform-origin:top left!important;
@@ -913,13 +913,57 @@ function sizePx(type = labelType) {
     body.beinvt-label-wrap #stageLabelHost{align-items:flex-start!important;justify-content:flex-start!important;overflow:visible!important}
     body.beinvt-label-wrap #stageLabelHost .stageStack{width:100%!important;max-width:100%!important;align-items:flex-start!important;justify-content:flex-start!important;overflow:visible!important}
     body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow{flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;width:auto!important;max-width:100%!important;margin:0!important;overflow:visible!important}
-    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow .stageFrame{align-self:flex-start!important;margin-left:0!important;margin-right:0!important;max-width:none!important;transform-origin:center center!important}
+    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow .stageFrame{align-self:flex-start!important;margin-left:0!important;margin-right:0!important;max-width:none!important;transform-origin:top left!important}
     body.beinvt-label-wrap .stageMeta.stageMetaBelowLabel{align-self:flex-start!important;margin-left:0!important;margin-right:0!important;transform-origin:top left!important}
     body.beinvt-objects-pane-hidden.beinvt-label-wrap #stageLabelHost .stageStack,
     body.beinvt-stage-fixed.beinvt-label-wrap #stageLabelHost .stageStack{align-items:flex-start!important;justify-content:flex-start!important}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v8634-theme-fix-left-meta-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
+(function injectWrapMetaFrameAlignmentV8635Css(){
+  const css = `
+    /* v8.6.35: keep the visible wrap-like label directly above the Label Color / Qty bar. */
+    body.beinvt-label-wrap #stageLabelHost{
+      align-items:flex-start!important;
+      justify-content:flex-start!important;
+      overflow:hidden!important;
+    }
+    body.beinvt-label-wrap #stageLabelHost .stageStack{
+      align-items:flex-start!important;
+      justify-content:flex-start!important;
+      overflow:visible!important;
+    }
+    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow{
+      flex-direction:column!important;
+      align-items:flex-start!important;
+      justify-content:flex-start!important;
+      margin-left:0!important;
+      margin-right:auto!important;
+      overflow:visible!important;
+    }
+    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow .stageFrame{
+      align-self:flex-start!important;
+      margin-left:0!important;
+      margin-right:0!important;
+      transform-origin:top left!important;
+      overflow:visible!important;
+    }
+    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow .stageInner{
+      transform-origin:0 0!important;
+    }
+    body.beinvt-label-wrap .stageMeta.stageMetaBelowLabel{
+      align-self:flex-start!important;
+      margin-left:0!important;
+      margin-right:0!important;
+      transform-origin:top left!important;
+    }
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-v8635-wrap-meta-frame-align-css", "1");
   tag.textContent = css;
   document.head.appendChild(tag);
 })();
@@ -3074,8 +3118,9 @@ function applyWrapLikeMetaPreviewLayout(meta, previewRow, zoom, s, frame) {
     frame.style.setProperty("margin-left", leftLocked ? "0" : "auto", "important");
     frame.style.setProperty("margin-right", leftLocked ? "0" : "auto", "important");
     frame.style.setProperty("max-width", "none", "important");
-    // Scale the label itself around its center so zoom-out does not collapse toward the left.
-    frame.style.setProperty("transform-origin", "center center", "important");
+    // v8.6.35: stage itself scales from top-left so the visible label starts exactly
+    // where the meta bar starts. This prevents the label from drifting/cropping left.
+    frame.style.setProperty("transform-origin", "top left", "important");
   }
   meta.classList.add("stageMetaBelowLabel");
   // layoutW * scale = actual visible label width, so the color bar aligns exactly under the label.
@@ -3117,7 +3162,10 @@ function renderCanvas() {
   stage.style.width = s.w + "px";
   stage.style.height = s.h + "px";
   stage.style.transform = `scale(${zoom})`;
-  stage.style.transformOrigin = isWrapLikeMode(labelType) ? "center center" : "0 0";
+  // v8.6.35: Use top-left scaling for the actual label so its visible left/right edges
+  // match the Label Color / Qty bar exactly. The whole preview group is aligned by
+  // its wrapper instead of letting the scaled label drift under the meta row.
+  stage.style.transformOrigin = "0 0";
   const canvas = document.createElement("div");
   canvas.className = "labelCanvas";
   canvas.style.width = s.w + "px";
