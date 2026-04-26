@@ -805,7 +805,7 @@ function dockStageAwayFromLeftPanel() {
   const correction = Math.ceil(targetLeft - sr.left);
   if (correction > 0) stage.style.marginLeft = correction + "px";
 
-  const desiredWidth = Math.max(700, pageRight - targetLeft + 1);
+  const desiredWidth = Math.max(700, pageRight - targetLeft + 100);
   stage.style.width = desiredWidth + "px";
   stage.style.maxWidth = desiredWidth + "px";
   stage.style.flexBasis = desiredWidth + "px";
