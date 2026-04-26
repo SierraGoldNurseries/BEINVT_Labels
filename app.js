@@ -8,7 +8,7 @@ const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=15
 const GENEVA_SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=260263&c=11150895&h=NMkHvroppy8Yi93204J1rZiq_7V-dJBmcFNuScfEc2hRzqB9";
 const GENEVA_LOGO_SHIFT_Y = -1;
 const OUTER_CARD_EXTRA_WIDTH = 260;
-const DEBUG_LAYER_LABELS_DEFAULT = false;
+const DEBUG_LAYER_LABELS_DEFAULT = true;
 
 /*
   v8.6.8 config:
