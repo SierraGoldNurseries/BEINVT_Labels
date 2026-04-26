@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.5-geneva-logo-full-width";
+const APP_VERSION = "8.6.6-outer-card-wide";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -7,6 +7,7 @@ const LABEL_SIZES = {
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
 const GENEVA_SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=260263&c=11150895&h=NMkHvroppy8Yi93204J1rZiq_7V-dJBmcFNuScfEc2hRzqB9";
 const GENEVA_LOGO_SHIFT_Y = -1;
+const OUTER_CARD_EXTRA_WIDTH = 260;
 const WRAP_ADDRESS = "SIERRA GOLD NURSERIES YUBA CITY, CA 95991";
 const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTINGS\nWHETHER FOR SALE\nOR OWN USE IS\nPROHIBITED UNDER\nU.S. PLANT PATENT LAWS.\nSALES OUTSIDE THE\nU.S. ARE PROHIBITED.";
 
@@ -265,6 +266,18 @@ function sizePx(type = labelType) {
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v865-stage-edge-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
+(function injectOuterCardWideV866Css(){
+  const css = `
+    /* v8.6.6: outer render card width is forced in JS; this keeps earlier card CSS from clipping it. */
+    .stageWrap{max-width:none!important;min-width:0!important;overflow:visible!important}
+    #canvasHost{width:100%!important;max-width:100%!important;min-width:0!important}
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-v866-outer-card-wide-css", "1");
   tag.textContent = css;
   document.head.appendChild(tag);
 })();
@@ -784,40 +797,39 @@ function dockStageAwayFromLeftPanel() {
   const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
   if (!panel || !stage) return;
 
-  // v8.6.3: use the same right edge as the top toolbar instead of stopping early.
-  // First dock the card immediately after the left menu, then force the card width
-  // to run all the way to the toolbar/page right edge. This keeps the gap tiny,
-  // prevents overlap, and gives the table/label all remaining horizontal space.
+  // v8.6.6: widen the outer stage card only.
+  // Normal inline width was not enough because earlier CSS uses !important,
+  // so these outer-card dimensions are also set with !important.
   const topbar = document.querySelector(".topbar,.toolbar,header");
   const pageRight = Math.floor((topbar && topbar.getBoundingClientRect().right) || window.innerWidth || document.documentElement.clientWidth || 1200) - 1;
   const pr = panel.getBoundingClientRect();
   const targetLeft = Math.ceil(pr.right + 1);
+  const extraWidth = Number(window.BEINVT_OUTER_CARD_EXTRA_WIDTH ?? OUTER_CARD_EXTRA_WIDTH ?? 0);
 
-  stage.style.boxSizing = "border-box";
-  stage.style.marginLeft = "0px";
-  stage.style.marginRight = "0px";
-  stage.style.maxWidth = "none";
-  stage.style.minWidth = "0px";
-  stage.style.flex = "0 0 auto";
-  stage.style.alignSelf = "stretch";
+  stage.style.setProperty("box-sizing", "border-box", "important");
+  stage.style.setProperty("margin-left", "0px", "important");
+  stage.style.setProperty("margin-right", "0px", "important");
+  stage.style.setProperty("min-width", "0px", "important");
+  stage.style.setProperty("max-width", "none", "important");
+  stage.style.setProperty("flex", "0 0 auto", "important");
+  stage.style.setProperty("align-self", "stretch", "important");
+  stage.style.setProperty("overflow", "visible", "important");
 
   const sr = stage.getBoundingClientRect();
   const correction = Math.ceil(targetLeft - sr.left);
-  if (correction > 0) stage.style.marginLeft = correction + "px";
+  if (correction > 0) stage.style.setProperty("margin-left", correction + "px", "important");
 
- const OUTER_CARD_EXTRA_WIDTH = 160; // increase this number to make the outer layer wider
-
-const desiredWidth = Math.max(640, pageRight - targetLeft + OUTER_CARD_EXTRA_WIDTH);
-
-stage.style.width = desiredWidth + "px";
-stage.style.maxWidth = desiredWidth + "px";
-stage.style.flexBasis = desiredWidth + "px";
-stage.style.minWidth = desiredWidth + "px";
+  const desiredWidth = Math.max(700, pageRight - targetLeft + 1 + extraWidth);
+  stage.style.setProperty("width", desiredWidth + "px", "important");
+  stage.style.setProperty("min-width", desiredWidth + "px", "important");
+  stage.style.setProperty("max-width", desiredWidth + "px", "important");
+  stage.style.setProperty("flex-basis", desiredWidth + "px", "important");
 
   const host = $("canvasHost");
   if (host) {
-    host.style.width = "100%";
-    host.style.maxWidth = "100%";
+    host.style.setProperty("width", "100%", "important");
+    host.style.setProperty("min-width", "100%", "important");
+    host.style.setProperty("max-width", "100%", "important");
   }
 }
 
