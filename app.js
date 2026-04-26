@@ -28,7 +28,7 @@ const WRAP_LIKE_PREVIEW_CONFIG = {
   metaBelowHeightPx: 44,
   // Center keeps Finished Trees / Field / Shipping zoom-out anchored in the middle.
   // Use "left" only if you intentionally want the label preview locked to the left edge.
-  previewAlign: "left",
+  previewAlign: "center",
   // Keep the label color/qty row glued to the label width when objects pane is hidden/shown.
   metaLockToLabelWidth: true
 };
@@ -964,6 +964,221 @@ function sizePx(type = labelType) {
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v8635-wrap-meta-frame-align-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
+
+(function injectCenterZoomAndLightThemeV8636Css(){
+  const css = `
+    /* v8.6.36: Finished Trees / Field Labels / Shipping Labels zoom from center, and light theme now covers topbar + tables with dark text and visible borders. */
+    body.beinvt-label-wrap #stageLabelHost{
+      align-items:flex-start!important;
+      justify-content:center!important;
+      overflow:hidden!important;
+    }
+    body.beinvt-label-wrap #stageLabelHost .stageStack{
+      width:100%!important;
+      max-width:100%!important;
+      align-items:center!important;
+      justify-content:flex-start!important;
+      overflow:visible!important;
+    }
+    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow{
+      flex-direction:column!important;
+      align-items:center!important;
+      justify-content:center!important;
+      width:100%!important;
+      max-width:100%!important;
+      margin-left:auto!important;
+      margin-right:auto!important;
+      overflow:visible!important;
+    }
+    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow .stageFrame{
+      align-self:center!important;
+      margin-left:auto!important;
+      margin-right:auto!important;
+      max-width:none!important;
+      transform-origin:top center!important;
+      overflow:visible!important;
+    }
+    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow .stageInner{
+      transform-origin:0 0!important;
+    }
+    body.beinvt-label-wrap .stageMeta.stageMetaBelowLabel{
+      align-self:center!important;
+      margin-left:auto!important;
+      margin-right:auto!important;
+      transform-origin:top center!important;
+    }
+    body.beinvt-objects-pane-hidden.beinvt-label-wrap #stageLabelHost .stageStack,
+    body.beinvt-stage-fixed.beinvt-label-wrap #stageLabelHost .stageStack{
+      align-items:center!important;
+      justify-content:flex-start!important;
+    }
+
+    body.beinvt-light-theme,
+    body.beinvt-light-theme *{
+      scrollbar-color:#94a3b8 #f8fafc;
+    }
+    body.beinvt-light-theme{
+      background:#f4f7fb!important;
+      color:#111827!important;
+    }
+    body.beinvt-light-theme [data-beinvt-top-menu-ref="1"],
+    body.beinvt-light-theme .beinvtTopMenuReference,
+    body.beinvt-light-theme .topbar,
+    body.beinvt-light-theme .toolbar,
+    body.beinvt-light-theme header{
+      background:#ffffff!important;
+      color:#111827!important;
+      border:1px solid rgba(15,23,42,.22)!important;
+      box-shadow:0 4px 14px rgba(15,23,42,.10)!important;
+    }
+    body.beinvt-light-theme [data-beinvt-top-menu-ref="1"] *,
+    body.beinvt-light-theme .beinvtTopMenuReference *,
+    body.beinvt-light-theme .topbar *,
+    body.beinvt-light-theme .toolbar *,
+    body.beinvt-light-theme header *{
+      color:#111827!important;
+    }
+    body.beinvt-light-theme #zoom{
+      accent-color:#7c3aed!important;
+    }
+    body.beinvt-light-theme .modeTab,
+    body.beinvt-light-theme .buttonRow button,
+    body.beinvt-light-theme .beinvtCard button,
+    body.beinvt-light-theme #stageRowsTable button,
+    body.beinvt-light-theme button{
+      background:#ffffff!important;
+      color:#111827!important;
+      border:1px solid rgba(15,23,42,.28)!important;
+      box-shadow:0 1px 2px rgba(15,23,42,.08)!important;
+    }
+    body.beinvt-light-theme .modeTab.active,
+    body.beinvt-light-theme .modeTab.utilityTab.good,
+    body.beinvt-light-theme button.good{
+      background:#dbeafe!important;
+      border-color:#2563eb!important;
+      color:#0f172a!important;
+    }
+    body.beinvt-light-theme .beinvtThemeSwitch{
+      background:#e5e7eb!important;
+      border-color:rgba(15,23,42,.26)!important;
+    }
+    body.beinvt-light-theme .beinvtThemeSwitch .trackEmoji,
+    body.beinvt-light-theme .beinvtThemeSwitch .knob{
+      color:#111827!important;
+    }
+    body.beinvt-light-theme .stageWrap,
+    body.beinvt-light-theme #canvasHost{
+      background:#edf2f7!important;
+      color:#111827!important;
+      border-color:rgba(15,23,42,.18)!important;
+    }
+    body.beinvt-light-theme #stageDataWrap,
+    body.beinvt-light-theme #stageLabelHost,
+    body.beinvt-light-theme .stageMeta,
+    body.beinvt-light-theme .beinvtCard,
+    body.beinvt-light-theme .settingsPanel,
+    body.beinvt-light-theme aside.panel,
+    body.beinvt-light-theme .panel.sidebar,
+    body.beinvt-light-theme .beinvtSettingsPanel{
+      background:#ffffff!important;
+      color:#111827!important;
+      border-color:rgba(15,23,42,.20)!important;
+    }
+    body.beinvt-light-theme .beinvtCardHeader,
+    body.beinvt-light-theme .beinvtCardBody,
+    body.beinvt-light-theme #objectsModeNote,
+    body.beinvt-light-theme .small,
+    body.beinvt-light-theme .smallNote,
+    body.beinvt-light-theme .field label,
+    body.beinvt-light-theme .checkRow label,
+    body.beinvt-light-theme .checkItem,
+    body.beinvt-light-theme .stageMeta b{
+      color:#111827!important;
+    }
+    body.beinvt-light-theme .beinvtObjectsCard{
+      background:#ffffff!important;
+      box-shadow:0 8px 24px rgba(15,23,42,.12)!important;
+    }
+    body.beinvt-light-theme .objectBtn,
+    body.beinvt-light-theme .queueItem,
+    body.beinvt-light-theme .stageMeta .metaPill:not(.colorPill){
+      background:#f8fafc!important;
+      color:#111827!important;
+      border-color:rgba(15,23,42,.22)!important;
+    }
+    body.beinvt-light-theme .objectBtn.active{
+      background:#dbeafe!important;
+      color:#0f172a!important;
+      border-color:#2563eb!important;
+    }
+    body.beinvt-light-theme .objectBtn .badge{
+      color:#111827!important;
+      opacity:1!important;
+    }
+    body.beinvt-light-theme input,
+    body.beinvt-light-theme select,
+    body.beinvt-light-theme textarea,
+    body.beinvt-light-theme #stageSearch,
+    body.beinvt-light-theme #layoutJson{
+      background:#ffffff!important;
+      color:#111827!important;
+      border:1px solid rgba(15,23,42,.28)!important;
+    }
+    body.beinvt-light-theme input::placeholder,
+    body.beinvt-light-theme textarea::placeholder{
+      color:#475569!important;
+      opacity:1!important;
+    }
+    body.beinvt-light-theme #stageDataSearchRow{
+      background:#f8fafc!important;
+      border-bottom:1px solid rgba(15,23,42,.22)!important;
+    }
+    body.beinvt-light-theme .stageTableScroll{
+      background:#ffffff!important;
+      border-top:1px solid rgba(15,23,42,.14)!important;
+    }
+    body.beinvt-light-theme #stageRowsTable{
+      background:#ffffff!important;
+      color:#111827!important;
+      border-collapse:separate!important;
+      border-spacing:0!important;
+      border:1px solid rgba(15,23,42,.18)!important;
+    }
+    body.beinvt-light-theme #stageRowsTable th{
+      background:#e5e7eb!important;
+      color:#111827!important;
+      border-bottom:1px solid rgba(15,23,42,.28)!important;
+      border-right:1px solid rgba(15,23,42,.18)!important;
+    }
+    body.beinvt-light-theme #stageRowsTable td{
+      background:#ffffff!important;
+      color:#111827!important;
+      border-bottom:1px solid rgba(15,23,42,.14)!important;
+      border-right:1px solid rgba(15,23,42,.10)!important;
+    }
+    body.beinvt-light-theme #stageRowsTable th:last-child,
+    body.beinvt-light-theme #stageRowsTable td:last-child{
+      border-right:0!important;
+    }
+    body.beinvt-light-theme #stageRowsTable tr.active td{
+      background:#bfdbfe!important;
+      color:#0f172a!important;
+      border-bottom-color:rgba(37,99,235,.30)!important;
+    }
+    body.beinvt-light-theme #stageRowsTable tr:hover td{
+      background:#e0f2fe!important;
+      color:#0f172a!important;
+    }
+    body.beinvt-light-theme #stageRowsTable tr.active:hover td{
+      background:#bfdbfe!important;
+    }
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-v8636-center-zoom-light-theme-css", "1");
   tag.textContent = css;
   document.head.appendChild(tag);
 })();
