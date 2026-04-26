@@ -3,7 +3,7 @@ name: Update label CSV
 on:
   workflow_dispatch:
   schedule:
-    - cron: "5,18,35,50 * * * *"
+    - cron: "7,22,37,52 * * * *"
 
 permissions:
   contents: write
