@@ -1,10 +1,11 @@
-const APP_VERSION = "8.6.2-from-v85-full-width-wrap-pot-right";
+const APP_VERSION = "8.5.0-max-zoom-no-overlap-3col-objects";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
   WRAP: { widthIn: 5, heightIn: 0.5 }
 };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
+const GENEVA_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=260263&c=11150895&h=NMkHvroppy8Yi93204J1rZiq_7V-dJBmcFNuScfEc2hRzqB9";
 const WRAP_ADDRESS = "SIERRA GOLD NURSERIES YUBA CITY, CA 95991";
 const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTINGS\nWHETHER FOR SALE\nOR OWN USE IS\nPROHIBITED UNDER\nU.S. PLANT PATENT LAWS.\nSALES OUTSIDE THE\nU.S. ARE PROHIBITED.";
 
@@ -136,13 +137,13 @@ function sizePx(type = labelType) {
     .beinvtDuplicateSettings{display:none!important}
     .beinvtSettingsPanel .beinvtCard{display:block!important}
 
-    .stageWrap{display:flex!important;flex-direction:column!important;height:calc(100vh - 86px)!important;min-height:0!important;overflow:hidden!important;padding:3px!important;gap:3px!important;background:radial-gradient(circle at center,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;min-width:0!important;max-width:100vw!important}
+    .stageWrap{display:flex!important;flex-direction:column!important;height:calc(100vh - 86px)!important;min-height:0!important;overflow:hidden!important;padding:3px 0 3px 3px!important;gap:3px!important;background:radial-gradient(circle at center,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;min-width:0!important;width:100%!important;max-width:none!important;box-sizing:border-box!important;align-self:flex-start!important;flex:0 0 auto!important}
     #canvasHost{width:100%!important;height:100%!important;min-height:0!important;display:flex!important;gap:4px!important;align-items:stretch!important;justify-content:stretch!important;overflow:hidden!important}
     body.beinvt-label-pot #canvasHost{flex-direction:row!important}
     body.beinvt-label-wrap #canvasHost{flex-direction:column!important}
     #stageDataWrap{background:#0f1228;border:1px solid rgba(255,255,255,.16);border-radius:13px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 34px rgba(0,0,0,.22);min-width:0;min-height:0}
-    body.beinvt-label-pot #stageDataWrap{flex:1 1 72%;min-width:540px;height:100%}
-    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(420px,55vh,690px);width:100%}
+    body.beinvt-label-pot #stageDataWrap{flex:1 1 auto;min-width:650px;height:100%}
+    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(420px,55vh,690px);width:100%;max-width:100%}
     #stageDataSearchRow{padding:8px;border-bottom:1px solid rgba(255,255,255,.10);background:#13162e;display:flex;gap:8px;align-items:center}
     #stageSearch{width:100%;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.15);background:#090d1f;color:#e5e7eb;padding:7px 10px;font-size:13px}
     .stageTableScroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;background:#0f1228}
@@ -154,12 +155,14 @@ function sizePx(type = labelType) {
     #stageRowsTable button{border:1px solid rgba(255,255,255,.18);background:#080b1a;color:#fff;border-radius:8px;padding:5px 8px;font-weight:800;cursor:pointer}
 
     #stageLabelHost{min-width:0;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:8px;position:relative}
-    body.beinvt-label-pot #stageLabelHost{flex:0 0 min(370px,34%);height:100%;align-items:center;justify-content:center;padding:4px 4px}
-    body.beinvt-label-wrap #stageLabelHost{flex:1 1 auto;align-items:flex-start;justify-content:center;padding:4px 6px 8px}
-    .stageStack{display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:flex-start;max-width:100%;max-height:100%}
+    body.beinvt-label-pot #stageLabelHost{flex:0 0 330px;max-width:330px;height:100%;align-items:center;justify-content:flex-end;padding:4px 0 4px 4px}
+    body.beinvt-label-wrap #stageLabelHost{flex:1 1 auto;align-items:flex-start;justify-content:stretch;padding:4px 0 8px 4px;width:100%;max-width:100%}
+    .stageStack{display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:flex-start;width:100%;max-width:100%;max-height:100%}
     .labelPreviewRow{display:flex;align-items:center;justify-content:center;gap:8px;max-width:100%;max-height:100%;min-width:0;overflow:visible}
-    body.beinvt-label-pot .labelPreviewRow{flex-direction:column;gap:6px}
-    body.beinvt-label-wrap .labelPreviewRow{flex-direction:row;gap:8px}
+    body.beinvt-label-pot .stageStack{align-items:flex-end}
+    body.beinvt-label-wrap .stageStack{align-items:stretch}
+    body.beinvt-label-pot .labelPreviewRow{flex-direction:column;gap:6px;align-items:flex-end;justify-content:center}
+    body.beinvt-label-wrap .labelPreviewRow{flex-direction:row;gap:8px;width:100%;justify-content:flex-start}
     .stageMeta{display:flex;gap:8px;align-items:stretch;justify-content:center;min-width:220px;max-width:340px;padding:8px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:#171a35;color:#e5e7eb;position:relative;z-index:20;box-shadow:0 10px 28px rgba(0,0,0,.22)}
     body.beinvt-label-pot .stageMeta{width:min(100%,320px);flex-direction:column}
     body.beinvt-label-wrap .stageMeta{width:205px;flex-direction:column;flex:0 0 205px}
@@ -185,35 +188,10 @@ function sizePx(type = labelType) {
     #gridSection .compactGrid{grid-template-columns:1fr 1fr 1fr auto;align-items:end}
     #gridSection .field label{min-height:14px}
     #stageRowsTable td,#stageRowsTable th{font-size:12px}
-    @media(max-width:1100px){aside.panel,.panel.sidebar,.settingsPanel{width:440px!important;min-width:440px!important;max-width:440px!important;flex-basis:440px!important}#canvasHost{flex-direction:column!important}body.beinvt-label-pot #stageDataWrap{flex:0 0 clamp(300px,52vh,560px);min-width:0;width:100%}body.beinvt-label-pot #stageLabelHost{flex:1 1 auto;width:100%}.compactGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.checkRow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:1100px){aside.panel,.panel.sidebar,.settingsPanel{width:440px!important;min-width:440px!important;max-width:440px!important;flex-basis:440px!important}#canvasHost{flex-direction:column!important}body.beinvt-label-pot #stageDataWrap{flex:0 0 clamp(300px,52vh,560px);min-width:0;width:100%}body.beinvt-label-pot #stageLabelHost{flex:1 1 auto;width:100%;max-width:100%;justify-content:center;padding:4px}.compactGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.checkRow{grid-template-columns:repeat(2,minmax(0,1fr))}}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-clean-css", "1");
-  tag.textContent = css;
-  document.head.appendChild(tag);
-})();
-
-(function injectFullWidthV86Css(){
-  const css = `
-    /* v8.6.2: restart from v8.5 and use the empty right-side space. */
-    .stageWrap{width:auto!important;max-width:none!important;flex:1 1 auto!important}
-    #canvasHost{width:100%!important;max-width:100%!important}
-    body.beinvt-label-wrap #canvasHost{align-items:stretch!important;justify-content:stretch!important}
-    body.beinvt-label-wrap #stageDataWrap{width:100%!important;flex:0 0 clamp(390px,54vh,700px)!important}
-    body.beinvt-label-wrap #stageLabelHost{width:100%!important;flex:1 1 auto!important;align-items:center!important;justify-content:center!important;padding:4px 8px 8px!important}
-    body.beinvt-label-wrap #stageLabelHost .stageStack{width:100%!important;max-width:100%!important;align-items:center!important}
-    body.beinvt-label-wrap .labelPreviewRow{width:100%!important;max-width:100%!important;justify-content:center!important;gap:10px!important}
-    body.beinvt-label-wrap .stageFrame{flex:0 0 auto!important}
-    body.beinvt-label-wrap .stageMeta{flex:0 0 205px!important;width:205px!important}
-
-    body.beinvt-label-pot #canvasHost{align-items:stretch!important;justify-content:stretch!important}
-    body.beinvt-label-pot #stageDataWrap{flex:1 1 auto!important;min-width:0!important;width:auto!important}
-    body.beinvt-label-pot #stageLabelHost{flex:0 0 clamp(270px,23vw,340px)!important;min-width:270px!important;height:100%!important;align-items:center!important;justify-content:flex-end!important;padding:4px 8px 4px 4px!important}
-    body.beinvt-label-pot #stageLabelHost .stageStack{width:100%!important;max-width:100%!important;align-items:flex-end!important}
-    body.beinvt-label-pot .labelPreviewRow{width:auto!important;max-width:100%!important;align-items:flex-end!important;justify-content:flex-end!important}
-  `;
-  const tag = document.createElement("style");
-  tag.setAttribute("data-beinvt-v86-full-width-css", "1");
   tag.textContent = css;
   document.head.appendChild(tag);
 })();
@@ -483,6 +461,11 @@ function wrapRootstockText(row) {
   if (/^platinum\s+pistachio\s+rootstock$/i.test(txt)) txt = "Platinum";
   return capClean(txt);
 }
+function hasGenevaRootstock(row) {
+  const raw = cleanDisplay(row && row.rootstock);
+  const derived = derivedRootstock(row);
+  return /geneva/i.test(raw) || /geneva/i.test(derived);
+}
 function wrapLotLine(row) {
   if (isRschRow(row)) return "";
   return capClean(row && row.lotNumber);
@@ -720,29 +703,38 @@ function dockStageAwayFromLeftPanel() {
   const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
   if (!panel || !stage) return;
 
-  // Keep the render area just to the right of the left menu, with a tiny gap.
-  // This prevents overlap after refresh while still using all remaining width.
+  // Match the render/preview card to the usable width of the top toolbar.
+  // The left panel and the stage can measure from different layout parents, so
+  // size from the stage's actual left edge after any clearance correction. This
+  // removes the unused right-side gap and lets the table expand while the label
+  // stays pinned to the far right.
   stage.style.marginLeft = "0px";
   stage.style.width = "";
+  stage.style.minWidth = "";
   stage.style.maxWidth = "";
-  stage.style.flex = "1 1 auto";
+  stage.style.flex = "";
 
   const pr = panel.getBoundingClientRect();
   const sr = stage.getBoundingClientRect();
   const minGap = 4;
-  const targetLeft = Math.ceil(pr.right + minGap);
-  const correction = Math.ceil(targetLeft - sr.left);
+  const correction = Math.max(0, Math.ceil(pr.right + minGap - sr.left));
+  const targetLeft = Math.max(pr.right + minGap, sr.left + correction);
+  const topBar = document.querySelector(".topbar,.toolbar,header");
+  const topRect = topBar && topBar.getBoundingClientRect ? topBar.getBoundingClientRect() : null;
+  const rightEdge = Math.max(
+    320,
+    Math.floor((topRect && topRect.right) || 0),
+    document.documentElement.clientWidth || 0,
+    window.innerWidth || 0
+  );
+  const targetWidth = Math.max(320, Math.floor(rightEdge - targetLeft - 4));
 
-  if (correction > 0) {
-    stage.style.marginLeft = correction + "px";
-  }
-
-  // Whether the stage had to be moved or was already docked correctly,
-  // force it to occupy the full remaining page width to the right edge.
-  stage.style.width = `calc(100vw - ${targetLeft}px)`;
-  stage.style.maxWidth = `calc(100vw - ${targetLeft}px)`;
+  if (correction > 0) stage.style.marginLeft = correction + "px";
+  stage.style.width = targetWidth + "px";
+  stage.style.minWidth = targetWidth + "px";
+  stage.style.maxWidth = targetWidth + "px";
+  stage.style.flex = "0 0 " + targetWidth + "px";
 }
-
 
 
 function nearestCleanupContainer(el) {
@@ -874,13 +866,13 @@ function applyZoomSliderCap(labelHost) {
   const host = labelHost || $("stageLabelHost");
   const hostW = Math.max(1, (host && host.clientWidth) || window.innerWidth || 900);
   const hostH = Math.max(1, (host && host.clientHeight) || window.innerHeight || 500);
-  const metaW = labelType === "WRAP" ? 215 : 0;
+  const metaW = labelType === "WRAP" ? 213 : 0;
   const metaH = labelType === "POT" ? 118 : 0;
-  const availableW = labelType === "WRAP" ? hostW - metaW - 22 : hostW - 12;
+  const availableW = labelType === "WRAP" ? hostW - metaW - 12 : hostW - 4;
   const availableH = labelType === "POT" ? hostH - metaH - 16 : hostH - 12;
   const maxByW = availableW / Math.max(1, s.w);
   const maxByH = availableH / Math.max(1, s.h);
-  const hardMax = labelType === "WRAP" ? 4.25 : 2.15;
+  const hardMax = labelType === "WRAP" ? 4.25 : 1.95;
   const max = clamp(Math.min(maxByW, maxByH, hardMax), 0.35, hardMax);
 
   if (zoomInput) {
@@ -1140,7 +1132,7 @@ function makeWrapObjectInner(id, row, o) {
   holder.style.overflow = "hidden";
   if (id === "WO_QR") { renderQrInto(holder, wrapLeftQrText(row)); return holder; }
   if (id === "LOT_QR") { const txt = wrapRightQrText(row); if (txt) renderQrInto(holder, txt); return holder; }
-  if (id === "LOGO") return makeLogoInner();
+  if (id === "LOGO") return makeLogoInner(row);
   const text = wrapObjectText(id, row);
   const inner = document.createElement("div");
   inner.className = "wrapTextInner" + (["WO", "CROP", "INTERNAL", "WARNING"].includes(id) ? " leftText" : "") + (["SCION_PATENT", "ROOTSTOCK_PATENT", "LOT", "ADDRESS", "WARNING"].includes(id) ? " smallText" : "") + (id === "WARNING" ? " warningText" : "");
@@ -1155,9 +1147,38 @@ function makeWrapObjectInner(id, row, o) {
   holder.appendChild(inner);
   return holder;
 }
-function makeLogoInner() {
+function makeLogoInner(row) {
   const c = document.createElement("div");
   c.className = "wrapLogo";
+  const stackGeneva = labelType === "WRAP" && hasGenevaRootstock(row);
+  if (stackGeneva) {
+    c.style.flexDirection = "column";
+    c.style.gap = "1px";
+    c.style.alignItems = "center";
+    c.style.justifyContent = "center";
+
+    const sgImg = document.createElement("img");
+    sgImg.src = SG_LOGO_URL;
+    sgImg.alt = "SG";
+    sgImg.style.width = "100%";
+    sgImg.style.height = "48%";
+    sgImg.style.objectFit = "contain";
+    sgImg.style.imageRendering = "auto";
+    sgImg.onerror = () => { sgImg.replaceWith(Object.assign(document.createElement("div"), { className: "wrapLogoFallback", textContent: "SG" })); };
+
+    const genevaImg = document.createElement("img");
+    genevaImg.src = GENEVA_LOGO_URL;
+    genevaImg.alt = "Geneva";
+    genevaImg.style.width = "100%";
+    genevaImg.style.height = "48%";
+    genevaImg.style.objectFit = "contain";
+    genevaImg.style.imageRendering = "auto";
+    genevaImg.onerror = () => { genevaImg.style.display = "none"; };
+
+    c.appendChild(sgImg);
+    c.appendChild(genevaImg);
+    return c;
+  }
   const img = document.createElement("img");
   img.src = SG_LOGO_URL;
   img.alt = "SG";
@@ -1579,7 +1600,12 @@ function printTextInner(id, row, o) {
 function printWrapObjectInner(id, row, o) {
   if (id === "WO_QR") return `<img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated">`;
   if (id === "LOT_QR") { const txt = wrapRightQrText(row); return txt ? `<img src="${qrUrl(txt)}" style="width:100%;height:100%;image-rendering:pixelated">` : ""; }
-  if (id === "LOGO") return `<img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain;image-rendering:auto" onerror="this.outerHTML='SG'">`;
+  if (id === "LOGO") {
+    if (hasGenevaRootstock(row)) {
+      return `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;overflow:hidden"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:48%;object-fit:contain;image-rendering:auto" onerror="this.outerHTML='SG'"><img src="${escapeHtml(GENEVA_LOGO_URL)}" style="width:100%;height:48%;object-fit:contain;image-rendering:auto" onerror="this.style.display='none'"></div>`;
+    }
+    return `<img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain;image-rendering:auto" onerror="this.outerHTML='SG'">`;
+  }
   const textAlign = o.alignH === "left" ? "left" : o.alignH === "right" ? "right" : "center";
   const base = `position:absolute;inset:0;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:${textAlign};white-space:normal;word-break:normal;overflow-wrap:normal;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize || 8}px;line-height:.86;padding:0 1px;color:#000;`;
   if (id === "ROOTSTOCK") return `<div style="${base}text-transform:uppercase"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(wrapRootstockText(row))}</div>`;
