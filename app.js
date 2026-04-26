@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.37_color_list_config_fixed";
+const APP_VERSION = "8.6.38_shipping_tray_sales_columns";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -1353,12 +1353,26 @@ function csvVal(obj, names) {
   }
   return "";
 }
+function shippingNameParts(name) {
+  return String(name || "").split("|").map(s => cleanDisplay(s)).filter(Boolean);
+}
 function shippingNameSuffix(name) {
-  const parts = String(name || "").split("|").map(s => cleanDisplay(s)).filter(Boolean);
+  const parts = shippingNameParts(name);
   return cleanDisplay(parts[parts.length - 1]);
 }
+function shippingTrayTypeFromName(name) {
+  const parts = shippingNameParts(name);
+  // Item name format: part1 | part2 | part3 | Tray Type | ... | Sales Format
+  // The value after the 3rd pipe is the 4th segment.
+  return cleanDisplay(parts[3]);
+}
+function shippingSalesFormatFromName(name) {
+  // Sales format is the value after the last pipe. This is also the suffix used
+  // to limit Shipping Labels to CN / QS / Liner / Bud rows.
+  return shippingNameSuffix(name);
+}
 function isShippingNameIncluded(name) {
-  return /^(CN|QS|Liner|Bud)$/i.test(shippingNameSuffix(name));
+  return /^(CN|QS|Liner|Bud)$/i.test(shippingSalesFormatFromName(name));
 }
 function baseRowsForMode(type = labelType) {
   return isShippingMode(type) ? itemRows : labelRows;
@@ -1421,7 +1435,9 @@ async function loadCsv() {
         quantity: "1",
         labelsNeeded: "1",
         week: currentWeekNumber(),
-        shippingSuffix: shippingNameSuffix(name)
+        trayType: shippingTrayTypeFromName(name),
+        salesFormat: shippingSalesFormatFromName(name),
+        shippingSuffix: shippingSalesFormatFromName(name)
       };
     }).filter(r => cleanDisplay(r.internalId) && isShippingNameIncluded(r.name));
   }
@@ -1462,6 +1478,9 @@ function currentRow() {
       labelColor: "HOT PINK",
       quantity: "3",
       labelsNeeded: "3",
+      trayType: "TEST TRAY",
+      salesFormat: "CN",
+      shippingSuffix: "CN",
       week: "52"
     };
   }
@@ -1478,6 +1497,9 @@ function currentRow() {
     labelColor: "WHITE",
     quantity: "1",
     labelsNeeded: "1",
+    trayType: "",
+    salesFormat: "",
+    shippingSuffix: "",
     week: currentWeekNumber()
   };
 }
@@ -3254,7 +3276,7 @@ function wrapHeaderHtml() {
   return "<th style='width:8%'>WO</th><th style='width:13%'>Activity</th><th style='width:11%'>Crop</th><th style='width:12%'>Scion</th><th style='width:12%'>Rootstock</th><th style='width:10%'>Scion Patent</th><th style='width:10%'>Rootstock Patent</th><th style='width:9%'>Internal ID</th><th style='width:8%'>Color</th><th style='width:4%'>Labels</th><th style='width:3%'></th>";
 }
 function shippingHeaderHtml() {
-  return "<th style='width:14%'>Crop</th><th style='width:20%'>Scion</th><th style='width:18%'>Rootstock</th><th style='width:16%'>Scion Patent</th><th style='width:16%'>Rootstock Patent</th><th style='width:12%'>Color</th><th style='width:4%'></th>";
+  return "<th style='width:12%'>Crop</th><th style='width:16%'>Scion</th><th style='width:14%'>Rootstock</th><th style='width:12%'>Tray Type</th><th style='width:12%'>Sales Format</th><th style='width:12%'>Scion Patent</th><th style='width:12%'>Rootstock Patent</th><th style='width:7%'>Color</th><th style='width:3%'></th>";
 }
 function cell(v) {
   return escapeHtml(capClean(v));
@@ -3264,7 +3286,7 @@ function buildRowHtml(r) {
     return `<td>${cell(r.wo)}</td><td>${cell(r.act)}</td><td>${cell(derivedRootstock(r) || displayPotItem(r))}</td><td>${cell(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button type="button">Add</button></td>`;
   }
   if (labelType === "SHIP") {
-    return `<td>${cell(r.crop)}</td><td>${cell(wrapScionText(r))}</td><td>${cell(wrapRootstockText(r))}</td><td>${cell(r.scionPatent)}</td><td>${cell(r.rootstockPatent)}</td><td>${cell(r.labelColor)}</td><td><button type="button">Add</button></td>`;
+    return `<td>${cell(r.crop)}</td><td>${cell(wrapScionText(r))}</td><td>${cell(wrapRootstockText(r))}</td><td>${cell(r.trayType)}</td><td>${cell(r.salesFormat || r.shippingSuffix)}</td><td>${cell(r.scionPatent)}</td><td>${cell(r.rootstockPatent)}</td><td>${cell(r.labelColor)}</td><td><button type="button">Add</button></td>`;
   }
   return `<td>${cell(r.wo)}</td><td>${cell(r.act)}</td><td>${cell(r.crop)}</td><td>${cell(wrapScionText(r))}</td><td>${cell(wrapRootstockText(r))}</td><td>${cell(r.scionPatent)}</td><td>${cell(r.rootstockPatent)}</td><td>${cell(r.internalId)}</td><td>${cell(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button type="button">Add</button></td>`;
 }
