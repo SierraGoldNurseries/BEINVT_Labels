@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.8-outer-card-1970x1193-debug-config";
+const APP_VERSION = "8.6.9-outer-card-topbar-width-debug";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -7,7 +7,7 @@ const LABEL_SIZES = {
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
 const GENEVA_SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=260263&c=11150895&h=NMkHvroppy8Yi93204J1rZiq_7V-dJBmcFNuScfEc2hRzqB9";
 const GENEVA_LOGO_SHIFT_Y = -1;
-const OUTER_CARD_EXTRA_WIDTH = 260;
+const OUTER_CARD_EXTRA_WIDTH = 0;
 const DEBUG_LAYER_LABELS_DEFAULT = false;
 
 /*
@@ -19,12 +19,17 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
-  width: 1970,
+  // v8.6.9: A outer card width follows the top menu/toolbar width.
+  // Change widthMode to "manual" and set manualWidth if you want a fixed width.
+  widthMode: "topbar",
+  manualWidth: 1970,
+  fallbackWidth: 1970,
+  extraWidth: 0,
   height: 1193,
   applyTo: ["POT", "WRAP"]
 };
 const LAYER_DEBUG_CONFIG = {
-  enabled: true,
+  enabled: false,
   movable: true,
   rememberPosition: true,
   defaultLeft: 18,
@@ -301,6 +306,34 @@ function sizePx(type = labelType) {
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v866-outer-card-wide-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
+(function injectOuterCardTopbarWidthV869Css(){
+  const css = `
+    /* v8.6.9: A outer card is intentionally allowed to be wider than its parent. */
+    body.beinvt-label-pot,body.beinvt-label-wrap{overflow-x:auto!important;overflow-y:auto!important}
+    body.beinvt-label-pot .stageWrap,body.beinvt-label-wrap .stageWrap{
+      box-sizing:border-box!important;
+      width:var(--beinvt-outer-card-width)!important;
+      min-width:var(--beinvt-outer-card-width)!important;
+      max-width:none!important;
+      inline-size:var(--beinvt-outer-card-width)!important;
+      min-inline-size:var(--beinvt-outer-card-width)!important;
+      flex:0 0 var(--beinvt-outer-card-width)!important;
+      flex-basis:var(--beinvt-outer-card-width)!important;
+      height:var(--beinvt-outer-card-height)!important;
+      min-height:var(--beinvt-outer-card-height)!important;
+      max-height:var(--beinvt-outer-card-height)!important;
+      overflow:visible!important;
+    }
+    body.beinvt-label-pot #canvasHost,body.beinvt-label-wrap #canvasHost{
+      width:100%!important;min-width:100%!important;max-width:100%!important;
+    }
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-v869-outer-card-topbar-width-css", "1");
   tag.textContent = css;
   document.head.appendChild(tag);
 })();
@@ -843,24 +876,91 @@ function shouldForceOuterCardSize() {
   const allowed = Array.isArray(cfg.applyTo) ? cfg.applyTo : ["POT", "WRAP"];
   return allowed.includes(labelType);
 }
-function forceOuterCardSize() {
-  if (!shouldForceOuterCardSize()) return;
+function measureTopMenuBarWidth() {
   const cfg = outerCardSizeRuntimeConfig();
-  const width = Math.max(300, Number(cfg.width || 1970));
-  const height = Math.max(200, Number(cfg.height || 1193));
-  const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
+  const fallback = Math.max(300, Number(cfg.fallbackWidth || cfg.manualWidth || cfg.width || 1970));
+  const viewportW = Math.round(window.innerWidth || document.documentElement.clientWidth || 0);
+  const topbar = document.querySelector(".topbar,.toolbar,header");
+  const widths = [];
+  const capW = viewportW > 0 ? Math.round(viewportW * 1.25) : fallback * 2;
+  function addWidth(v) {
+    const n = Math.round(Number(v || 0));
+    if (n > 0) widths.push(Math.min(n, capW));
+  }
+  addWidth(viewportW);
+  if (topbar) {
+    const r = topbar.getBoundingClientRect();
+    addWidth(r && r.width);
+    addWidth(topbar.offsetWidth);
+    // scrollWidth catches topbars whose visible box is constrained but whose menu content is wider.
+    // Every topbar measurement is capped so body min-width changes do not recursively grow the target forever.
+    addWidth(topbar.scrollWidth);
+  }
+  const measured = widths.length ? Math.max(...widths) : fallback;
+  return Math.max(300, Math.round(measured || fallback));
+}
+function outerCardTargetWidth() {
+  const cfg = outerCardSizeRuntimeConfig();
+  const mode = String(cfg.widthMode || "manual").toLowerCase();
+  const extra = Number(cfg.extraWidth ?? OUTER_CARD_EXTRA_WIDTH ?? 0) || 0;
+  if (mode === "topbar" || mode === "toolbar" || mode === "menu") {
+    return Math.max(300, Math.round(measureTopMenuBarWidth() + extra));
+  }
+  return Math.max(300, Math.round(Number(cfg.manualWidth || cfg.width || cfg.fallbackWidth || 1970) + extra));
+}
+function outerCardTargetHeight() {
+  const cfg = outerCardSizeRuntimeConfig();
+  return Math.max(200, Math.round(Number(cfg.height || 1193)));
+}
+function releaseOuterCardAncestors(stage, width) {
   if (!stage) return;
+  const panel = findSettingsPanel();
+  const panelRight = panel ? Math.ceil(panel.getBoundingClientRect().right) : 0;
+  const requiredPageW = Math.max(width, panelRight + width + 12);
 
-  // Make the page able to scroll if the fixed debug/card size is wider/taller than the viewport.
   document.documentElement.style.setProperty("overflow-x", "auto", "important");
   document.documentElement.style.setProperty("overflow-y", "auto", "important");
   document.body.style.setProperty("overflow-x", "auto", "important");
   document.body.style.setProperty("overflow-y", "auto", "important");
+  document.documentElement.style.setProperty("min-width", requiredPageW + "px", "important");
+  document.body.style.setProperty("min-width", requiredPageW + "px", "important");
+
+  let node = stage.parentElement;
+  let guard = 0;
+  while (node && node !== document.body && guard < 8) {
+    node.style.setProperty("overflow", "visible", "important");
+    node.style.setProperty("overflow-x", "visible", "important");
+    node.style.setProperty("max-width", "none", "important");
+    node.style.setProperty("min-width", requiredPageW + "px", "important");
+    node.style.setProperty("box-sizing", "border-box", "important");
+    node = node.parentElement;
+    guard++;
+  }
+}
+function forceOuterCardSize() {
+  if (!shouldForceOuterCardSize()) return;
+  const width = outerCardTargetWidth();
+  const height = outerCardTargetHeight();
+  const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
+  if (!stage) return;
+
+  releaseOuterCardAncestors(stage, width);
+
+  document.documentElement.style.setProperty("--beinvt-outer-card-width", width + "px");
+  document.documentElement.style.setProperty("--beinvt-outer-card-height", height + "px");
+  stage.style.setProperty("--beinvt-outer-card-width", width + "px");
+  stage.style.setProperty("--beinvt-outer-card-height", height + "px");
+  stage.dataset.beinvtOuterCardTarget = width + "x" + height;
+  stage.dataset.beinvtOuterCardWidthMode = String(outerCardSizeRuntimeConfig().widthMode || "manual");
 
   stage.style.setProperty("box-sizing", "border-box", "important");
   stage.style.setProperty("width", width + "px", "important");
   stage.style.setProperty("min-width", width + "px", "important");
-  stage.style.setProperty("max-width", width + "px", "important");
+  stage.style.setProperty("max-width", "none", "important");
+  stage.style.setProperty("inline-size", width + "px", "important");
+  stage.style.setProperty("min-inline-size", width + "px", "important");
+  stage.style.setProperty("max-inline-size", "none", "important");
+  stage.style.setProperty("flex", "0 0 " + width + "px", "important");
   stage.style.setProperty("flex-basis", width + "px", "important");
   stage.style.setProperty("height", height + "px", "important");
   stage.style.setProperty("min-height", height + "px", "important");
@@ -875,17 +975,23 @@ function forceOuterCardSize() {
     host.style.setProperty("min-height", "0", "important");
     host.style.setProperty("max-width", "100%", "important");
     host.style.setProperty("max-height", "100%", "important");
+    host.style.setProperty("overflow", "hidden", "important");
   }
 }
-
 function dockStageAwayFromLeftPanel() {
   const panel = findSettingsPanel();
   const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
   if (!panel || !stage) return;
 
-  // v8.6.6: widen the outer stage card only.
-  // Normal inline width was not enough because earlier CSS uses !important,
-  // so these outer-card dimensions are also set with !important.
+  // v8.6.9: forced mode is handled by forceOuterCardSize(). Do not let the old
+  // "remaining width after left panel" calculation overwrite A outer card.
+  if (shouldForceOuterCardSize()) {
+    stage.style.setProperty("margin-left", "0px", "important");
+    stage.style.setProperty("margin-right", "0px", "important");
+    forceOuterCardSize();
+    return;
+  }
+
   const topbar = document.querySelector(".topbar,.toolbar,header");
   const pageRight = Math.floor((topbar && topbar.getBoundingClientRect().right) || window.innerWidth || document.documentElement.clientWidth || 1200) - 1;
   const pr = panel.getBoundingClientRect();
@@ -906,12 +1012,10 @@ function dockStageAwayFromLeftPanel() {
   if (correction > 0) stage.style.setProperty("margin-left", correction + "px", "important");
 
   const desiredWidth = Math.max(700, pageRight - targetLeft + 1 + extraWidth);
-  if (!shouldForceOuterCardSize()) {
-    stage.style.setProperty("width", desiredWidth + "px", "important");
-    stage.style.setProperty("min-width", desiredWidth + "px", "important");
-    stage.style.setProperty("max-width", desiredWidth + "px", "important");
-    stage.style.setProperty("flex-basis", desiredWidth + "px", "important");
-  }
+  stage.style.setProperty("width", desiredWidth + "px", "important");
+  stage.style.setProperty("min-width", desiredWidth + "px", "important");
+  stage.style.setProperty("max-width", "none", "important");
+  stage.style.setProperty("flex-basis", desiredWidth + "px", "important");
 
   const host = $("canvasHost");
   if (host) {
@@ -919,11 +1023,20 @@ function dockStageAwayFromLeftPanel() {
     host.style.setProperty("min-width", "100%", "important");
     host.style.setProperty("max-width", "100%", "important");
   }
-  forceOuterCardSize();
 }
-
-
-
+function outerCardDebugInfo() {
+  const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
+  const cs = stage ? getComputedStyle(stage) : null;
+  return {
+    mode: String(outerCardSizeRuntimeConfig().widthMode || "manual"),
+    topbarWidth: measureTopMenuBarWidth(),
+    targetWidth: outerCardTargetWidth(),
+    targetHeight: outerCardTargetHeight(),
+    inlineWidth: stage ? (stage.style.getPropertyValue("width") || "") : "",
+    computedWidth: cs ? cs.width : "",
+    flex: cs ? cs.flex : ""
+  };
+}
 
 function debugLayerTargets() {
   return [
@@ -1100,7 +1213,8 @@ function updateDebugLayerLabels() {
     const size = t.rect ? `${t.rect.width}x${t.rect.height}` : (t.found ? "0x0" : "not found");
     return `<div class="row" title="${escapeHtml(t.note)}"><div class="key" style="color:${escapeHtml(t.color)}">${escapeHtml(t.key)}</div><div class="name">${escapeHtml(t.name)}</div><div class="size">${escapeHtml(size)}</div><div class="btns"><button type="button" data-debug-grow="${escapeHtml(t.key)}" data-delta="80">+80</button><button type="button" data-debug-grow="${escapeHtml(t.key)}" data-delta="-80">-80</button></div></div>`;
   }).join("");
-  panel.innerHTML = `<b>Layer Debug: ON</b> <span class="muted">drag this panel anywhere</span><div class="muted">Config is ON. A outer card is forced to <code>1970x1193</code> for Pot Stakes and Wrap Ties. Buttons are temporary width tests only.</div><div class="topBtns"><button type="button" id="beinvtDebugOffBtn">Hide labels</button><button type="button" id="beinvtDebugRefreshBtn">Refresh</button><button type="button" id="beinvtDebugClearBtn">Clear width tests</button><button type="button" id="beinvtDebugCopyBtn">Copy sizes</button></div><div class="muted">Likely choices: <code>A</code> outer dark card, <code>D</code> preview area, <code>H</code> white printable label, <code>J</code> selected object.</div>${rows}`;
+  const ocInfo = outerCardDebugInfo();
+  panel.innerHTML = `<b>Layer Debug: ON</b> <span class="muted">drag this panel anywhere</span><div class="muted">Config is ON. A outer card target: <code>${escapeHtml(ocInfo.targetWidth)}x${escapeHtml(ocInfo.targetHeight)}</code>. Width mode: <code>${escapeHtml(ocInfo.mode)}</code>. Topbar measured: <code>${escapeHtml(ocInfo.topbarWidth)}</code>. Inline: <code>${escapeHtml(ocInfo.inlineWidth)}</code>. Computed: <code>${escapeHtml(ocInfo.computedWidth)}</code>.</div><div class="topBtns"><button type="button" id="beinvtDebugOffBtn">Hide labels</button><button type="button" id="beinvtDebugRefreshBtn">Refresh</button><button type="button" id="beinvtDebugClearBtn">Clear width tests</button><button type="button" id="beinvtDebugCopyBtn">Copy sizes</button></div><div class="muted">Likely choices: <code>A</code> outer dark card, <code>D</code> preview area, <code>H</code> white printable label, <code>J</code> selected object. A +/- changes the outer-card config live.</div>${rows}`;
   const offBtn = document.getElementById("beinvtDebugOffBtn");
   const refreshBtn = document.getElementById("beinvtDebugRefreshBtn");
   const clearBtn = document.getElementById("beinvtDebugClearBtn");
@@ -1122,6 +1236,15 @@ function widenDebugLayer(key, delta) {
   const r = roundedRectInfo(el);
   if (!el || !r) return;
   const next = Math.max(20, r.width + Number(delta || 0));
+  if (key === "A") {
+    const cfg = outerCardSizeRuntimeConfig();
+    window.BEINVT_OUTER_CARD_SIZE_CONFIG = Object.assign({}, cfg, { widthMode: "manual", manualWidth: next });
+    localStorage.setItem("beinvtOuterCardManualDebugWidth", String(next));
+    forceOuterCardSize();
+    console.log(`[BEINVT layer debug] A outer card config width -> ${next}px`, window.BEINVT_OUTER_CARD_SIZE_CONFIG);
+    updateDebugLayerLabels();
+    return;
+  }
   el.dataset.beinvtDebugWidthTest = "1";
   el.style.setProperty("box-sizing", "border-box", "important");
   el.style.setProperty("width", next + "px", "important");
@@ -1136,6 +1259,9 @@ function clearDebugWidthTests() {
     delete el.dataset.beinvtDebugWidthTest;
     ["width", "min-width", "max-width", "flex-basis", "box-sizing"].forEach(prop => el.style.removeProperty(prop));
   });
+  window.BEINVT_OUTER_CARD_SIZE_CONFIG = Object.assign({}, outerCardSizeRuntimeConfig(), { widthMode: OUTER_CARD_SIZE_CONFIG.widthMode, manualWidth: OUTER_CARD_SIZE_CONFIG.manualWidth });
+  localStorage.removeItem("beinvtOuterCardManualDebugWidth");
+  forceOuterCardSize();
 }
 function copyDebugLayerSizes() {
   const text = debugLayerSnapshot().map(t => {
@@ -1147,8 +1273,12 @@ function copyDebugLayerSizes() {
 }
 function installDebugLayerLabels() {
   window.BEINVT_DEBUG_LAYERS = { update: updateDebugLayerLabels, snapshot: debugLayerSnapshot, widen: widenDebugLayer, clear: clearDebugWidthTests, copySizes: copyDebugLayerSizes, on: () => setDebugLayerLabels(true), off: () => setDebugLayerLabels(false), config: LAYER_DEBUG_CONFIG };
-  window.BEINVT_OUTER_CARD_SIZE = { apply: forceOuterCardSize, config: OUTER_CARD_SIZE_CONFIG };
+  window.BEINVT_OUTER_CARD_SIZE = { apply: forceOuterCardSize, config: OUTER_CARD_SIZE_CONFIG, info: outerCardDebugInfo, setManualWidth: w => { window.BEINVT_OUTER_CARD_SIZE_CONFIG = Object.assign({}, outerCardSizeRuntimeConfig(), { widthMode: "manual", manualWidth: Number(w) || outerCardTargetWidth() }); forceOuterCardSize(); updateDebugLayerLabels(); } };
   if (!window.beinvtLayerDebugInterval) window.beinvtLayerDebugInterval = window.setInterval(() => { forceOuterCardSize(); updateDebugLayerLabels(); }, 650);
+  if (!window.beinvtOuterCardForceBurst) {
+    let n = 0;
+    window.beinvtOuterCardForceBurst = window.setInterval(() => { forceOuterCardSize(); if (++n > 25) clearInterval(window.beinvtOuterCardForceBurst); }, 200);
+  }
   document.addEventListener("keydown", ev => {
     if (layerDebugRuntimeConfig().showShortcut && ev.altKey && ev.key && ev.key.toLowerCase() === "d") {
       ev.preventDefault();
