@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.20-hide-objects-pane-direct";
+const APP_VERSION = "8.6.21-hidden-pane-fixed-stage";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -29,6 +29,7 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - v8.6.18: add topbar/left-panel toggles for object guide lines and hiding the left pane; hidden pane lets A use full T width.
   - v8.6.19: hide-pane toggle now hides only the real left object/settings pane (.beinvtSettingsPanel), never table/label cards.
   - v8.6.20: stop using body.beinvt-left-pane-hidden; remove stale broad hide CSS and hide only .beinvtSettingsPanel directly.
+  - v8.6.21: when objects pane is hidden, move stageWrap to a fixed full-width stage below the topbar so table/label cannot be squeezed by the old left-column flex layout.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -68,7 +69,8 @@ const LAYER_DEBUG_CONFIG = {
     document.querySelectorAll([
       'style[data-beinvt-v8618-guide-left-pane-toggle-css]',
       'style[data-beinvt-v8619-hide-objects-pane-only-css]',
-      'style[data-beinvt-v8620-hide-objects-pane-direct-css]'
+      'style[data-beinvt-v8620-hide-objects-pane-direct-css]',
+      'style[data-beinvt-v8621-hidden-pane-fixed-stage-css]'
     ].join(',')).forEach(el => el.remove());
     document.querySelectorAll('style').forEach(el => {
       const txt = String(el.textContent || '');
@@ -626,6 +628,55 @@ function sizePx(type = labelType) {
   document.head.appendChild(tag);
 })();
 
+(function injectHiddenPaneFixedStageV8621Css(){
+  const css = `
+    /* v8.6.21: Hide Objects Pane should only hide the left objects/settings pane.
+       The render stage is taken out of the old left-column flex layout and fixed
+       under the top controls so the table/label cannot collapse or get squeezed. */
+    body.beinvt-objects-pane-hidden{overflow:hidden!important}
+    body.beinvt-objects-pane-hidden .beinvtSettingsPanel{
+      display:none!important;visibility:hidden!important;width:0!important;min-width:0!important;max-width:0!important;
+      flex:0 0 0px!important;flex-basis:0!important;padding:0!important;margin:0!important;border:0!important;
+      overflow:hidden!important;pointer-events:none!important
+    }
+    body.beinvt-objects-pane-hidden .stageWrap{
+      position:fixed!important;
+      left:var(--beinvt-hidden-stage-left,0px)!important;
+      top:var(--beinvt-hidden-stage-top,56px)!important;
+      width:var(--beinvt-hidden-stage-width,calc(100vw - 4px))!important;
+      min-width:var(--beinvt-hidden-stage-width,calc(100vw - 4px))!important;
+      max-width:var(--beinvt-hidden-stage-width,calc(100vw - 4px))!important;
+      height:var(--beinvt-hidden-stage-height,calc(100vh - 64px))!important;
+      min-height:var(--beinvt-hidden-stage-height,calc(100vh - 64px))!important;
+      max-height:var(--beinvt-hidden-stage-height,calc(100vh - 64px))!important;
+      transform:none!important;margin:0!important;z-index:20!important;display:flex!important;visibility:visible!important;opacity:1!important;
+      flex:0 0 var(--beinvt-hidden-stage-width,calc(100vw - 4px))!important;flex-basis:var(--beinvt-hidden-stage-width,calc(100vw - 4px))!important;
+      box-sizing:border-box!important;overflow:hidden!important
+    }
+    body.beinvt-objects-pane-hidden #canvasHost{
+      width:100%!important;min-width:0!important;max-width:100%!important;height:100%!important;min-height:0!important;max-height:100%!important;
+      display:flex!important;visibility:visible!important;opacity:1!important;overflow:hidden!important;align-items:stretch!important;justify-content:stretch!important
+    }
+    body.beinvt-objects-pane-hidden.beinvt-label-pot #canvasHost{flex-direction:row!important}
+    body.beinvt-objects-pane-hidden.beinvt-label-wrap #canvasHost{flex-direction:column!important}
+    body.beinvt-objects-pane-hidden #stageDataWrap,
+    body.beinvt-objects-pane-hidden #stageLabelHost,
+    body.beinvt-objects-pane-hidden .stageStack,
+    body.beinvt-objects-pane-hidden .labelPreviewRow{
+      display:flex!important;visibility:visible!important;opacity:1!important
+    }
+    body.beinvt-objects-pane-hidden #stageDataWrap{min-width:0!important;max-width:none!important;overflow:hidden!important}
+    body.beinvt-objects-pane-hidden.beinvt-label-pot #stageDataWrap{flex:1 1 auto!important;width:auto!important;height:100%!important}
+    body.beinvt-objects-pane-hidden.beinvt-label-pot #stageLabelHost{flex:0 0 360px!important;width:360px!important;min-width:360px!important;max-width:360px!important;height:100%!important}
+    body.beinvt-objects-pane-hidden.beinvt-label-wrap #stageDataWrap{width:100%!important;max-width:none!important;flex:0 0 clamp(390px,54vh,700px)!important}
+    body.beinvt-objects-pane-hidden.beinvt-label-wrap #stageLabelHost{width:100%!important;max-width:none!important;flex:1 1 auto!important}
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-v8621-hidden-pane-fixed-stage-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
 function fallbackLayout(type) {
   if (type === "POT") {
     return {
@@ -1062,26 +1113,81 @@ function clearObjectsPaneInlineHide(panel) {
 }
 function applyObjectsPaneVisibility() {
   const panel = getObjectsPanePanel();
-  if (!panel) return;
-  if (leftPaneHidden) {
-    panel.classList.add("beinvtSettingsPanel");
-    panel.dataset.beinvtObjectsPaneHidden = "1";
-    panel.setAttribute("aria-hidden", "true");
-    panel.style.setProperty("display", "none", "important");
-    panel.style.setProperty("visibility", "hidden", "important");
-    panel.style.setProperty("width", "0px", "important");
-    panel.style.setProperty("min-width", "0px", "important");
-    panel.style.setProperty("max-width", "0px", "important");
-    panel.style.setProperty("flex", "0 0 0px", "important");
-    panel.style.setProperty("flex-basis", "0px", "important");
-    panel.style.setProperty("padding", "0px", "important");
-    panel.style.setProperty("margin", "0px", "important");
-    panel.style.setProperty("border", "0px", "important");
-    panel.style.setProperty("overflow", "hidden", "important");
-    panel.style.setProperty("pointer-events", "none", "important");
-  } else {
-    clearObjectsPaneInlineHide(panel);
+  if (panel) {
+    if (leftPaneHidden) {
+      panel.classList.add("beinvtSettingsPanel");
+      panel.dataset.beinvtObjectsPaneHidden = "1";
+      panel.setAttribute("aria-hidden", "true");
+      panel.style.setProperty("display", "none", "important");
+      panel.style.setProperty("visibility", "hidden", "important");
+      panel.style.setProperty("width", "0px", "important");
+      panel.style.setProperty("min-width", "0px", "important");
+      panel.style.setProperty("max-width", "0px", "important");
+      panel.style.setProperty("flex", "0 0 0px", "important");
+      panel.style.setProperty("flex-basis", "0px", "important");
+      panel.style.setProperty("padding", "0px", "important");
+      panel.style.setProperty("margin", "0px", "important");
+      panel.style.setProperty("border", "0px", "important");
+      panel.style.setProperty("overflow", "hidden", "important");
+      panel.style.setProperty("pointer-events", "none", "important");
+    } else {
+      clearObjectsPaneInlineHide(panel);
+    }
   }
+  if (leftPaneHidden) applyHiddenObjectsStageLayout();
+  else clearHiddenObjectsStageLayout();
+}
+function hiddenObjectsStageBounds() {
+  const top = topMenuBounds();
+  const vw = viewportWidthNow();
+  const vh = viewportHeightNow();
+  const left = Math.max(0, Math.round((top && top.left) || 0));
+  const topY = Math.max(0, Math.round(((top && top.bottom) || 48) + 6));
+  const right = Math.max(left + 640, Math.round((top && top.right) || vw));
+  const width = Math.max(640, right - left - 2);
+  const height = Math.max(260, Math.floor(vh - topY - 4));
+  return { left, top: topY, width, height };
+}
+function clearHiddenObjectsStageLayout(stage) {
+  const el = stage || document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
+  document.documentElement.style.removeProperty("--beinvt-hidden-stage-left");
+  document.documentElement.style.removeProperty("--beinvt-hidden-stage-top");
+  document.documentElement.style.removeProperty("--beinvt-hidden-stage-width");
+  document.documentElement.style.removeProperty("--beinvt-hidden-stage-height");
+  if (!el) return;
+  ["position", "left", "top", "z-index", "transform", "will-change"].forEach(prop => el.style.removeProperty(prop));
+}
+function applyHiddenObjectsStageLayout() {
+  const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
+  if (!stage) return;
+  const b = hiddenObjectsStageBounds();
+  document.documentElement.style.setProperty("--beinvt-hidden-stage-left", b.left + "px");
+  document.documentElement.style.setProperty("--beinvt-hidden-stage-top", b.top + "px");
+  document.documentElement.style.setProperty("--beinvt-hidden-stage-width", b.width + "px");
+  document.documentElement.style.setProperty("--beinvt-hidden-stage-height", b.height + "px");
+  stage.dataset.beinvtOuterCardTarget = b.width + "x" + b.height;
+  stage.dataset.beinvtOuterCardWidthMode = "hiddenObjectsFixed";
+  stage.style.setProperty("position", "fixed", "important");
+  stage.style.setProperty("left", b.left + "px", "important");
+  stage.style.setProperty("top", b.top + "px", "important");
+  stage.style.setProperty("width", b.width + "px", "important");
+  stage.style.setProperty("min-width", b.width + "px", "important");
+  stage.style.setProperty("max-width", b.width + "px", "important");
+  stage.style.setProperty("height", b.height + "px", "important");
+  stage.style.setProperty("min-height", b.height + "px", "important");
+  stage.style.setProperty("max-height", b.height + "px", "important");
+  stage.style.setProperty("flex", "0 0 " + b.width + "px", "important");
+  stage.style.setProperty("flex-basis", b.width + "px", "important");
+  stage.style.setProperty("transform", "none", "important");
+  stage.style.setProperty("will-change", "auto", "important");
+  stage.style.setProperty("display", "flex", "important");
+  stage.style.setProperty("visibility", "visible", "important");
+  stage.style.setProperty("opacity", "1", "important");
+  [$("canvasHost"), $("stageDataWrap"), $("stageLabelHost")].filter(Boolean).forEach(el => {
+    el.style.setProperty("display", "flex", "important");
+    el.style.setProperty("visibility", "visible", "important");
+    el.style.setProperty("opacity", "1", "important");
+  });
 }
 function persistPreviewUiPrefs() {
   localStorage.setItem("beinvtShowObjectGuides", JSON.stringify(!!showObjectGuides));
@@ -1104,6 +1210,7 @@ function setLeftPaneHidden(on) {
   applyObjectsPaneVisibility();
   forceOuterCardSize();
   dockStageAwayFromLeftPanel();
+  if (leftPaneHidden) applyHiddenObjectsStageLayout();
   renderCanvas();
   refreshDebugLayerLabelsSoon();
 }
@@ -1520,13 +1627,10 @@ function forceOuterCardSize() {
   if (!stage) return;
   if (leftPaneHidden) {
     if (document.body) document.body.classList.remove("beinvt-left-pane-hidden");
-    applyObjectsPaneVisibility();
-    [stage, $("canvasHost"), $("stageDataWrap"), $("stageLabelHost")].filter(Boolean).forEach(el => {
-      el.style.setProperty("display", "flex", "important");
-      el.style.setProperty("visibility", "visible", "important");
-      el.style.setProperty("opacity", "1", "important");
-    });
+    applyHiddenObjectsStageLayout();
+    return;
   }
+  clearHiddenObjectsStageLayout(stage);
 
   releaseOuterCardAncestors(stage);
 
@@ -1608,9 +1712,15 @@ function forceOuterCardSize() {
   }
 }
 function dockStageAwayFromLeftPanel() {
-  const panel = findSettingsPanel();
   const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
-  if (!panel || !stage) return;
+  if (!stage) return;
+  if (leftPaneHidden) {
+    applyHiddenObjectsStageLayout();
+    return;
+  }
+  clearHiddenObjectsStageLayout(stage);
+  const panel = findSettingsPanel();
+  if (!panel) return;
 
   if (shouldForceOuterCardSize()) {
     forceOuterCardSize();
@@ -3004,7 +3114,7 @@ function initEvents() {
     else if (ev.key === "ArrowLeft") { ev.preventDefault(); nudgeSelected(-step, 0); }
     else if (ev.key === "ArrowRight") { ev.preventDefault(); nudgeSelected(step, 0); }
   });
-  window.addEventListener("resize", () => { applyZoomSliderCap($("stageLabelHost")); renderCanvas(); });
+  window.addEventListener("resize", () => { if (leftPaneHidden) applyHiddenObjectsStageLayout(); applyZoomSliderCap($("stageLabelHost")); renderCanvas(); });
 }
 function boot() {
   removeGitHubWorkflowText();
