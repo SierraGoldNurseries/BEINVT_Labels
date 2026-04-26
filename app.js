@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.6-outer-card-wide";
+const APP_VERSION = "8.6.7-debug-layer-labels";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -7,7 +7,8 @@ const LABEL_SIZES = {
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
 const GENEVA_SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=260263&c=11150895&h=NMkHvroppy8Yi93204J1rZiq_7V-dJBmcFNuScfEc2hRzqB9";
 const GENEVA_LOGO_SHIFT_Y = -1;
-const OUTER_CARD_EXTRA_WIDTH = 560;
+const OUTER_CARD_EXTRA_WIDTH = 260;
+const DEBUG_LAYER_LABELS_DEFAULT = true;
 const WRAP_ADDRESS = "SIERRA GOLD NURSERIES YUBA CITY, CA 95991";
 const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTINGS\nWHETHER FOR SALE\nOR OWN USE IS\nPROHIBITED UNDER\nU.S. PLANT PATENT LAWS.\nSALES OUTSIDE THE\nU.S. ARE PROHIBITED.";
 
@@ -278,6 +279,23 @@ function sizePx(type = labelType) {
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v866-outer-card-wide-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
+
+(function injectLayerDebugLabelsV867Css(){
+  const css = `
+    /* v8.6.7 debug layer labels: viewport overlays, no layout effect, hidden in print. */
+    .beinvtLayerDebugRoot{position:fixed;inset:0;z-index:999997;pointer-events:none!important;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important}
+    .beinvtLayerDebugBox{position:fixed;pointer-events:none!important;border:2px dashed currentColor;border-radius:8px;box-shadow:0 0 0 1px rgba(0,0,0,.55),0 0 18px rgba(255,255,255,.15);background:rgba(255,255,255,.035)}
+    .beinvtLayerDebugTag{position:fixed;pointer-events:none!important;z-index:999998;padding:3px 6px;border-radius:7px;border:1px solid currentColor;background:rgba(3,7,18,.92);color:currentColor;font-size:11px;font-weight:950;line-height:1.2;text-shadow:0 1px 1px #000;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+    .beinvtLayerDebugPanel{position:fixed;right:10px;top:58px;z-index:999999;width:392px;max-height:calc(100vh - 75px);overflow:auto;border:1px solid rgba(255,255,255,.28);border-radius:13px;background:rgba(7,10,28,.96);color:#eef2ff;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.25;box-shadow:0 16px 45px rgba(0,0,0,.45)}
+    .beinvtLayerDebugPanel b{font-size:13px;color:#fff}.beinvtLayerDebugPanel .muted{color:#aeb7d5}.beinvtLayerDebugPanel .row{display:grid;grid-template-columns:22px 1fr 92px 86px;gap:6px;align-items:center;border-top:1px solid rgba(255,255,255,.10);padding:6px 0}.beinvtLayerDebugPanel .key{font-weight:950}.beinvtLayerDebugPanel .name{font-weight:850;color:#fff;overflow:hidden;text-overflow:ellipsis}.beinvtLayerDebugPanel .size{color:#dbeafe;text-align:right}.beinvtLayerDebugPanel button{border:1px solid rgba(255,255,255,.22);background:#10142d;color:#fff;border-radius:7px;padding:4px 6px;font-size:10px;font-weight:900;cursor:pointer}.beinvtLayerDebugPanel button:hover{background:#1b2250}.beinvtLayerDebugPanel .btns{display:flex;gap:4px;justify-content:flex-end}.beinvtLayerDebugPanel .topBtns{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.beinvtLayerDebugPanel code{color:#fde68a}
+    @media print{.beinvtLayerDebugRoot,.beinvtLayerDebugPanel{display:none!important}}
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-v867-layer-debug-css", "1");
   tag.textContent = css;
   document.head.appendChild(tag);
 })();
@@ -835,6 +853,162 @@ function dockStageAwayFromLeftPanel() {
 
 
 
+
+function debugLayerTargets() {
+  return [
+    { key: "A", color: "#ff4d6d", name: "OUTER CARD .stageWrap", selector: ".stageWrap", note: "big dark card that contains table plus preview" },
+    { key: "B", color: "#fb923c", name: "SPLIT HOST #canvasHost", selector: "#canvasHost", note: "inside A; holds table card and preview area" },
+    { key: "C", color: "#facc15", name: "TABLE CARD #stageDataWrap", selector: "#stageDataWrap", note: "WO/search table area" },
+    { key: "D", color: "#22c55e", name: "LABEL AREA #stageLabelHost", selector: "#stageLabelHost", note: "area below/next to table where preview sits" },
+    { key: "E", color: "#14b8a6", name: "PREVIEW STACK .stageStack", selector: ".stageStack", note: "stack around meta and label preview" },
+    { key: "F", color: "#38bdf8", name: "PREVIEW ROW .labelPreviewRow", selector: ".labelPreviewRow", note: "row containing purple meta plus label" },
+    { key: "G", color: "#818cf8", name: "SCALED FRAME .stageFrame", selector: ".stageFrame", note: "scaled preview frame" },
+    { key: "H", color: "#e879f9", name: "WHITE LABEL .labelCanvas", selector: ".labelCanvas", note: "actual printable label canvas" },
+    { key: "I", color: "#c084fc", name: "PURPLE INFO .stageMeta", selector: ".stageMeta", note: "label color / qty card" },
+    { key: "J", color: "#f472b6", name: "SELECTED OBJECT .obj.selected", selector: ".obj.selected", note: "currently selected yellow object box" },
+    { key: "K", color: "#ef4444", name: "SAFE ZONE .safeZone", selector: ".safeZone", note: "red dashed print safe boundary" },
+    { key: "L", color: "#a3e635", name: "LEFT PANEL settings", selector: "aside.panel,.panel.sidebar,.settingsPanel", note: "left controls panel" }
+  ];
+}
+function isDebugLayerLabelsOn() {
+  const raw = localStorage.getItem("beinvtDebugLayerLabels");
+  if (raw === null) return !!DEBUG_LAYER_LABELS_DEFAULT;
+  return raw === "1" || raw === "true";
+}
+function setDebugLayerLabels(on) {
+  localStorage.setItem("beinvtDebugLayerLabels", on ? "1" : "0");
+  updateDebugLayerLabels();
+}
+function roundedRectInfo(el) {
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  if (!r || r.width <= 0 || r.height <= 0) return null;
+  return { left: Math.round(r.left), top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height), right: Math.round(r.right), bottom: Math.round(r.bottom) };
+}
+function ensureDebugLayerRoot() {
+  let root = document.getElementById("beinvtLayerDebugRoot");
+  if (!root) {
+    root = document.createElement("div");
+    root.id = "beinvtLayerDebugRoot";
+    root.className = "beinvtLayerDebugRoot";
+    document.body.appendChild(root);
+  }
+  return root;
+}
+function ensureDebugLayerPanel() {
+  let panel = document.getElementById("beinvtLayerDebugPanel");
+  if (!panel) {
+    panel = document.createElement("div");
+    panel.id = "beinvtLayerDebugPanel";
+    panel.className = "beinvtLayerDebugPanel";
+    document.body.appendChild(panel);
+  }
+  return panel;
+}
+function debugLayerElement(target) {
+  try { return document.querySelector(target.selector); } catch (e) { return null; }
+}
+function debugLayerSnapshot() {
+  return debugLayerTargets().map(t => {
+    const el = debugLayerElement(t);
+    const r = roundedRectInfo(el);
+    return Object.assign({}, t, { found: !!el, rect: r, className: el ? String(el.className || "") : "" });
+  });
+}
+function updateDebugLayerLabels() {
+  if (!document.body) return;
+  const on = isDebugLayerLabelsOn();
+  const root = ensureDebugLayerRoot();
+  const panel = ensureDebugLayerPanel();
+  if (!on) {
+    root.style.display = "none";
+    panel.innerHTML = `<b>Layer Debug: OFF</b><div class="topBtns"><button type="button" id="beinvtDebugOnBtn">Turn labels ON</button></div><div class="muted">Shortcut: Alt+D</div>`;
+    const onBtn = document.getElementById("beinvtDebugOnBtn");
+    if (onBtn) onBtn.onclick = () => setDebugLayerLabels(true);
+    return;
+  }
+  root.style.display = "block";
+  root.innerHTML = "";
+  const snap = debugLayerSnapshot();
+  snap.forEach(t => {
+    if (!t.rect) return;
+    const box = document.createElement("div");
+    box.className = "beinvtLayerDebugBox";
+    box.style.color = t.color;
+    box.style.left = t.rect.left + "px";
+    box.style.top = t.rect.top + "px";
+    box.style.width = Math.max(1, t.rect.width) + "px";
+    box.style.height = Math.max(1, t.rect.height) + "px";
+    const tag = document.createElement("div");
+    tag.className = "beinvtLayerDebugTag";
+    tag.style.color = t.color;
+    tag.style.left = Math.max(4, Math.min(window.innerWidth - 260, t.rect.left + 4)) + "px";
+    tag.style.top = Math.max(4, Math.min(window.innerHeight - 24, t.rect.top + 4)) + "px";
+    tag.textContent = `${t.key} ${t.name} ${t.rect.width}x${t.rect.height}`;
+    root.appendChild(box);
+    root.appendChild(tag);
+  });
+  const rows = snap.map(t => {
+    const size = t.rect ? `${t.rect.width}x${t.rect.height}` : (t.found ? "0x0" : "not found");
+    return `<div class="row" title="${escapeHtml(t.note)}"><div class="key" style="color:${escapeHtml(t.color)}">${escapeHtml(t.key)}</div><div class="name">${escapeHtml(t.name)}</div><div class="size">${escapeHtml(size)}</div><div class="btns"><button type="button" data-debug-grow="${escapeHtml(t.key)}" data-delta="80">+80</button><button type="button" data-debug-grow="${escapeHtml(t.key)}" data-delta="-80">-80</button></div></div>`;
+  }).join("");
+  panel.innerHTML = `<b>Layer Debug: ON</b> <span class="muted">reply with the letter for the layer you mean</span><div class="muted">Alt+D toggles. Buttons are temporary width tests only.</div><div class="topBtns"><button type="button" id="beinvtDebugOffBtn">Hide labels</button><button type="button" id="beinvtDebugRefreshBtn">Refresh</button><button type="button" id="beinvtDebugClearBtn">Clear width tests</button><button type="button" id="beinvtDebugCopyBtn">Copy sizes</button></div><div class="muted">Likely choices: <code>A</code> outer dark card, <code>D</code> preview area, <code>H</code> white printable label, <code>J</code> selected object.</div>${rows}`;
+  const offBtn = document.getElementById("beinvtDebugOffBtn");
+  const refreshBtn = document.getElementById("beinvtDebugRefreshBtn");
+  const clearBtn = document.getElementById("beinvtDebugClearBtn");
+  const copyBtn = document.getElementById("beinvtDebugCopyBtn");
+  if (offBtn) offBtn.onclick = () => setDebugLayerLabels(false);
+  if (refreshBtn) refreshBtn.onclick = () => updateDebugLayerLabels();
+  if (clearBtn) clearBtn.onclick = () => { clearDebugWidthTests(); renderAll(); updateDebugLayerLabels(); };
+  if (copyBtn) copyBtn.onclick = () => copyDebugLayerSizes();
+  panel.querySelectorAll("button[data-debug-grow]").forEach(btn => { btn.onclick = () => widenDebugLayer(btn.getAttribute("data-debug-grow"), Number(btn.getAttribute("data-delta") || 0)); });
+}
+function refreshDebugLayerLabelsSoon() {
+  if (!isDebugLayerLabelsOn()) return;
+  window.requestAnimationFrame(() => window.setTimeout(updateDebugLayerLabels, 40));
+}
+function widenDebugLayer(key, delta) {
+  const target = debugLayerTargets().find(t => t.key === key);
+  if (!target) return;
+  const el = debugLayerElement(target);
+  const r = roundedRectInfo(el);
+  if (!el || !r) return;
+  const next = Math.max(20, r.width + Number(delta || 0));
+  el.dataset.beinvtDebugWidthTest = "1";
+  el.style.setProperty("box-sizing", "border-box", "important");
+  el.style.setProperty("width", next + "px", "important");
+  el.style.setProperty("min-width", next + "px", "important");
+  el.style.setProperty("max-width", next + "px", "important");
+  el.style.setProperty("flex-basis", next + "px", "important");
+  console.log(`[BEINVT layer debug] ${key} ${target.name}: width ${r.width}px -> ${next}px`, el);
+  updateDebugLayerLabels();
+}
+function clearDebugWidthTests() {
+  document.querySelectorAll("[data-beinvt-debug-width-test]").forEach(el => {
+    delete el.dataset.beinvtDebugWidthTest;
+    ["width", "min-width", "max-width", "flex-basis", "box-sizing"].forEach(prop => el.style.removeProperty(prop));
+  });
+}
+function copyDebugLayerSizes() {
+  const text = debugLayerSnapshot().map(t => {
+    const r = t.rect;
+    return `${t.key} ${t.name}: ${r ? `${r.width}x${r.height} at ${r.left},${r.top}` : (t.found ? "found but 0x0" : "not found")}`;
+  }).join("\\n");
+  console.log("[BEINVT layer debug sizes]\\n" + text);
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).catch(() => {});
+}
+function installDebugLayerLabels() {
+  window.BEINVT_DEBUG_LAYERS = { update: updateDebugLayerLabels, snapshot: debugLayerSnapshot, widen: widenDebugLayer, clear: clearDebugWidthTests, copySizes: copyDebugLayerSizes, on: () => setDebugLayerLabels(true), off: () => setDebugLayerLabels(false) };
+  if (!window.beinvtLayerDebugInterval) window.beinvtLayerDebugInterval = window.setInterval(updateDebugLayerLabels, 650);
+  document.addEventListener("keydown", ev => {
+    if (ev.altKey && ev.key && ev.key.toLowerCase() === "d") {
+      ev.preventDefault();
+      setDebugLayerLabels(!isDebugLayerLabelsOn());
+    }
+  });
+  refreshDebugLayerLabelsSoon();
+}
+
 function nearestCleanupContainer(el) {
   if (!el) return null;
   return el.closest(".beinvtCard,details,fieldset,.section,.card,.panel,aside") || el.parentElement;
@@ -1016,6 +1190,7 @@ function renderAll() {
   renderPresetList();
   renderQueue();
   updateUndoButtons();
+  refreshDebugLayerLabelsSoon();
 }
 
 function woSortNumber(row) {
@@ -1169,6 +1344,7 @@ function renderCanvas() {
   stack.appendChild(previewRow);
   labelHost.appendChild(stack);
   autoFitAllTextSoon();
+  refreshDebugLayerLabelsSoon();
 }
 function addGrid(canvas) {
   const gp = Number((layout && layout.gridPx) || 4);
@@ -1768,6 +1944,7 @@ function boot() {
   ensureLeftPanel();
   removeDuplicateRightMenuControls();
   initEvents();
+  installDebugLayerLabels();
   loadCsv().catch(console.warn).finally(() => {
     renderAll();
     startPanelWatchdog();
