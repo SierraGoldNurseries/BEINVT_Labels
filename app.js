@@ -2,9 +2,9 @@ const APP_VERSION = "8.6.39_print_size_orientation";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
-  WRAP: { widthIn: 5, heightIn: 0.5 },
-  FIELD: { widthIn: 5, heightIn: 0.5 },
-  SHIP: { widthIn: 5, heightIn: 0.5 }
+  WRAP: { widthIn: 5, heightIn: 0.75 },
+  FIELD: { widthIn: 5, heightIn: 0.75 },
+  SHIP: { widthIn: 5, heightIn: 0.75 }
 };
 const BASE_LABEL_SIZES = JSON.parse(JSON.stringify(LABEL_SIZES));
 const PRINT_SIZE_CONFIG = {
