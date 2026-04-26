@@ -1,9 +1,10 @@
-const APP_VERSION = "8.6.29-meta-below-wrap-config";
+const APP_VERSION = "8.6.30-shipping-labels-left-align";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
   WRAP: { widthIn: 5, heightIn: 0.5 },
-  FIELD: { widthIn: 5, heightIn: 0.5 }
+  FIELD: { widthIn: 5, heightIn: 0.5 },
+  SHIP: { widthIn: 5, heightIn: 0.5 }
 };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
 const GENEVA_SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=260263&c=11150895&h=NMkHvroppy8Yi93204J1rZiq_7V-dJBmcFNuScfEc2hRzqB9";
@@ -28,7 +29,7 @@ const WRAP_LIKE_PREVIEW_CONFIG = {
 };
 
 const OUTER_CARD_EXTRA_WIDTH = 0;
-const TABLE_CARD_WIDTH_EXTRA_BY_LABEL = { POT: 196, WRAP: 194, FIELD: 194 }; // reference: target missing width; actual layout now fills to top menu right edge
+const TABLE_CARD_WIDTH_EXTRA_BY_LABEL = { POT: 196, WRAP: 194, FIELD: 194, SHIP: 194 }; // reference: target missing width; actual layout now fills to top menu right edge
 const DEBUG_LAYER_LABELS_DEFAULT = false;
 
 /*
@@ -58,6 +59,7 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - v8.6.27: Finished Trees/Field SG Logo defaults to x=390 and width=30; Field Row object can use negative X values.
   - v8.6.28: Field Row no longer allows negative X; Row text is left-aligned inside the Row object instead.
   - v8.6.29: Finished Trees/Field Labels show Label Color + Qty below the label and scale that meta row with zoom; top config controls logo/meta defaults.
+  - v8.6.30: Wrap-like preview is left-aligned again when meta pills sit below the label; Shipping Labels mode reads BEINVT - Items.csv and shows CN/QS/Liner/Bud rows only.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -125,6 +127,8 @@ let DEFAULT_LAYOUTS = {};
 let labelType = "POT";
 let rows = [];
 let filteredRows = [];
+let labelRows = [];
+let itemRows = [];
 let currentRowIndex = 0;
 let selectedId = "ITEM";
 let layout = null;
@@ -175,10 +179,13 @@ function capClean(v) {
   return cap(cleanDisplay(v));
 }
 function isWrapLikeMode(type = labelType) {
-  return type === "WRAP" || type === "FIELD";
+  return type === "WRAP" || type === "FIELD" || type === "SHIP";
 }
 function isFieldMode(type = labelType) {
   return type === "FIELD";
+}
+function isShippingMode(type = labelType) {
+  return type === "SHIP";
 }
 function isFieldPlantingRow(row) {
   return /^field\s+planting\b/i.test(cleanDisplay(row && row.act));
@@ -203,6 +210,7 @@ function sizePx(type = labelType) {
     localStorage.removeItem("beinvtWorkingLayout_POT");
     localStorage.removeItem("beinvtWorkingLayout_WRAP");
     localStorage.removeItem("beinvtWorkingLayout_FIELD");
+    localStorage.removeItem("beinvtWorkingLayout_SHIP");
     // Clear old debug-forced A sizes so the new 5% height trim and right-shift logic can apply.
     localStorage.removeItem("beinvtOuterCardDebugWidth_v8615");
     localStorage.removeItem("beinvtOuterCardDebugHeight_v8615");
@@ -740,11 +748,22 @@ function sizePx(type = labelType) {
 (function injectMetaBelowFinishedFieldV8629Css(){
   const css = `
     /* v8.6.29: Label Color / Qty sit below Finished Trees + Field Labels and scale with zoom. */
+    body.beinvt-label-wrap #stageLabelHost{
+      align-items:flex-start!important;
+      justify-content:flex-start!important;
+    }
+    body.beinvt-label-wrap #stageLabelHost .stageStack{
+      width:100%!important;
+      max-width:100%!important;
+      align-items:flex-start!important;
+      justify-content:flex-start!important;
+    }
     body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow{
       flex-direction:column!important;
       gap:var(--beinvt-wrap-meta-gap,6px)!important;
-      align-items:center!important;
-      justify-content:center!important;
+      align-items:flex-start!important;
+      justify-content:flex-start!important;
+      width:max-content!important;
       max-width:100%!important;
       overflow:visible!important;
     }
@@ -755,7 +774,7 @@ function sizePx(type = labelType) {
       flex:0 0 auto!important;
       flex-direction:row!important;
       align-items:stretch!important;
-      justify-content:center!important;
+      justify-content:flex-start!important;
       gap:6px!important;
       padding:5px!important;
       border-radius:12px!important;
@@ -798,23 +817,23 @@ function fallbackLayout(type) {
     };
   }
   return {
-    name: type === "FIELD" ? "Field Labels Clean Default" : "Finished Trees Clean Default",
-    labelType: type === "FIELD" ? "FIELD" : "WRAP",
+    name: type === "FIELD" ? "Field Labels Clean Default" : (type === "SHIP" ? "Shipping Labels Clean Default" : "Finished Trees Clean Default"),
+    labelType: type === "FIELD" ? "FIELD" : (type === "SHIP" ? "SHIP" : "WRAP"),
     safeMarginPx: 3,
     gridPx: 4,
     snapPx: 5,
     objects: {
       WO_QR: { x: type === "FIELD" ? WRAP_LIKE_PREVIEW_CONFIG.fieldRowX : 4, y: type === "FIELD" ? 2 : 7, w: 34, h: type === "FIELD" ? 44 : 34, rot: 0, fontSize: type === "FIELD" ? 13 : undefined, locked: false, visible: true },
-      WO: { x: 42, y: 2, w: 72, h: 13, rot: 0, fontSize: 13, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
-      CROP: { x: 42, y: 16, w: 72, h: 11, rot: 0, fontSize: 9, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
-      INTERNAL: { x: 42, y: 29, w: 72, h: 12, rot: 0, fontSize: 10, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
+      WO: { x: 42, y: type === "SHIP" ? 0 : 2, w: 72, h: type === "SHIP" ? 0 : 13, rot: 0, fontSize: 13, fontFamily: "Times New Roman", locked: false, visible: type !== "SHIP", alignH: "left", alignV: "middle" },
+      CROP: { x: 42, y: type === "SHIP" ? 7 : 16, w: 72, h: type === "SHIP" ? 15 : 11, rot: 0, fontSize: type === "SHIP" ? 11 : 9, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
+      INTERNAL: { x: 42, y: type === "SHIP" ? 24 : 29, w: 72, h: type === "SHIP" ? 15 : 12, rot: 0, fontSize: type === "SHIP" ? 11 : 10, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
       SCION: { x: 119, y: 1, w: 234, h: 18, rot: 0, fontSize: 20, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       SCION_PATENT: { x: 119, y: 16, w: 234, h: 5, rot: 0, fontSize: 4.5, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       ROOTSTOCK: { x: 119, y: 19, w: 234, h: 18, rot: 0, fontSize: 20, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       ROOTSTOCK_PATENT: { x: 119, y: 36, w: 234, h: 5, rot: 0, fontSize: 4.2, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
-      LOT: { x: 119, y: 37, w: 234, h: 6, rot: 0, fontSize: 5, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
+      LOT: { x: 119, y: 37, w: 234, h: 6, rot: 0, fontSize: 5, fontFamily: "Times New Roman", locked: false, visible: type !== "SHIP", alignH: "center", alignV: "middle" },
       ADDRESS: { x: 119, y: 43, w: 234, h: 5, rot: 0, fontSize: 4.6, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
-      LOT_QR: { x: 359, y: 7, w: 34, h: 34, rot: 0, locked: false, visible: true },
+      LOT_QR: { x: 359, y: 7, w: 34, h: 34, rot: 0, locked: false, visible: type !== "SHIP" },
       LOGO: { x: WRAP_LIKE_PREVIEW_CONFIG.logoX, y: WRAP_LIKE_PREVIEW_CONFIG.logoY, w: WRAP_LIKE_PREVIEW_CONFIG.logoWidth, h: WRAP_LIKE_PREVIEW_CONFIG.logoHeight, rot: 0, locked: false, visible: true },
       WARNING: { x: 420, y: 2, w: 58, h: 44, rot: 0, fontSize: 3.2, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" }
     }
@@ -822,7 +841,7 @@ function fallbackLayout(type) {
 }
 
 function normalizeLayout(src) {
-  const rawType = (src && src.labelType) === "FIELD" ? "FIELD" : ((src && src.labelType) === "WRAP" ? "WRAP" : "POT");
+  const rawType = (src && src.labelType) === "FIELD" ? "FIELD" : ((src && src.labelType) === "WRAP" ? "WRAP" : ((src && src.labelType) === "SHIP" ? "SHIP" : "POT"));
   const type = rawType;
   const base = fallbackLayout(type);
   const out = Object.assign({}, base, src || {}, { labelType: type, objects: {} });
@@ -854,6 +873,7 @@ function loadDefaults() {
   DEFAULT_LAYOUTS.POT = fallbackLayout("POT");
   DEFAULT_LAYOUTS.WRAP = fallbackLayout("WRAP");
   DEFAULT_LAYOUTS.FIELD = fallbackLayout("FIELD");
+  DEFAULT_LAYOUTS.SHIP = fallbackLayout("SHIP");
 }
 function loadWorkingLayout(type) {
   try {
@@ -944,31 +964,79 @@ function csvVal(obj, names) {
   }
   return "";
 }
+function shippingNameSuffix(name) {
+  const parts = String(name || "").split("|").map(s => cleanDisplay(s)).filter(Boolean);
+  return cleanDisplay(parts[parts.length - 1]);
+}
+function isShippingNameIncluded(name) {
+  return /^(CN|QS|Liner|Bud)$/i.test(shippingNameSuffix(name));
+}
+function baseRowsForMode(type = labelType) {
+  return isShippingMode(type) ? itemRows : labelRows;
+}
+async function fetchCsvTextOrEmpty(path) {
+  try {
+    const res = await fetch(path + "?cache=" + Date.now());
+    if (!res.ok) return "";
+    return await res.text();
+  } catch (e) {
+    return "";
+  }
+}
 async function loadCsv() {
-  const txt = await (await fetch("data/labels.csv?cache=" + Date.now())).text();
+  const txt = await fetchCsvTextOrEmpty("data/labels.csv");
   const grid = parseCsv(txt);
-  if (!grid.length) return;
-  const headers = grid[0].map(x => String(x || "").trim());
-  rows = grid.slice(1).map(line => {
-    const raw = {};
-    headers.forEach((h, i) => { raw[h] = line[i] || ""; });
-    return {
-      wo: csvVal(raw, ["Work Order", "WO"]),
-      act: csvVal(raw, ["Activity Code", "Activity"]),
-      crop: csvVal(raw, ["Crop"]),
-      name: csvVal(raw, ["Name", "Item Name"]),
-      scion: csvVal(raw, ["Scion"]),
-      rootstock: csvVal(raw, ["Rootstock", "Root Stock"]),
-      internalId: csvVal(raw, ["Internal ID", "InternalID", "Item Internal ID"]),
-      lotNumber: csvVal(raw, ["Lot Number", "Lot", "Lot #"]),
-      scionPatent: csvVal(raw, ["Scion Patent", "Scion Patent Number", "Scion Royalty", "Scion Royalty Fee"]),
-      rootstockPatent: csvVal(raw, ["Rootstock Patent", "Rootstock Patent Number", "Root Stock Patent", "Rootstock Royalty", "Rootstock Royalty Fee"]),
-      labelColor: csvVal(raw, ["Label Color", "Color"]),
-      quantity: csvVal(raw, ["Quantity", "Qty"]) || "1",
-      labelsNeeded: normalizeLabelCount(csvVal(raw, ["Labels Needed", "Labels", "Label Qty"]) || "1"),
-      week: currentWeekNumber()
-    };
-  }).filter(r => cleanDisplay(r.wo));
+  if (grid.length) {
+    const headers = grid[0].map(x => String(x || "").trim());
+    labelRows = grid.slice(1).map(line => {
+      const raw = {};
+      headers.forEach((h, i) => { raw[h] = line[i] || ""; });
+      return {
+        wo: csvVal(raw, ["Work Order", "WO"]),
+        act: csvVal(raw, ["Activity Code", "Activity"]),
+        crop: csvVal(raw, ["Crop"]),
+        name: csvVal(raw, ["Name", "Item Name"]),
+        scion: csvVal(raw, ["Scion"]),
+        rootstock: csvVal(raw, ["Rootstock", "Root Stock"]),
+        internalId: csvVal(raw, ["Internal ID", "InternalID", "Item Internal ID"]),
+        lotNumber: csvVal(raw, ["Lot Number", "Lot", "Lot #"]),
+        scionPatent: csvVal(raw, ["Scion Patent", "Scion Patent Number", "Scion Royalty", "Scion Royalty Fee"]),
+        rootstockPatent: csvVal(raw, ["Rootstock Patent", "Rootstock Patent Number", "Root Stock Patent", "Rootstock Royalty", "Rootstock Royalty Fee"]),
+        labelColor: csvVal(raw, ["Label Color", "Color"]),
+        quantity: csvVal(raw, ["Quantity", "Qty"]) || "1",
+        labelsNeeded: normalizeLabelCount(csvVal(raw, ["Labels Needed", "Labels", "Label Qty"]) || "1"),
+        week: currentWeekNumber()
+      };
+    }).filter(r => cleanDisplay(r.wo));
+  }
+  const itemsTxt = await fetchCsvTextOrEmpty("data/BEINVT - Items.csv");
+  const itemsGrid = parseCsv(itemsTxt);
+  if (itemsGrid.length) {
+    const headers = itemsGrid[0].map(x => String(x || "").trim());
+    itemRows = itemsGrid.slice(1).map(line => {
+      const raw = {};
+      headers.forEach((h, i) => { raw[h] = line[i] || ""; });
+      const name = csvVal(raw, ["Name", "Item Name"]);
+      return {
+        wo: "",
+        act: "SHIPPING LABEL",
+        crop: csvVal(raw, ["Crop"]),
+        name,
+        scion: csvVal(raw, ["Scion Item", "Scion"]),
+        rootstock: csvVal(raw, ["Rootstock Item", "Rootstock", "Root Stock"]),
+        internalId: csvVal(raw, ["Internal ID", "InternalID", "Item Internal ID"]),
+        lotNumber: "",
+        scionPatent: csvVal(raw, ["Scion Patent #", "Scion Patent", "Scion Patent Number", "Scion Royalty", "Scion Royalty Fee"]),
+        rootstockPatent: csvVal(raw, ["Rootstock Patent #", "Rootstock Patent", "Rootstock Patent Number", "Root Stock Patent", "Rootstock Royalty", "Rootstock Royalty Fee"]),
+        labelColor: csvVal(raw, ["Label Color", "Color"]) || "WHITE",
+        quantity: "1",
+        labelsNeeded: "1",
+        week: currentWeekNumber(),
+        shippingSuffix: shippingNameSuffix(name)
+      };
+    }).filter(r => cleanDisplay(r.internalId) && isShippingNameIncluded(r.name));
+  }
+  rows = baseRowsForMode(labelType).slice();
   filteredRows = rows.slice();
 }
 function normalizeLabelCount(v) {
@@ -994,7 +1062,7 @@ function currentRow() {
   if (testMode) {
     return {
       wo: "WO9999999999",
-      act: labelType === "FIELD" ? "FIELD PLANTING" : (labelType === "WRAP" ? "SHIPPING REQUEST" : "POTTING UP - 120MM"),
+      act: labelType === "FIELD" ? "FIELD PLANTING" : (labelType === "SHIP" ? "SHIPPING LABEL" : (labelType === "WRAP" ? "SHIPPING REQUEST" : "POTTING UP - 120MM")),
       crop: "PEACH (FREESTONE)",
       scion: "SUPER LONG GLEASON ELBERTA VARIETY NAME",
       rootstock: "EXTRA LONG KRYMSK 86 ROOTSTOCK NAME",
@@ -1011,11 +1079,11 @@ function currentRow() {
   return filteredRows[currentRowIndex] || rows[0] || {
     wo: "WO123456",
     act: "POTTING UP - 120MM",
-    crop: "OLIVE",
-    scion: "ARBEQUINA",
-    rootstock: "TEST ROOTSTOCK",
+    crop: labelType === "SHIP" ? "CHERRY" : "OLIVE",
+    scion: labelType === "SHIP" ? "ROYAL LYNN" : "ARBEQUINA",
+    rootstock: labelType === "SHIP" ? "GISELA 12" : "TEST ROOTSTOCK",
     internalId: "27047",
-    lotNumber: "2026",
+    lotNumber: labelType === "SHIP" ? "" : "2026",
     scionPatent: "",
     rootstockPatent: "",
     labelColor: "WHITE",
@@ -1108,10 +1176,11 @@ function wrapLotLine(row) {
   return capClean(row && row.lotNumber);
 }
 function wrapLeftQrText(row) {
+  if (isShippingMode()) return cleanDisplay(row && row.internalId) || " ";
   return cleanDisplay(row && row.wo) || " ";
 }
 function wrapRightQrText(row) {
-  if (isRschRow(row)) return "";
+  if (isShippingMode() || isRschRow(row)) return "";
   const lot = cleanDisplay(row && row.lotNumber);
   const wo = cleanDisplay(row && row.wo);
   return lot ? `LOT ${lot} | ${wo}` : (wo || " ");
@@ -1124,7 +1193,7 @@ function labelText(id, row) {
 }
 function wrapObjectText(id, row) {
   const scionOnlyCrop = isWrapScionOnlyCrop(row);
-  if (id === "WO") return capClean(row.wo);
+  if (id === "WO") return isShippingMode() ? "" : capClean(row.wo);
   if (id === "CROP") return capClean(row.crop);
   if (id === "INTERNAL") return capClean(row.internalId);
   if (id === "SCION") return wrapScionText(row);
@@ -1132,7 +1201,7 @@ function wrapObjectText(id, row) {
   if (id === "SCION_PATENT") return capClean(row.scionPatent);
   if (id === "ROOTSTOCK") return wrapRootstockText(row);
   if (id === "ROOTSTOCK_PATENT") return capClean(row.rootstockPatent);
-  if (id === "LOT") return wrapLotLine(row);
+  if (id === "LOT") return isShippingMode() ? "" : wrapLotLine(row);
   if (id === "ADDRESS") return WRAP_ADDRESS;
   if (id === "WARNING") return WRAP_WARNING;
   return "";
@@ -1140,10 +1209,12 @@ function wrapObjectText(id, row) {
 
 function hasWrapObjectValue(id, row) {
   if (!isWrapLikeMode(labelType)) return true;
+  if (isShippingMode() && (id === "WO" || id === "LOT" || id === "LOT_QR")) return false;
   if (isWrapScionOnlyCrop(row) && (id === "SCION_PATENT" || id === "ROOTSTOCK" || id === "ROOTSTOCK_PATENT" || id === "LOT")) return false;
   if (id === "SCION_PATENT" || id === "ROOTSTOCK_PATENT") return !!cleanDisplay(wrapObjectText(id, row));
   if (id === "ROOTSTOCK") return !!cleanDisplay(wrapObjectText(id, row));
-  if (id === "LOT") return !!cleanDisplay(wrapObjectText(id, row));
+  if (id === "LOT" || id === "LOT_QR") return !!cleanDisplay(wrapRightQrText(row)) || !!cleanDisplay(wrapObjectText("LOT", row));
+  if (id === "WO") return !!cleanDisplay(wrapObjectText(id, row));
   return true;
 }
 function shouldRenderObject(id, row) {
@@ -1160,6 +1231,14 @@ function applyWrapDataAwareStack(row) {
   ["SCION", "SCION_PATENT", "ROOTSTOCK", "ROOTSTOCK_PATENT", "LOT", "ADDRESS"].forEach(id => {
     if (o[id]) { o[id].x = mainX; o[id].w = mainW; o[id].rot = 0; o[id].alignH = "center"; o[id].alignV = "middle"; }
   });
+  if (isShippingMode()) {
+    if (o.SCION) { o.SCION.y = 1; o.SCION.h = 19; }
+    if (o.SCION_PATENT) { o.SCION_PATENT.y = 17; o.SCION_PATENT.h = 6; }
+    if (o.ROOTSTOCK) { o.ROOTSTOCK.y = 21; o.ROOTSTOCK.h = 17; }
+    if (o.ROOTSTOCK_PATENT) { o.ROOTSTOCK_PATENT.y = 37; o.ROOTSTOCK_PATENT.h = 6; }
+    if (o.LOT) { o.LOT.y = 0; o.LOT.h = 0; }
+    if (o.ADDRESS) { o.ADDRESS.y = 43; o.ADDRESS.h = 5; }
+  }
   if (scionOnlyCrop) {
     if (o.SCION) {
       o.SCION.y = 10;
@@ -1248,6 +1327,7 @@ function applyModeClass() {
   document.body.classList.toggle("beinvt-label-pot", labelType === "POT");
   document.body.classList.toggle("beinvt-label-wrap", isWrapLikeMode(labelType));
   document.body.classList.toggle("beinvt-label-field", labelType === "FIELD");
+  document.body.classList.toggle("beinvt-label-ship", labelType === "SHIP");
   document.body.classList.toggle("beinvt-hide-object-guides", !showObjectGuides);
   // v8.6.20: never use the old broad hide class. It can trigger stale CSS from older script runs.
   document.body.classList.remove("beinvt-left-pane-hidden");
@@ -1506,7 +1586,7 @@ function ensureModeTabs() {
   const tabs = document.createElement("div");
   tabs.id = "modeTabs";
   tabs.className = "modeTabs";
-  tabs.innerHTML = '<button type="button" class="modeTab" data-mode="POT">Pot Stakes</button><button type="button" class="modeTab" data-mode="WRAP">Finished Trees</button><button type="button" class="modeTab" data-mode="FIELD">Field Labels</button>';
+  tabs.innerHTML = '<button type="button" class="modeTab" data-mode="POT">Pot Stakes</button><button type="button" class="modeTab" data-mode="WRAP">Finished Trees</button><button type="button" class="modeTab" data-mode="FIELD">Field Labels</button><button type="button" class="modeTab" data-mode="SHIP">Shipping Labels</button>';
   sel.parentNode.insertBefore(tabs, sel.nextSibling);
   ensureTopbarUtilityButtons(tabs);
   tabs.addEventListener("click", ev => {
@@ -2487,7 +2567,7 @@ function removeDuplicateRightMenuControls() {
 function objectDisplayName(id) {
   if (isWrapLikeMode(labelType)) {
     return {
-      WO_QR: labelType === "FIELD" ? "Row" : "WO QR", WO: "WO", CROP: "Crop", INTERNAL: "Internal ID", SCION: "Scion", SCION_PATENT: "Scion Patent",
+      WO_QR: labelType === "FIELD" ? "Row" : (labelType === "SHIP" ? "Internal ID QR" : "WO QR"), WO: "WO", CROP: "Crop", INTERNAL: "Internal ID", SCION: "Scion", SCION_PATENT: "Scion Patent",
       ROOTSTOCK: "Rootstock", ROOTSTOCK_PATENT: "Rootstock Patent", LOT: "Lot", ADDRESS: "Address", LOT_QR: "Lot QR", LOGO: "SG Logo", WARNING: "Warning"
     }[id] || id;
   }
@@ -2498,7 +2578,7 @@ function renderObjectPanel() {
   if (!panel || !layout || !layout.objects) return;
   if (!layout.objects[selectedId]) selectedId = defaultSelectedId(labelType);
   panel.innerHTML = "";
-  if ($("objectsModeNote")) $("objectsModeNote").textContent = labelType === "FIELD" ? "Field Label" : (labelType === "WRAP" ? "Finished Tree" : "Pot Stake");
+  if ($("objectsModeNote")) $("objectsModeNote").textContent = labelType === "FIELD" ? "Field Label" : (labelType === "SHIP" ? "Shipping Label" : (labelType === "WRAP" ? "Finished Tree" : "Pot Stake"));
   for (const id of objectOrder()) {
     const o = layout.objects[id];
     if (!o) continue;
@@ -2646,6 +2726,7 @@ function sortRowsLatestFirst(list) {
 
 function renderRows() {
   ensureStageShell();
+  rows = baseRowsForMode(labelType).slice();
   const q = (($("stageSearch") && $("stageSearch").value) || ($("search") && $("search").value) || "").toLowerCase();
   if ($("search") && $("stageSearch") && $("search").value !== $("stageSearch").value) $("search").value = $("stageSearch").value;
   filteredRows = sortRowsLatestFirst(rows.filter(r => {
@@ -2658,7 +2739,7 @@ function renderRows() {
   }));
   if (currentRowIndex >= filteredRows.length) currentRowIndex = 0;
   const head = $("stageRowsHead");
-  if (head) head.innerHTML = labelType === "POT" ? potHeaderHtml() : wrapHeaderHtml();
+  if (head) head.innerHTML = labelType === "POT" ? potHeaderHtml() : (labelType === "SHIP" ? shippingHeaderHtml() : wrapHeaderHtml());
   renderRowBody($("stageRowsBody"));
 }
 function potHeaderHtml() {
@@ -2667,12 +2748,18 @@ function potHeaderHtml() {
 function wrapHeaderHtml() {
   return "<th style='width:8%'>WO</th><th style='width:13%'>Activity</th><th style='width:11%'>Crop</th><th style='width:12%'>Scion</th><th style='width:12%'>Rootstock</th><th style='width:10%'>Scion Patent</th><th style='width:10%'>Rootstock Patent</th><th style='width:9%'>Internal ID</th><th style='width:8%'>Color</th><th style='width:4%'>Labels</th><th style='width:3%'></th>";
 }
+function shippingHeaderHtml() {
+  return "<th style='width:14%'>Crop</th><th style='width:20%'>Scion</th><th style='width:18%'>Rootstock</th><th style='width:16%'>Scion Patent</th><th style='width:16%'>Rootstock Patent</th><th style='width:12%'>Color</th><th style='width:4%'></th>";
+}
 function cell(v) {
   return escapeHtml(capClean(v));
 }
 function buildRowHtml(r) {
   if (labelType === "POT") {
     return `<td>${cell(r.wo)}</td><td>${cell(r.act)}</td><td>${cell(derivedRootstock(r) || displayPotItem(r))}</td><td>${cell(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button type="button">Add</button></td>`;
+  }
+  if (labelType === "SHIP") {
+    return `<td>${cell(r.crop)}</td><td>${cell(wrapScionText(r))}</td><td>${cell(wrapRootstockText(r))}</td><td>${cell(r.scionPatent)}</td><td>${cell(r.rootstockPatent)}</td><td>${cell(r.labelColor)}</td><td><button type="button">Add</button></td>`;
   }
   return `<td>${cell(r.wo)}</td><td>${cell(r.act)}</td><td>${cell(r.crop)}</td><td>${cell(wrapScionText(r))}</td><td>${cell(wrapRootstockText(r))}</td><td>${cell(r.scionPatent)}</td><td>${cell(r.rootstockPatent)}</td><td>${cell(r.internalId)}</td><td>${cell(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button type="button">Add</button></td>`;
 }
