@@ -1,10 +1,16 @@
-const APP_VERSION = "6.8.0-stage-frame-table-height-fixes";
+const APP_VERSION = "6.9.0-menu-wrap-object-table-fixes";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
 const WRAP_ADDRESS = "SIERRA GOLD NURSERIES YUBA CITY, CA 95991";
 const WRAP_BENCH_LINE = "";
 const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTINGS\nWHETHER FOR SALE\nOR OWN USE IS\nPROHIBITED UNDER\nU.S. PLANT PATENT LAWS.\nSALES OUTSIDE THE\nU.S. ARE PROHIBITED.";
+
+const POT_OBJECT_IDS = ["WO","QR","ITEM","WEEK"];
+const WRAP_OBJECT_IDS = ["WO_QR","WO","CROP","INTERNAL","SCION","SCION_ROYALTY","ROOT_ON","ROOTSTOCK","ROOTSTOCK_ROYALTY","LOT","ADDRESS","LOT_QR","LOGO","WARNING"];
+const WRAP_TEXT_OBJECT_IDS = ["WO","CROP","INTERNAL","SCION","SCION_ROYALTY","ROOT_ON","ROOTSTOCK","ROOTSTOCK_ROYALTY","LOT","ADDRESS","WARNING"];
+const WRAP_IMAGE_OBJECT_IDS = ["WO_QR","LOT_QR","LOGO"];
+const HIDDEN_POT_ACTIVITY_CODES = ["PRE-SHIP SORTING","SHIPPING REQUEST","PROPAGATION MATERIAL PROCESSING"];
 
 /*
   APP.JS ONLY UPDATE
@@ -124,6 +130,36 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     #stageLabelHost .stageStack{padding-top:0!important;gap:8px!important;align-items:center!important;justify-content:flex-start!important}
     .wrapMainBlock .rootLine .on{text-transform:none!important}
     .wrapMainBlock .benchLine:empty{display:none!important}
+
+
+    /* v6.9 consolidated left settings + wider tables/cards + no preview scrollbars */
+    body.beinvt-consolidated-menus aside.panel,
+    body.beinvt-consolidated-menus .sidePanel,
+    body.beinvt-consolidated-menus .sidebar{order:-100!important;align-self:stretch!important}
+    body.beinvt-consolidated-menus .consolidatedLeftMenu{min-width:300px!important;max-width:390px!important;overflow:auto!important}
+    body.beinvt-consolidated-menus .rightPanel:empty,
+    body.beinvt-consolidated-menus aside.panel:empty{display:none!important}
+    .beinvtSettingsGroup{border:1px solid rgba(255,255,255,.12)!important;border-radius:14px!important;background:rgba(15,23,42,.78)!important;margin:0 0 10px!important;overflow:hidden!important}
+    .settingsGroupToggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:0;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(96,165,250,.12);color:#e5e7eb;font-weight:900;text-align:left;cursor:pointer}
+    .settingsGroupToggle:after{content:"Show";font-size:11px;color:#93c5fd;text-transform:uppercase;letter-spacing:.06em}
+    .beinvtSettingsGroup:not(.collapsed) .settingsGroupToggle:after{content:"Hide"}
+    .settingsGroupBody{padding:10px 12px!important;display:block!important}
+    .beinvtSettingsGroup.collapsed .settingsGroupBody{display:none!important}
+    .settingsGroupBody>h1:first-child,.settingsGroupBody>h2:first-child,.settingsGroupBody>h3:first-child,.settingsGroupBody>.title:first-child{display:none!important}
+    .labelPreviewRow{gap:24px!important}
+    .labelPreviewRow .stageMeta{flex:0 0 226px!important;max-width:226px!important;min-width:226px!important}
+    .stageMeta .metaPill{min-height:38px!important;font-size:13px!important;padding:8px 12px!important}
+    #stageLabelHost{overflow:hidden!important}
+    body.beinvt-label-pot #stageDataWrap{width:52%!important;max-width:800px!important;min-width:440px!important;flex:0 0 52%!important;min-height:560px!important}
+    body.beinvt-label-pot #stageRowsTable{min-width:860px!important}
+    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(390px,62vh,590px)!important;min-height:390px!important}
+    body.beinvt-label-wrap #stageLabelHost{align-items:flex-start!important;justify-content:center!important;padding:4px 10px 0!important;min-height:86px!important}
+    body.beinvt-label-wrap #stageRowsTable{min-width:1120px!important}
+    .wrapTextObject{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;line-height:.88;white-space:normal;word-break:break-word;overflow-wrap:anywhere;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;overflow:hidden;padding:0 1px}
+    .wrapTextObject.rootOn{text-transform:none!important;white-space:nowrap;line-height:1}
+    .wrapQrObject,.wrapLogoObject{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff}
+    .wrapLogoObject img{object-fit:contain!important;image-rendering:auto!important}
+    .wrapWarningObject{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-start;text-align:left;white-space:pre-line;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;line-height:.82;overflow:hidden;padding:1px 2px;background:#fff;color:#000}
     @media(max-width:1100px){body.beinvt-label-pot #canvasHost{flex-direction:column!important;min-height:0!important}body.beinvt-label-pot #stageDataWrap{width:100%;max-width:none;min-width:0;flex:0 0 clamp(320px,52vh,520px);height:auto;min-height:320px}}
   `;
   const tag = document.createElement("style");
@@ -150,6 +186,33 @@ const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const cap=s=>String(s??"").toUpperCase();
 const clone=o=>JSON.parse(JSON.stringify(o));
+
+
+function objectIds(type=labelType){ return type==="WRAP" ? WRAP_OBJECT_IDS : POT_OBJECT_IDS; }
+function isQrLike(id){ return id==="QR" || id==="WO_QR" || id==="LOT_QR"; }
+function isImageObject(id){ return isQrLike(id) || id==="LOGO"; }
+function isTextObject(id){ return !isImageObject(id); }
+function isNoneDisplay(v){ return /^\s*(-+\s*)?none\s*(-+\s*)?$/i.test(String(v??"")); }
+function cleanDisplayValue(v){ return isNoneDisplay(v) ? "" : String(v??"").trim(); }
+function capClean(v){ return cap(cleanDisplayValue(v)); }
+function potActivityKey(v){ return String(v||"").trim().toUpperCase().replace(/\s+/g," "); }
+function isHiddenPotActivity(row){ return HIDDEN_POT_ACTIVITY_CODES.includes(potActivityKey(row && row.act)); }
+function effectiveZoom(rawZoom,s){
+  const raw=clamp(Number(rawZoom)||1,.2,4);
+  const host=$("stageLabelHost");
+  if(!host||!s||!s.w||!s.h) return raw;
+  const hostW=Math.max(1,host.clientWidth-34);
+  const hostH=Math.max(1,host.clientHeight-24);
+  const compact=window.matchMedia&&window.matchMedia("(max-width:980px)").matches;
+  const metaReserve=compact?0:250;
+  const availW=Math.max(40,hostW-metaReserve);
+  const availH=Math.max(40,hostH);
+  const maxByW=availW/s.w;
+  const maxByH=availH/s.h;
+  const hardMax=labelType==="WRAP"?2.1:2.35;
+  const fit=Math.max(.2,Math.min(hardMax,maxByW,maxByH));
+  return Math.max(.2,Math.min(raw,Math.floor(fit*100)/100));
+}
 
 function sizePx(type=labelType){
   const s=LABEL_SIZES[type];
@@ -210,15 +273,25 @@ function fallbackLayout(t){
     }
   };
   return {
-    name:"Wrap Tie Standard",
+    name:"Wrap Tie Standard - individual objects",
     labelType:"WRAP",
     safeMarginPx:3,
     gridPx:4,
     objects:{
-      WO:{x:2,y:2,w:108,h:44,rot:0,fontSize:18,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ITEM:{x:112,y:2,w:240,h:44,rot:0,fontSize:24,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      QR:{x:354,y:2,w:48,h:44,rot:0,locked:false,visible:true},
-      WEEK:{x:404,y:2,w:74,h:44,rot:0,fontSize:5,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
+      WO_QR:{x:2,y:5,w:38,h:38,rot:0,locked:false,visible:true},
+      WO:{x:43,y:3,w:66,h:13,rot:0,fontSize:14,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
+      CROP:{x:43,y:18,w:66,h:12,rot:0,fontSize:11,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
+      INTERNAL:{x:43,y:32,w:66,h:11,rot:0,fontSize:10,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
+      SCION:{x:113,y:1,w:236,h:15,rot:0,fontSize:15,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      SCION_ROYALTY:{x:113,y:16,w:236,h:5,rot:0,fontSize:4.8,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ROOT_ON:{x:113,y:21,w:24,h:14,rot:0,fontSize:10,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"right",alignV:"middle"},
+      ROOTSTOCK:{x:138,y:21,w:211,h:14,rot:0,fontSize:15,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
+      ROOTSTOCK_ROYALTY:{x:113,y:35,w:236,h:5,rot:0,fontSize:4.8,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      LOT:{x:113,y:40,w:236,h:4,rot:0,fontSize:4.3,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ADDRESS:{x:113,y:44,w:236,h:4,rot:0,fontSize:4.1,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      LOT_QR:{x:354,y:7,w:34,h:34,rot:0,locked:false,visible:true},
+      LOGO:{x:390,y:14,w:20,h:20,rot:0,locked:false,visible:true},
+      WARNING:{x:413,y:1,w:64,h:46,rot:0,fontSize:4.5,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"}
     }
   };
 }
@@ -227,6 +300,7 @@ function setLayout(n,keepHist=true){
   if(keepHist)pushHistory();
   layout=clone(n);
   labelType=layout.labelType||labelType;
+  ensureLayoutObjects();
   potAutoLayoutKey="";
   clampAllObjects();
   saveWorkingLayout();
@@ -237,10 +311,25 @@ function saveWorkingLayout(){
 }
 function loadWorkingLayout(type){
   try{
-    const s=localStorage.getItem("beinvtWorkingLayout_"+type);
-    if(s)return JSON.parse(s);
+    const saved=localStorage.getItem("beinvtWorkingLayout_"+type);
+    if(saved){
+      const parsed=JSON.parse(saved);
+      if(layoutHasRequiredObjects(parsed,type)) return parsed;
+    }
   }catch(e){}
   return clone(DEFAULT_LAYOUTS[type]||fallbackLayout(type));
+}
+function layoutHasRequiredObjects(candidate,type){
+  if(!candidate||!candidate.objects) return false;
+  return objectIds(type).every(id=>candidate.objects[id]);
+}
+function ensureLayoutObjects(){
+  if(!layout||!layout.objects) layout=clone(DEFAULT_LAYOUTS[labelType]||fallbackLayout(labelType));
+  const defs=DEFAULT_LAYOUTS[labelType]||fallbackLayout(labelType);
+  objectIds(labelType).forEach(id=>{
+    if(!layout.objects[id] && defs.objects[id]) layout.objects[id]=clone(defs.objects[id]);
+  });
+  if(!layout.objects[selectedId]) selectedId=labelType==="WRAP"?"SCION":"ITEM";
 }
 
 function parseCsv(text){
@@ -269,11 +358,11 @@ function normCsvKey(s){
 }
 function csvVal(o,names){
   for(const name of names){
-    if(Object.prototype.hasOwnProperty.call(o,name) && String(o[name]||"").trim()) return o[name];
+    if(Object.prototype.hasOwnProperty.call(o,name) && String(o[name]||"").trim() && !isNoneDisplay(o[name])) return o[name];
   }
   const want=names.map(normCsvKey);
   for(const [k,v] of Object.entries(o)){
-    if(String(v||"").trim() && want.includes(normCsvKey(k))) return v;
+    if(String(v||"").trim() && !isNoneDisplay(v) && want.includes(normCsvKey(k))) return v;
   }
   return "";
 }
@@ -361,7 +450,7 @@ function potWarningText(){ return ""; }
 function patentPieces(row){ return []; }
 function potLotQrText(row){ return String(row.wo||"").trim(); }
 function splitLotParts(row){
-  return String((row&&row.lotNumber)||"").split("|").map(s=>String(s||"").trim()).filter(Boolean);
+  return cleanDisplayValue(row&&row.lotNumber).split("|").map(s=>cleanDisplayValue(s)).filter(Boolean);
 }
 function isRschScion(row){
   return /rsch\s*scion/i.test(String((row&&row.scion)||"")) || /rsch\s*scion/i.test(String((row&&row.name)||""));
@@ -370,13 +459,13 @@ function isRschRootstock(row){
   return /rsch\s*rootstock/i.test(String((row&&row.rootstock)||"")) || /rsch\s*rootstock/i.test(String((row&&row.name)||""));
 }
 function derivedScion(row){
-  const raw=String((row&&row.scion)||"").trim();
+  const raw=cleanDisplayValue(row&&row.scion);
   const parts=splitLotParts(row);
   if(isRschScion(row)) return String(parts[0]||raw||row.crop||"").trim();
   return raw || String((row&&row.crop)||"").trim();
 }
 function derivedRootstock(row){
-  const raw=String((row&&row.rootstock)||"").trim();
+  const raw=cleanDisplayValue(row&&row.rootstock);
   const parts=splitLotParts(row);
   if(isRschRootstock(row)){
     return String(parts[1]||parts[0]||raw||"").trim();
@@ -390,7 +479,7 @@ function displayPotItem(row){
   const olive=/olive/i.test(row.crop||"");
   let txt=olive?(derivedScion(row)||derivedRootstock(row)||"ITEM"):(derivedRootstock(row)||derivedScion(row)||"ITEM");
   if(/^platinum\s+pistachio\s+rootstock$/i.test(String(txt||"").trim())) txt = "Platinum";
-  return cap(txt);
+  return capClean(txt);
 }
 function labelText(id,row){
   if(id==="WO")return cap(row.wo||"WO");
@@ -406,7 +495,7 @@ function normalizeColorName(name){
   return String(name||"").trim().toLowerCase().replace(/\s+/g,"");
 }
 function colorMeta(name){
-  const raw=String(name||"").trim();
+  const raw=cleanDisplayValue(name);
   const key=normalizeColorName(raw);
   const map={
     hotpink:{bg:"#ff69b4",fg:"#111827"},pink:{bg:"#ec4899",fg:"#111827"},red:{bg:"#ef4444",fg:"#ffffff"},
@@ -422,9 +511,9 @@ function colorMeta(name){
 }
 
 function normalizeLabelCount(v){
-  const n=parseFloat(String(v??"").replace(/,/g,"").trim());
+  const raw=cleanDisplayValue(v);
+  const n=parseFloat(String(raw??"").replace(/,/g,"").trim());
   if(isFinite(n)) return String(Math.max(1,Math.ceil(n)));
-  const raw=String(v??"").trim();
   return raw || "1";
 }
 function displayLabelsNeeded(row){
@@ -453,7 +542,7 @@ function ensureModeTabs(){
     const b=e.target.closest("[data-mode]");
     if(!b)return;
     labelType=b.getAttribute("data-mode");
-    selectedId="ITEM";
+    selectedId=labelType==="WRAP"?"SCION":"ITEM";
     undoStack=[];
     redoStack=[];
     setLayout(loadWorkingLayout(labelType),false);
@@ -487,6 +576,77 @@ function removeGitHubWorkflowText(){
       }
     });
     if(el.children.length===0 && String(el.textContent||"").trim()===needle) el.remove();
+  });
+}
+
+
+function prepareSettingsUi(){
+  consolidateSideMenus();
+  renameGenericSettingsHeadings();
+  installSettingsGroups();
+}
+function consolidateSideMenus(){
+  if(document.body) document.body.classList.add("beinvt-consolidated-menus");
+  if(document.body && document.body.dataset.beinvtMenusConsolidated) return;
+  const panels=[...document.querySelectorAll("aside.panel, aside.sidebar, .sidePanel, .rightPanel")].filter(Boolean);
+  if(panels.length>1){
+    const target=panels[0];
+    target.classList.add("consolidatedLeftMenu");
+    panels.slice(1).forEach(p=>{
+      if(p===target) return;
+      while(p.firstChild) target.appendChild(p.firstChild);
+      p.remove();
+    });
+  }else if(panels[0]) panels[0].classList.add("consolidatedLeftMenu");
+  if(document.body) document.body.dataset.beinvtMenusConsolidated="1";
+}
+function settingsTitleForSection(section){
+  if(!section) return "Settings";
+  const text=(section.textContent||"").toLowerCase();
+  const has=id=>!!section.querySelector("#"+id);
+  if(has("modeTabs")||has("labelType")) return "Templates";
+  if(has("objectPanel")) return "Objects";
+  if(has("x")||has("y")||has("w")||has("h")||has("rot")||has("fontSize")) return "Object Position & Size";
+  if(has("zoom")||has("safeToggle")||has("gridToggle")||has("snapToggle")) return "Preview & Guides";
+  if(has("queueList")||has("addCurrent")||has("printQueue")||/queue/.test(text)) return "Queue";
+  if(has("presetSelect")||has("layoutJson")||has("savePreset")||/preset|json|layout/.test(text)) return "Layout Presets";
+  if(has("measuredW")||has("measuredH")||has("printCalibration")||/calibration/.test(text)) return "Printer Calibration";
+  if(has("printLabel")||has("testMode")) return "Print & Test";
+  return "Settings";
+}
+function renameGenericSettingsHeadings(){
+  document.querySelectorAll("h1,h2,h3,h4,.sectionTitle,.cardTitle,.panelTitle").forEach(h=>{
+    const txt=String(h.textContent||"").trim();
+    if(/^settings\s*\d*$/i.test(txt)){
+      const sec=h.closest(".section,.card,fieldset,.panel,aside")||h.parentElement;
+      h.textContent=settingsTitleForSection(sec);
+    }
+  });
+}
+function installSettingsGroups(){
+  const anchors=["modeTabs","labelType","objectPanel","x","zoom","queueList","presetSelect","layoutJson","measuredW","printLabel"];
+  const seen=new Set();
+  anchors.forEach(id=>{
+    const el=$(id);
+    if(!el) return;
+    const sec=el.closest(".section,.card,fieldset,.settings-section");
+    if(!sec||seen.has(sec)||sec.id==="stageDataWrap"||sec.id==="stageLabelHost") return;
+    seen.add(sec);
+    if(sec.dataset.beinvtGrouped) return;
+    const title=settingsTitleForSection(sec);
+    sec.classList.add("beinvtSettingsGroup");
+    sec.classList.toggle("collapsed", !["Templates","Objects","Object Position & Size"].includes(title));
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="settingsGroupToggle";
+    btn.textContent=title;
+    const body=document.createElement("div");
+    body.className="settingsGroupBody";
+    while(sec.firstChild) body.appendChild(sec.firstChild);
+    sec.appendChild(btn);
+    sec.appendChild(body);
+    btn.addEventListener("click",()=>sec.classList.toggle("collapsed"));
+    sec.dataset.beinvtGrouped="1";
   });
 }
 
@@ -527,9 +687,11 @@ let __potTightenPass=false;
 function tightenPotLayoutAfterFit(){ return false; }
 
 function renderAll(){
+  ensureLayoutObjects();
   applyModeClass();
   removeGitHubWorkflowText();
   ensureModeTabs();
+  prepareSettingsUi();
   updateModeTabs();
   if($("labelType")) $("labelType").value=labelType;
   if($("safeToggle")) $("safeToggle").checked=showSafeZone;
@@ -573,11 +735,12 @@ function ensureStageShell(){
 }
 
 function renderCanvas(){
+  ensureLayoutObjects();
   const labelHost=ensureStageShell();
   if(!labelHost) return;
   labelHost.innerHTML="";
   syncPotAutoLayout();
-  const s=sizePx(), zoom=Number(($("zoom")&&$("zoom").value)||1);
+  const s=sizePx(), zoom=effectiveZoom(Number(($("zoom")&&$("zoom").value)||1), sizePx());
   const row=currentRow();
   const cm=colorMeta(row.labelColor||"");
   const stack=document.createElement("div");
@@ -628,22 +791,16 @@ function renderCanvas(){
     lab.appendChild(safe);
   }
 
-  for(const id of ["WO","QR","ITEM","WEEK"]){
+  for(const id of objectIds()){
     const o=layout.objects[id];
     if(!o||o.visible===false)continue;
     const el=document.createElement("div");
     el.className="obj"+(selectedId===id?" selected":"")+(o.locked?" locked":"");
     el.dataset.id=id;
     Object.assign(el.style,{left:o.x+"px",top:o.y+"px",width:o.w+"px",height:o.h+"px"});
-    if(labelType==="WRAP"){
-      if(id==="WO") el.appendChild(makeWrapWoInner(row));
-      else if(id==="ITEM") el.appendChild(makeWrapMainInner(row));
-      else if(id==="QR") el.appendChild(makeWrapQrInner(row));
-      else if(id==="WEEK") el.appendChild(makeWrapWarningInner());
-    }else{
-      if(id==="QR") renderQrInto(el,row.wo);
-      else el.appendChild(makeTextInner(id,row,o));
-    }
+    if(labelType==="WRAP") renderWrapObjectInto(el,id,row,o);
+    else if(id==="QR") renderQrInto(el,row.wo);
+    else el.appendChild(makeTextInner(id,row,o));
     lab.appendChild(el);
     attachObjectEvents(el);
   }
@@ -704,28 +861,28 @@ function renderQrInto(el,text){
 }
 
 function wrapLeftQrText(row){
-  return String(row.wo||"").trim() || " ";
+  return cleanDisplayValue(row.wo) || " ";
 }
 function wrapRightQrText(row){
   if(isRschRow(row)) return "";
-  const lot=String(row.lotNumber||"").trim();
-  const wo=String(row.wo||"").trim();
+  const lot=cleanDisplayValue(row.lotNumber);
+  const wo=cleanDisplayValue(row.wo);
   return lot ? `LOT ${lot} | ${wo}` : (wo || " ");
 }
 function wrapScionText(row){
-  return cap(derivedScion(row) || row.crop || derivedRootstock(row) || "ITEM");
+  return capClean(derivedScion(row) || row.crop || derivedRootstock(row) || "ITEM");
 }
 function wrapRootstockText(row){
   let txt=derivedRootstock(row) || derivedScion(row) || row.crop || "ROOTSTOCK";
   if(/^platinum\s+pistachio\s+rootstock$/i.test(String(txt||"").trim())) txt = "Platinum";
-  return cap(txt);
+  return capClean(txt);
 }
 function wrapLotLine(row){
   if(isRschRow(row)) return "";
-  return cap(String(row.lotNumber||"").trim());
+  return capClean(row.lotNumber);
 }
 function cleanRoyaltyText(v){
-  return cap(String(v||"").trim());
+  return capClean(v);
 }
 function wrapScionRoyaltyText(row){
   return cleanRoyaltyText(row.scionRoyalty || row.scionPatent || "");
@@ -741,6 +898,50 @@ function wrapPatentText(row){
   if(rr) parts.push(rr);
   return parts.join(" | ");
 }
+
+function wrapObjectText(id,row){
+  if(id==="WO") return capClean(row.wo||"");
+  if(id==="CROP") return capClean(row.crop||"");
+  if(id==="INTERNAL") return capClean(row.internalId||"");
+  if(id==="SCION") return wrapScionText(row);
+  if(id==="SCION_ROYALTY") return wrapScionRoyaltyText(row);
+  if(id==="ROOT_ON") return "on";
+  if(id==="ROOTSTOCK") return wrapRootstockText(row);
+  if(id==="ROOTSTOCK_ROYALTY") return wrapRootstockRoyaltyText(row);
+  if(id==="LOT") return wrapLotLine(row);
+  if(id==="ADDRESS") return WRAP_ADDRESS;
+  if(id==="WARNING") return WRAP_WARNING;
+  return "";
+}
+function makeWrapTextInner(id,row,o){
+  const c=document.createElement("div");
+  c.className="wrapTextObject"+(id==="ROOT_ON"?" rootOn":"")+(id==="WARNING"?" wrapWarningObject":"");
+  c.dataset.textId=id;
+  c.textContent=wrapObjectText(id,row);
+  c.style.fontSize=(o.fontSize||10)+"px";
+  c.style.fontFamily=`"${o.fontFamily||"Times New Roman"}", Georgia, serif`;
+  c.style.justifyContent=alignH(o.alignH);
+  c.style.alignItems=alignV(o.alignV);
+  if(id==="WARNING") c.className="wrapWarningObject";
+  return c;
+}
+function renderWrapObjectInto(el,id,row,o){
+  if(id==="WO_QR") renderQrInto(el,wrapLeftQrText(row));
+  else if(id==="LOT_QR"){
+    const qrText=wrapRightQrText(row);
+    if(qrText) renderQrInto(el,qrText);
+  }else if(id==="LOGO"){
+    const c=document.createElement("div");
+    c.className="wrapLogoObject";
+    const img=document.createElement("img");
+    img.src=SG_LOGO_URL;
+    img.alt="SG";
+    img.onerror=function(){ c.innerHTML='<div class="wrapLogoFallback">SG</div>'; };
+    c.appendChild(img);
+    el.appendChild(c);
+  }else el.appendChild(makeWrapTextInner(id,row,o));
+}
+
 function makeWrapWoInner(row){
   const c=document.createElement("div");
   c.className="wrapWoBlock";
@@ -790,16 +991,20 @@ function makeWrapWarningInner(){
 }
 function printWrapInner(id,row,o){
   const outer=`position:absolute;left:0;top:0;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
-  if(id==="WO") return `<div style="${outer}display:flex;align-items:stretch;gap:3px;padding:2px 2px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;"><div style="width:38px;height:38px;flex:0 0 38px;margin:auto 0;"><img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div><div style="display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;height:100%;line-height:.86;min-width:0;flex:1;"><div style="font-size:14px;">${escapeHtml(cap(row.wo||""))}</div><div style="font-size:11px;">${escapeHtml(cap(row.crop||""))}</div><div style="font-size:10px;">${escapeHtml(cap(row.internalId||""))}</div></div></div>`;
-  if(id==="ITEM") {
-    const lotLine=wrapLotLine(row);
-    const scionRoyalty=wrapScionRoyaltyText(row);
-    const rootstockRoyalty=wrapRootstockRoyaltyText(row);
-    return `<div style="${outer}display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:2px 3px 1px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;line-height:.86;"><div style="font-size:15px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapScionText(row))}</div>${scionRoyalty?`<div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(scionRoyalty)}</div>`:""}<div style="font-size:15px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(wrapRootstockText(row))}</div>${rootstockRoyalty?`<div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(rootstockRoyalty)}</div>`:""}${lotLine?`<div style="font-size:4.7px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(lotLine)}</div>`:""}<div style="font-size:4.7px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(WRAP_ADDRESS)}</div></div>`;
+  if(id==="WO_QR") return `<div style="${outer}"><img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated"/></div>`;
+  if(id==="LOT_QR"){
+    const qrText=wrapRightQrText(row);
+    return qrText ? `<div style="${outer}"><img src="${qrUrl(qrText)}" style="width:100%;height:100%;image-rendering:pixelated"/></div>` : "";
   }
-  if(id==="QR") { const qrText=wrapRightQrText(row); return `<div style="${outer}display:flex;align-items:center;justify-content:center;gap:2px;padding:1px 1px;">${qrText?`<div style="width:34px;height:34px;flex:0 0 34px;"><img src="${qrUrl(qrText)}" style="width:100%;height:100%;image-rendering:pixelated"/></div>`:""}<div style="width:20px;height:20px;flex:0 0 20px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain;image-rendering:auto" onerror="this.outerHTML='SG'"/></div></div>`; }
-  if(id==="WEEK") return `<div style="${outer}display:flex;align-items:center;justify-content:flex-start;padding:1px 2px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:4.3px;line-height:.82;">${escapeHtml(WRAP_WARNING)}</div>`;
-  return "";
+  if(id==="LOGO") return `<div style="${outer}display:flex;align-items:center;justify-content:center;background:#fff;"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain;image-rendering:auto" onerror="this.outerHTML='SG'"/></div>`;
+  const text=wrapObjectText(id,row);
+  if(!String(text||"").trim()) return "";
+  const isWarn=id==="WARNING";
+  const textAlign=(o.alignH==="left"||isWarn)?"left":(o.alignH==="right"?"right":"center");
+  const jc=alignH(o.alignH);
+  const ai=alignV(o.alignV);
+  const transform=id==="ROOT_ON"?"text-transform:none;white-space:nowrap;":"text-transform:uppercase;white-space:normal;word-break:break-word;overflow-wrap:anywhere;";
+  return `<div style="${outer}display:flex;align-items:${ai};justify-content:${jc};text-align:${textAlign};${transform}font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize||10}px;line-height:${isWarn?'.82':'.88'};padding:${isWarn?'1px 2px':'0 1px'};background:#fff;color:#000;">${escapeHtml(text)}</div>`;
 }
 
 function alignH(v){return v==="left"?"flex-start":v==="right"?"flex-end":"center"}
@@ -831,42 +1036,24 @@ function wrapBlockFits(el){
 }
 function autoFitWrapPreview(){
   if(labelType!=="WRAP") return;
-  const wo=document.querySelector('.obj[data-id="WO"] .wrapWoText');
-  if(wo){
-    const a=wo.querySelector('.wo'), b=wo.querySelector('.crop'), c=wo.querySelector('.internal');
-    let main=17;
-    for(; main>=8; main--){
-      if(a) a.style.fontSize=main+'px';
-      if(b) b.style.fontSize=Math.max(7,Math.round(main*0.76))+'px';
-      if(c) c.style.fontSize=Math.max(7,Math.round(main*0.70))+'px';
-      if(wrapBlockFits(wo.parentElement)) break;
+  for(const id of WRAP_TEXT_OBJECT_IDS){
+    const box=document.querySelector(`.obj[data-id="${id}"]`);
+    const inner=box && box.firstElementChild;
+    const o=layout.objects[id];
+    if(!box||!inner||!o) continue;
+    const text=String(inner.textContent||"");
+    if(!text.trim()) continue;
+    let hi=Number(o.fontSize||10), lo=(id==="WARNING"?3.2:3.5), best=lo;
+    if(["SCION","ROOTSTOCK"].includes(id)) hi=Math.max(hi,18);
+    if(id==="ROOT_ON") hi=Math.max(hi,11);
+    for(let pass=0; pass<34; pass++){
+      const mid=(lo+hi)/2;
+      inner.style.fontSize=mid.toFixed(2)+"px";
+      if(wrapBlockFits(inner)){ best=mid; lo=mid; }
+      else hi=mid;
     }
-  }
-  const mainBlock=document.querySelector('.obj[data-id="ITEM"] .wrapMainBlock');
-  if(mainBlock){
-    const sLine=mainBlock.querySelector('.scionLine');
-    const rLine=mainBlock.querySelector('.rootLine');
-    const royalties=mainBlock.querySelectorAll('.royaltyLine');
-    const bLine=mainBlock.querySelector('.benchLine');
-    const aLine=mainBlock.querySelector('.addressLine');
-    const hasRoyalty=royalties.length>0;
-    let big=hasRoyalty?24:28;
-    for(; big>=7; big--){
-      if(sLine) sLine.style.fontSize=big+'px';
-      if(rLine) rLine.style.fontSize=big+'px';
-      royalties.forEach(x=>x.style.fontSize=Math.max(4.2,Math.round(big*0.24))+'px');
-      if(bLine) bLine.style.fontSize=Math.max(4,Math.round(big*0.20))+'px';
-      if(aLine) aLine.style.fontSize=Math.max(4,Math.round(big*0.20))+'px';
-      if(wrapBlockFits(mainBlock)) break;
-    }
-  }
-  const warn=document.querySelector('.obj[data-id="WEEK"] .wrapWarningBlock');
-  if(warn){
-    let fs=4.8;
-    for(; fs>=3.5; fs-=0.1){
-      warn.style.fontSize=fs.toFixed(1)+'px';
-      if(wrapBlockFits(warn.parentElement)) break;
-    }
+    inner.style.fontSize=best.toFixed(2)+"px";
+    o.fontSize=Number(best.toFixed(2));
   }
 }
 
@@ -1018,10 +1205,13 @@ function clampAllObjects(){Object.keys(layout.objects).forEach(clampObject)}
 
 function objectDisplayName(id){
   if(labelType==="WRAP"){
-    if(id==="WO") return "WO / Crop / Internal ID";
-    if(id==="ITEM") return "Scion / Rootstock / Royalties";
-    if(id==="QR") return "Lot QR / SG Logo";
-    if(id==="WEEK") return "Warning";
+    const map={
+      WO_QR:"WO QR", WO:"Work Order", CROP:"Crop", INTERNAL:"Internal ID",
+      SCION:"Scion", SCION_ROYALTY:"Scion Royalty / Patent", ROOT_ON:"On Text",
+      ROOTSTOCK:"Rootstock", ROOTSTOCK_ROYALTY:"Rootstock Royalty / Patent", LOT:"Lot",
+      ADDRESS:"Address", LOT_QR:"Lot QR", LOGO:"SG Logo", WARNING:"Warning"
+    };
+    return map[id]||id;
   }
   if(labelType==="POT"){
     if(id==="WO") return "Work Order";
@@ -1035,7 +1225,7 @@ function renderObjectPanel(){
   const h=$("objectPanel");
   if(!h)return;
   h.innerHTML="";
-  for(const id of["WO","QR","ITEM","WEEK"]){
+  for(const id of objectIds()){
     const o=layout.objects[id],b=document.createElement("button");
     b.className="objectBtn"+(selectedId===id?" active":"");
     b.innerHTML=`<span>${escapeHtml(objectDisplayName(id))}</span><span class="badge">${o.locked?"LOCKED":"UNLOCKED"}</span>`;
@@ -1058,7 +1248,7 @@ function syncControls(){
     const inp=$(k);
     if(inp)inp.value=Math.round(Number(o[k]||0));
   }
-  if($("fontSize")) $("fontSize").disabled=selectedId==="QR";
+  if($("fontSize")) $("fontSize").disabled=!isTextObject(selectedId);
   if($("lockToggle")) $("lockToggle").checked=!!o.locked;
   if($("visibleToggle")) $("visibleToggle").checked=o.visible!==false;
   if($("safeMargin")) $("safeMargin").value=Number(layout.safeMarginPx||0);
@@ -1074,7 +1264,7 @@ function applyControls(){
     const v=Number(inp&&inp.value);
     if(isFinite(v))o[k]=v;
   }
-  if(selectedId!=="QR"){
+  if(isTextObject(selectedId)){
     const fs=Number($("fontSize")&&$("fontSize").value);
     if(isFinite(fs)&&fs>0)o.fontSize=fs;
     o.fontFamily="Times New Roman";
@@ -1098,11 +1288,12 @@ function centerSelected(axis){
 }
 
 
+function tableCell(v){ return escapeHtml(capClean(v)); }
 function buildRowHtml(r){
   if(labelType==="POT"){
-    return `<td>${escapeHtml(cap(r.wo))}</td><td>${escapeHtml(cap(r.act))}</td><td>${escapeHtml(cap(derivedRootstock(r)||displayPotItem(r)||""))}</td><td>${escapeHtml(cap(r.labelColor||""))}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
+    return `<td>${tableCell(r.wo)}</td><td>${tableCell(r.act)}</td><td>${tableCell(derivedRootstock(r)||displayPotItem(r)||"")}</td><td>${tableCell(r.labelColor||"")}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
   }
-  return `<td>${escapeHtml(cap(r.wo))}</td><td>${escapeHtml(cap(r.crop||""))}</td><td>${escapeHtml(cap(wrapScionText(r)||""))}</td><td>${escapeHtml(cap(wrapRootstockText(r)||""))}</td><td>${escapeHtml(cap(r.internalId||""))}</td><td>${escapeHtml(cap(r.labelColor||""))}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
+  return `<td>${tableCell(r.wo)}</td><td>${tableCell(r.crop||"")}</td><td>${tableCell(wrapScionText(r)||"")}</td><td>${tableCell(wrapRootstockText(r)||"")}</td><td>${tableCell(r.internalId||"")}</td><td>${tableCell(r.labelColor||"")}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
 }
 function renderRowBody(tb){
   if(!tb) return;
@@ -1125,13 +1316,14 @@ function renderRows(){
   const q=(($("stageSearch")&&$("stageSearch").value)||($("search")&&$("search").value)||"").toLowerCase();
   if($("search") && $("stageSearch") && $("search").value!==$("stageSearch").value) $("search").value=$("stageSearch").value;
   filteredRows=rows.filter(r=>{
-    if(labelType==="POT" && String(r.scion||"").trim()) return false;
-    return Object.values(r).join(" ").toLowerCase().includes(q);
+    if(labelType==="POT" && cleanDisplayValue(r.scion)) return false;
+    if(labelType==="POT" && isHiddenPotActivity(r)) return false;
+    return Object.values(r).map(cleanDisplayValue).join(" ").toLowerCase().includes(q);
   });
   if(currentRowIndex>=filteredRows.length)currentRowIndex=0;
   const headerHtml=labelType==="POT"
-    ? "<th style='width:17%'>WO</th><th style='width:25%'>Activity</th><th style='width:28%'>Item / Rootstock</th><th style='width:14%'>Color</th><th style='width:10%'>Labels</th><th style='width:6%'></th>"
-    : "<th style='width:12%'>WO</th><th style='width:12%'>Crop</th><th style='width:20%'>Scion</th><th style='width:20%'>Rootstock</th><th style='width:12%'>Internal ID</th><th style='width:10%'>Color</th><th style='width:8%'>Labels</th><th style='width:6%'></th>";
+    ? "<th style='width:14%'>WO</th><th style='width:23%'>Activity</th><th style='width:29%'>Item / Rootstock</th><th style='width:18%'>Color</th><th style='width:10%'>Labels</th><th style='width:6%'></th>"
+    : "<th style='width:11%'>WO</th><th style='width:10%'>Crop</th><th style='width:21%'>Scion</th><th style='width:21%'>Rootstock</th><th style='width:12%'>Internal ID</th><th style='width:12%'>Color</th><th style='width:7%'>Labels</th><th style='width:6%'></th>";
   const stageHead=$("stageRowsHead");
   if(stageHead) stageHead.innerHTML=headerHtml;
   const oldHead=document.querySelector("aside.panel .table thead tr");
@@ -1155,7 +1347,7 @@ function renderQueue(){
   queue.forEach(q=>{
     const d=document.createElement("div");
     d.className="queueItem";
-    d.innerHTML=`<div><b>${escapeHtml(cap(q.row.wo))}</b><div class="small">${escapeHtml(cap(q.row.scion||""))} ${q.row.rootstock?"| "+escapeHtml(cap(q.row.rootstock)):""}</div><div class="small">${escapeHtml(cap(q.row.labelColor||""))} • Qty ${escapeHtml(displayLabelsNeeded(q.row))}</div></div><input type="number" min="1" value="${q.qty}"><button class="danger">x</button>`;
+    d.innerHTML=`<div><b>${escapeHtml(capClean(q.row.wo))}</b><div class="small">${escapeHtml(capClean(q.row.scion||""))} ${q.row.rootstock?"| "+escapeHtml(cap(q.row.rootstock)):""}</div><div class="small">${escapeHtml(capClean(q.row.labelColor||""))} • Qty ${escapeHtml(displayLabelsNeeded(q.row))}</div></div><input type="number" min="1" value="${q.qty}"><button class="danger">x</button>`;
     d.querySelector("input").onchange=e=>{q.qty=Math.max(1,parseInt(e.target.value||"1",10)||1);saveQueue()};
     d.querySelector("button").onclick=()=>{queue=queue.filter(x=>x.id!==q.id);saveQueue();renderQueue()};
     h.appendChild(d);
@@ -1229,7 +1421,7 @@ function printQueue(){
   printRows(queue);
 }
 function printRows(items){
-  applyPotAutoStack();
+  if(labelType==="POT") applyPotAutoStack();
   const s=LABEL_SIZES[labelType],b=sizePx(),win=window.open("","_blank");
   let pages="";
   items.forEach(item=>{for(let i=0;i<Math.max(1,item.qty||1);i++)pages+=renderPrintPage(item.row,b)});
@@ -1238,7 +1430,7 @@ function printRows(items){
 }
 function renderPrintPage(row,b){
   let out=`<div class="page">`;
-  for(const id of["WO","QR","ITEM","WEEK"]){
+  for(const id of objectIds()){
     const o=layout.objects[id];
     if(!o||o.visible===false)continue;
     if(labelType!=="WRAP" && id==="WEEK"&&!row.week)continue;
@@ -1288,7 +1480,7 @@ function bindDirectionalButtons(){
 function initEvents(){
   ensureModeTabs();
   bindDirectionalButtons();
-  if($("labelType")) $("labelType").onchange=e=>{labelType=e.target.value;selectedId="ITEM";undoStack=[];redoStack=[];setLayout(loadWorkingLayout(labelType),false); renderRows(); updateModeTabs();};
+  if($("labelType")) $("labelType").onchange=e=>{labelType=e.target.value;selectedId=labelType==="WRAP"?"SCION":"ITEM";undoStack=[];redoStack=[];setLayout(loadWorkingLayout(labelType),false); renderRows(); updateModeTabs();};
   if($("zoom")) $("zoom").oninput=renderCanvas;
   if($("search")) $("search").oninput=function(){ if($("stageSearch")) $("stageSearch").value=this.value; renderRows(); };
   if($("safeToggle")) $("safeToggle").onchange=e=>{showSafeZone=e.target.checked;renderCanvas()};
