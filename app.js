@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.30-shipping-labels-left-align";
+const APP_VERSION = "8.6.31-shipping-cleanup-topbar";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -60,6 +60,7 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - v8.6.28: Field Row no longer allows negative X; Row text is left-aligned inside the Row object instead.
   - v8.6.29: Finished Trees/Field Labels show Label Color + Qty below the label and scale that meta row with zoom; top config controls logo/meta defaults.
   - v8.6.30: Wrap-like preview is left-aligned again when meta pills sit below the label; Shipping Labels mode reads BEINVT - Items.csv and shows CN/QS/Liner/Bud rows only.
+  - v8.6.31: Shipping Labels hides WO/Lot objects, shifts logo + warning left, removes Qty pill, cleans topbar helper text, and avoids duplicate single-line scion/rootstock rendering.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -115,6 +116,10 @@ const POT_OBJECT_ORDER = ["WO", "QR", "ITEM", "WEEK"];
 const WRAP_OBJECT_ORDER = [
   "WO_QR", "WO", "CROP", "INTERNAL", "SCION", "SCION_PATENT", "ROOTSTOCK",
   "ROOTSTOCK_PATENT", "LOT", "ADDRESS", "LOT_QR", "LOGO", "WARNING"
+];
+const SHIPPING_OBJECT_ORDER = [
+  "WO_QR", "CROP", "INTERNAL", "SCION", "SCION_PATENT", "ROOTSTOCK",
+  "ROOTSTOCK_PATENT", "ADDRESS", "LOGO", "WARNING"
 ];
 const IMAGE_OBJECT_IDS = new Set(["QR", "WO_QR", "LOT_QR", "LOGO"]);
 const POT_EXCLUDED_ACTIVITIES = [
@@ -191,6 +196,7 @@ function isFieldPlantingRow(row) {
   return /^field\s+planting\b/i.test(cleanDisplay(row && row.act));
 }
 function objectOrder(type = labelType) {
+  if (isShippingMode(type)) return SHIPPING_OBJECT_ORDER;
   return isWrapLikeMode(type) ? WRAP_OBJECT_ORDER : POT_OBJECT_ORDER;
 }
 function defaultSelectedId(type = labelType) {
@@ -1141,6 +1147,24 @@ function wrapRootstockText(row) {
   if (/^platinum\s+pistachio\s+rootstock$/i.test(txt)) txt = "Platinum";
   return capClean(txt);
 }
+function shippingSingleLineInfo(row) {
+  if (!isShippingMode()) return null;
+  const scionRaw = cleanDisplay(derivedScion(row));
+  const rootRaw = cleanDisplay(derivedRootstock(row));
+  if (scionRaw && !rootRaw) return {
+    main: capClean(scionRaw),
+    mainPatent: capClean(row && row.scionPatent),
+    secondary: "",
+    secondaryPatent: ""
+  };
+  if (!scionRaw && rootRaw) return {
+    main: capClean(rootRaw),
+    mainPatent: capClean(row && row.rootstockPatent),
+    secondary: "",
+    secondaryPatent: ""
+  };
+  return null;
+}
 function isGenevaRootstock(row) {
   /*
     v8.6.13: Geneva detection must work for normal rootstock rows and RSCH rootstock rows.
@@ -1193,14 +1217,15 @@ function labelText(id, row) {
 }
 function wrapObjectText(id, row) {
   const scionOnlyCrop = isWrapScionOnlyCrop(row);
+  const shipSingle = shippingSingleLineInfo(row);
   if (id === "WO") return isShippingMode() ? "" : capClean(row.wo);
   if (id === "CROP") return capClean(row.crop);
   if (id === "INTERNAL") return capClean(row.internalId);
-  if (id === "SCION") return wrapScionText(row);
+  if (id === "SCION") return shipSingle ? shipSingle.main : wrapScionText(row);
   if (scionOnlyCrop && (id === "SCION_PATENT" || id === "ROOTSTOCK" || id === "ROOTSTOCK_PATENT" || id === "LOT")) return "";
-  if (id === "SCION_PATENT") return capClean(row.scionPatent);
-  if (id === "ROOTSTOCK") return wrapRootstockText(row);
-  if (id === "ROOTSTOCK_PATENT") return capClean(row.rootstockPatent);
+  if (id === "SCION_PATENT") return shipSingle ? shipSingle.mainPatent : capClean(row.scionPatent);
+  if (id === "ROOTSTOCK") return shipSingle ? "" : wrapRootstockText(row);
+  if (id === "ROOTSTOCK_PATENT") return shipSingle ? "" : capClean(row.rootstockPatent);
   if (id === "LOT") return isShippingMode() ? "" : wrapLotLine(row);
   if (id === "ADDRESS") return WRAP_ADDRESS;
   if (id === "WARNING") return WRAP_WARNING;
@@ -1225,6 +1250,7 @@ function applyWrapDataAwareStack(row) {
   if (!isWrapLikeMode(labelType) || !layout || !layout.objects) return;
   const o = layout.objects;
   const scionOnlyCrop = isWrapScionOnlyCrop(row);
+  const shipSingle = shippingSingleLineInfo(row);
   const hasScionPatent = !scionOnlyCrop && !!cleanDisplay(wrapObjectText("SCION_PATENT", row));
   const hasRootstockPatent = !scionOnlyCrop && !!cleanDisplay(wrapObjectText("ROOTSTOCK_PATENT", row));
   const mainX = 119, mainW = 234;
@@ -1232,11 +1258,14 @@ function applyWrapDataAwareStack(row) {
     if (o[id]) { o[id].x = mainX; o[id].w = mainW; o[id].rot = 0; o[id].alignH = "center"; o[id].alignV = "middle"; }
   });
   if (isShippingMode()) {
-    if (o.SCION) { o.SCION.y = 1; o.SCION.h = 19; }
-    if (o.SCION_PATENT) { o.SCION_PATENT.y = 17; o.SCION_PATENT.h = 6; }
-    if (o.ROOTSTOCK) { o.ROOTSTOCK.y = 21; o.ROOTSTOCK.h = 17; }
-    if (o.ROOTSTOCK_PATENT) { o.ROOTSTOCK_PATENT.y = 37; o.ROOTSTOCK_PATENT.h = 6; }
+    if (o.SCION) { o.SCION.y = shipSingle ? 8 : 1; o.SCION.h = shipSingle ? 20 : 19; }
+    if (o.SCION_PATENT) { o.SCION_PATENT.y = shipSingle ? 28 : 17; o.SCION_PATENT.h = cleanDisplay(wrapObjectText("SCION_PATENT", row)) ? 6 : 0; }
+    if (o.ROOTSTOCK) { o.ROOTSTOCK.y = shipSingle ? 0 : 21; o.ROOTSTOCK.h = shipSingle ? 0 : 17; }
+    if (o.ROOTSTOCK_PATENT) { o.ROOTSTOCK_PATENT.y = shipSingle ? 0 : 37; o.ROOTSTOCK_PATENT.h = shipSingle ? 0 : (cleanDisplay(wrapObjectText("ROOTSTOCK_PATENT", row)) ? 6 : 0); }
     if (o.LOT) { o.LOT.y = 0; o.LOT.h = 0; }
+    if (o.LOT_QR) { o.LOT_QR.x = 0; o.LOT_QR.y = 0; o.LOT_QR.w = 0; o.LOT_QR.h = 0; }
+    if (o.LOGO) { o.LOGO.x = Math.max(0, Number(WRAP_LIKE_PREVIEW_CONFIG.logoX || 390) - 31); }
+    if (o.WARNING) { o.WARNING.x = Math.max(0, Number((o.LOGO && o.LOGO.x) || 359) + Number((o.LOGO && o.LOGO.w) || WRAP_LIKE_PREVIEW_CONFIG.logoWidth || 30) + 3); o.WARNING.w = Math.max(40, 480 - o.WARNING.x - 2); }
     if (o.ADDRESS) { o.ADDRESS.y = 43; o.ADDRESS.h = 5; }
   }
   if (scionOnlyCrop) {
@@ -1321,6 +1350,24 @@ function removeGitHubWorkflowText() {
       }
     });
     if (el.children.length === 0 && String(el.textContent || "").trim() === needle) el.remove();
+  });
+}
+function cleanupTopbarExtraText() {
+  const root = ($("modeTabs") && $("modeTabs").parentElement) || document.body;
+  if (!root) return;
+  root.querySelectorAll('label[for="labelType"]').forEach(el => el.remove());
+  root.querySelectorAll('*').forEach(el => {
+    if (!el || ["SCRIPT", "STYLE"].includes(el.tagName)) return;
+    const txt = String(el.textContent || '').trim();
+    if (!txt) return;
+    if (/^label$/i.test(txt) && !el.querySelector('*')) el.remove();
+    else if (/times\s+new\s+roman/i.test(txt) || /all\s+caps/i.test(txt)) el.remove();
+  });
+  [...root.childNodes].forEach(node => {
+    if (node.nodeType !== 3) return;
+    let txt = String(node.nodeValue || '');
+    txt = txt.replace(/\bLabel\b/, '').replace(/Times New Roman\s*\+\s*ALL CAPS\.?/i, '').replace(/Times New Roman.*ALL CAPS\.?/i, '');
+    node.nodeValue = txt;
   });
 }
 function applyModeClass() {
@@ -2695,6 +2742,7 @@ function renderAll() {
   dockStageAwayFromLeftPanel();
   removeDuplicateRightMenuControls();
   ensureModeTabs();
+  cleanupTopbarExtraText();
   updateModeTabs();
   renderRows();
   renderCanvas();
@@ -2847,7 +2895,9 @@ function renderCanvas() {
   previewRow.className = "labelPreviewRow " + (labelType === "POT" ? "potPreviewRow" : "wrapPreviewRow");
   const meta = document.createElement("div");
   meta.className = "stageMeta";
-  meta.innerHTML = `<span class="metaPill colorPill" style="background:${escapeHtml(cm.bg)};color:${escapeHtml(cm.fg)};border-color:${escapeHtml(cm.fg === "#ffffff" ? "rgba(255,255,255,.35)" : "rgba(17,24,39,.2)")}">Label Color <b style="color:${escapeHtml(cm.fg)}">${escapeHtml(cm.label)}</b></span><span class="metaPill">Qty <b>${escapeHtml(displayLabelsNeeded(row))}</b></span>`;
+  meta.innerHTML = isShippingMode()
+    ? `<span class="metaPill colorPill" style="background:${escapeHtml(cm.bg)};color:${escapeHtml(cm.fg)};border-color:${escapeHtml(cm.fg === "#ffffff" ? "rgba(255,255,255,.35)" : "rgba(17,24,39,.2)")}">Label Color <b style="color:${escapeHtml(cm.fg)}">${escapeHtml(cm.label)}</b></span>`
+    : `<span class="metaPill colorPill" style="background:${escapeHtml(cm.bg)};color:${escapeHtml(cm.fg)};border-color:${escapeHtml(cm.fg === "#ffffff" ? "rgba(255,255,255,.35)" : "rgba(17,24,39,.2)")}">Label Color <b style="color:${escapeHtml(cm.fg)}">${escapeHtml(cm.label)}</b></span><span class="metaPill">Qty <b>${escapeHtml(displayLabelsNeeded(row))}</b></span>`;
   const frame = document.createElement("div");
   frame.className = "stageFrame";
   frame.style.width = Math.ceil(s.w * zoom) + "px";
@@ -3000,7 +3050,8 @@ function makeWrapObjectInner(id, row, o) {
   inner.style.textAlign = o.alignH === "left" ? "left" : o.alignH === "right" ? "right" : "center";
   if (id === "ROOTSTOCK") {
     const rootText = wrapRootstockText(row);
-    inner.innerHTML = rootText ? `<span class="wrapOn">on</span>${escapeHtml(rootText)}` : "";
+    const shipSingle = shippingSingleLineInfo(row);
+    inner.innerHTML = rootText && !shipSingle ? `<span class="wrapOn">on</span>${escapeHtml(rootText)}` : "";
   } else inner.textContent = text;
   if (!text && !["ADDRESS", "WARNING"].includes(id)) holder.parentElement?.classList?.add("emptyText");
   holder.appendChild(inner);
@@ -3454,7 +3505,7 @@ function printWrapObjectInner(id, row, o) {
   }
   const textAlign = o.alignH === "left" ? "left" : o.alignH === "right" ? "right" : "center";
   const base = `position:absolute;inset:0;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:${textAlign};white-space:normal;word-break:normal;overflow-wrap:normal;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize || 8}px;line-height:.86;padding:0 1px;color:#000;`;
-  if (id === "ROOTSTOCK") { const rootText = wrapRootstockText(row); return rootText ? `<div style="${base}text-transform:uppercase"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(rootText)}</div>` : ""; }
+  if (id === "ROOTSTOCK") { const rootText = wrapRootstockText(row); const shipSingle = shippingSingleLineInfo(row); return (rootText && !shipSingle) ? `<div style="${base}text-transform:uppercase"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(rootText)}</div>` : ""; }
   if (id === "WARNING") return `<div style="${base}white-space:pre-line;line-height:1.05;text-transform:uppercase;align-items:center;">${escapeHtml(WRAP_WARNING)}</div>`;
   return `<div style="${base}text-transform:uppercase;">${escapeHtml(wrapObjectText(id, row))}</div>`;
 }
