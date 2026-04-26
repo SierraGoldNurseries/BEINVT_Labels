@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.31-shipping-cleanup-topbar";
+const APP_VERSION = "8.6.32-color-config-centered-zoom";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -25,7 +25,42 @@ const WRAP_LIKE_PREVIEW_CONFIG = {
   metaMinScale: 0.72,
   metaMaxScale: 1.35,
   metaGapPx: 6,
-  metaBelowHeightPx: 44
+  metaBelowHeightPx: 44,
+  // Center keeps Finished Trees / Field / Shipping zoom-out anchored in the middle.
+  // Use "left" only if you intentionally want the label preview locked to the left edge.
+  previewAlign: "center"
+};
+
+// Shared color config for ALL templates: Pot Stakes, Finished Trees, Field Labels, Shipping Labels.
+// Add new colors here using uppercase display names. The key can include spaces.
+// bg = label pill background, fg = text color on top of that background.
+const LABEL_COLOR_CONFIG = {
+  "WHITE": { bg: "#ffffff", fg: "#111827" },
+  "YELLOW": { bg: "#facc15", fg: "#111827" },
+  "MINT": { bg: "#98ff98", fg: "#111827" },
+  "RED": { bg: "#ef4444", fg: "#ffffff" },
+  "ORANGE": { bg: "#fb923c", fg: "#111827" },
+  "PINK": { bg: "#ec4899", fg: "#111827" },
+  "HOT PINK": { bg: "#ff69b4", fg: "#111827" },
+  "FUCHSIA": { bg: "#ff00ff", fg: "#111827" },
+  "LAVENDER": { bg: "#c4b5fd", fg: "#111827" },
+  "LILAC": { bg: "#d8b4fe", fg: "#111827" },
+  "PURPLE": { bg: "#a855f7", fg: "#ffffff" },
+  "DARK PURPLE": { bg: "#581c87", fg: "#ffffff" },
+  "BLUE": { bg: "#3b82f6", fg: "#ffffff" },
+  "DARK BLUE": { bg: "#1e3a8a", fg: "#ffffff" },
+  "TURQUOISE": { bg: "#40e0d0", fg: "#111827" },
+  "GREEN": { bg: "#22c55e", fg: "#111827" },
+  "DARK GREEN": { bg: "#166534", fg: "#ffffff" },
+  "APPLE GREEN": { bg: "#8db600", fg: "#111827" },
+  "LIME": { bg: "#84cc16", fg: "#111827" },
+  "TAN": { bg: "#d2b48c", fg: "#111827" },
+  "BROWN": { bg: "#92400e", fg: "#ffffff" },
+  "GOLD": { bg: "#d4af37", fg: "#111827" },
+  "CORAL": { bg: "#ff7f50", fg: "#111827" },
+  "GREY": { bg: "#9ca3af", fg: "#111827" },
+  "GRAY": { bg: "#9ca3af", fg: "#111827" },
+  "BLACK": { bg: "#111827", fg: "#ffffff" }
 };
 
 const OUTER_CARD_EXTRA_WIDTH = 0;
@@ -61,6 +96,7 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - v8.6.29: Finished Trees/Field Labels show Label Color + Qty below the label and scale that meta row with zoom; top config controls logo/meta defaults.
   - v8.6.30: Wrap-like preview is left-aligned again when meta pills sit below the label; Shipping Labels mode reads BEINVT - Items.csv and shows CN/QS/Liner/Bud rows only.
   - v8.6.31: Shipping Labels hides WO/Lot objects, shifts logo + warning left, removes Qty pill, cleans topbar helper text, and avoids duplicate single-line scion/rootstock rendering.
+  - v8.6.32: Adds one shared label-color config for all templates, aligns Shipping label color bar to the label width, and centers wrap-like zoom out behavior.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -753,23 +789,23 @@ function sizePx(type = labelType) {
 
 (function injectMetaBelowFinishedFieldV8629Css(){
   const css = `
-    /* v8.6.29: Label Color / Qty sit below Finished Trees + Field Labels and scale with zoom. */
+    /* v8.6.32: Label Color / Qty sit under wrap-like labels at the exact label width. The whole preview group stays centered while zooming out. */
     body.beinvt-label-wrap #stageLabelHost{
-      align-items:flex-start!important;
-      justify-content:flex-start!important;
+      align-items:center!important;
+      justify-content:center!important;
     }
     body.beinvt-label-wrap #stageLabelHost .stageStack{
       width:100%!important;
       max-width:100%!important;
-      align-items:flex-start!important;
+      align-items:center!important;
       justify-content:flex-start!important;
     }
     body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow{
       flex-direction:column!important;
       gap:var(--beinvt-wrap-meta-gap,6px)!important;
-      align-items:flex-start!important;
-      justify-content:flex-start!important;
-      width:max-content!important;
+      align-items:center!important;
+      justify-content:center!important;
+      width:100%!important;
       max-width:100%!important;
       overflow:visible!important;
     }
@@ -780,7 +816,8 @@ function sizePx(type = labelType) {
       flex:0 0 auto!important;
       flex-direction:row!important;
       align-items:stretch!important;
-      justify-content:flex-start!important;
+      justify-content:stretch!important;
+      align-self:center!important;
       gap:6px!important;
       padding:5px!important;
       border-radius:12px!important;
@@ -1323,21 +1360,26 @@ function applyWrapDataAwareStack(row) {
 function qrUrl(text) {
   return "https://quickchart.io/qr?size=220&text=" + encodeURIComponent(text || " ");
 }
+function colorConfigKey(name) {
+  return cleanDisplay(name).toUpperCase().replace(/\s+/g, " ").trim();
+}
 function colorMeta(name) {
   const raw = cleanDisplay(name);
-  const key = raw.toLowerCase().replace(/\s+/g, "");
-  const map = {
-    hotpink: { bg: "#ff69b4", fg: "#111827" }, pink: { bg: "#ec4899", fg: "#111827" }, red: { bg: "#ef4444", fg: "#ffffff" },
-    yellow: { bg: "#facc15", fg: "#111827" }, turquoise: { bg: "#40e0d0", fg: "#111827" }, white: { bg: "#ffffff", fg: "#111827" },
-    blue: { bg: "#3b82f6", fg: "#ffffff" }, green: { bg: "#22c55e", fg: "#111827" }, orange: { bg: "#fb923c", fg: "#111827" },
-    purple: { bg: "#a855f7", fg: "#ffffff" }, darkpurple: { bg: "#581c87", fg: "#ffffff" }, black: { bg: "#111827", fg: "#ffffff" },
-    gray: { bg: "#9ca3af", fg: "#111827" }, grey: { bg: "#9ca3af", fg: "#111827" }, lavender: { bg: "#c4b5fd", fg: "#111827" }, gold: { bg: "#d4af37", fg: "#111827" }, brown: { bg: "#92400e", fg: "#ffffff" }
-  };
-  if (map[key]) return { ...map[key], label: cap(raw) };
+  const display = cap(raw) || "UNKNOWN";
+  const direct = LABEL_COLOR_CONFIG[colorConfigKey(raw)];
+  if (direct) return { ...direct, label: display };
+
+  // Also support compact keys if someone adds/uses HOTPINK instead of HOT PINK.
+  const compact = colorConfigKey(raw).replace(/\s+/g, "");
+  const matchKey = Object.keys(LABEL_COLOR_CONFIG).find(k => k.replace(/\s+/g, "") === compact);
+  if (matchKey) return { ...LABEL_COLOR_CONFIG[matchKey], label: display };
+
+  // Fallback: valid CSS color names still work.
+  const cssProbe = raw.toLowerCase().trim();
   const probe = document.createElement("span");
-  probe.style.color = key;
-  if (probe.style.color) return { bg: key, fg: "#111827", label: cap(raw) };
-  return { bg: "rgba(255,255,255,.08)", fg: "#e5e7eb", label: cap(raw) || "UNKNOWN" };
+  probe.style.color = cssProbe;
+  if (probe.style.color) return { bg: cssProbe, fg: "#111827", label: display };
+  return { bg: "rgba(255,255,255,.08)", fg: "#e5e7eb", label: display };
 }
 
 function removeGitHubWorkflowText() {
@@ -2871,10 +2913,15 @@ function applyWrapLikeMetaPreviewLayout(meta, previewRow, zoom, s) {
   const scale = clamp(rawScale, Number(cfg.metaMinScale || 0.72), Number(cfg.metaMaxScale || 1.35));
   const visualW = Math.max(160, Math.ceil(Number(s && s.w || 480) * Number(zoom || 1)));
   const layoutW = Math.max(160, Math.ceil(visualW / Math.max(0.01, scale)));
+  const align = (cfg.previewAlign || "center").toLowerCase() === "left" ? "flex-start" : "center";
   previewRow.style.setProperty("--beinvt-wrap-meta-gap", Math.max(0, Number(cfg.metaGapPx || 6)) + "px");
+  previewRow.style.setProperty("align-items", align, "important");
+  previewRow.style.setProperty("justify-content", "center", "important");
   meta.classList.add("stageMetaBelowLabel");
+  // layoutW * scale = actual visible label width, so the color bar aligns exactly under the label.
   meta.style.setProperty("width", layoutW + "px", "important");
   meta.style.setProperty("max-width", layoutW + "px", "important");
+  meta.style.setProperty("align-self", align, "important");
   meta.style.setProperty("transform", "scale(" + scale.toFixed(3) + ")", "important");
   meta.style.setProperty("transform-origin", "top center", "important");
 }
