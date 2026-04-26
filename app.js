@@ -1,4 +1,4 @@
-const APP_VERSION = "8.2.0-sidebar-zoom-patent-clean";
+const APP_VERSION = "8.3.0-sort-dock-warning-spacing";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -102,14 +102,14 @@ function sizePx(type = labelType) {
     .modeTab.active{border-color:#7da2ff;background:rgba(96,165,250,.22);color:#fff}
     #zoom{accent-color:#7c6cff}
 
-    aside.panel,.panel.sidebar,.settingsPanel{height:calc(100vh - 78px)!important;min-height:0!important;overflow:auto!important;background:#121429!important;border-right:1px solid rgba(255,255,255,.14)!important;width:430px!important;min-width:430px!important;max-width:430px!important;flex:0 0 430px!important}
+    aside.panel,.panel.sidebar,.settingsPanel{height:calc(100vh - 78px)!important;min-height:0!important;overflow:auto!important;background:#121429!important;border-right:1px solid rgba(255,255,255,.14)!important;width:500px!important;min-width:500px!important;max-width:500px!important;flex:0 0 500px!important}
     .beinvtSettingsPanel{display:flex;flex-direction:column;gap:8px;padding:8px 10px 12px;min-height:100%}
     .beinvtCard{border:1px solid rgba(255,255,255,.14);background:#14162d;border-radius:13px;overflow:hidden;flex:0 0 auto;box-shadow:0 8px 24px rgba(0,0,0,.15)}
     .beinvtCardHeader{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.12);font-weight:900;color:#fff;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
     .beinvtCardBody{padding:10px 12px}
     .beinvtObjectsCard{position:sticky;top:0;z-index:80;background:#14162d;box-shadow:0 8px 26px rgba(0,0,0,.38)}
     .beinvtObjectsCard .beinvtCardBody{padding:8px 10px}
-    #objectPanel{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-height:210px;min-height:84px;overflow:auto;padding-right:2px}
+    #objectPanel{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-height:240px;min-height:112px;overflow:auto;padding-right:2px}
     .objectBtn{border:1px solid rgba(255,255,255,.16);border-radius:10px;background:#0d1022;color:#e5e7eb;padding:7px 8px;display:flex;flex-direction:column;gap:4px;text-align:left;cursor:pointer;min-width:0;line-height:1.1;white-space:normal;font-weight:800;font-size:12px}
     .objectBtn.active{border-color:#facc15;background:rgba(250,204,21,.14);color:#fff}
     .objectBtn .badge{font-size:9px;opacity:.75;font-weight:800;white-space:nowrap}
@@ -134,7 +134,7 @@ function sizePx(type = labelType) {
     .beinvtDuplicateSettings{display:none!important}
     .beinvtSettingsPanel .beinvtCard{display:block!important}
 
-    .stageWrap{display:flex!important;flex-direction:column!important;height:calc(100vh - 86px)!important;min-height:0!important;overflow:hidden!important;padding:10px!important;gap:10px!important;background:radial-gradient(circle at center,rgba(255,255,255,.06),rgba(255,255,255,.015))!important}
+    .stageWrap{display:flex!important;flex-direction:column!important;height:calc(100vh - 86px)!important;min-height:0!important;overflow:hidden!important;padding:10px!important;gap:10px!important;background:radial-gradient(circle at center,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;min-width:0!important;max-width:100vw!important}
     #canvasHost{width:100%!important;height:100%!important;min-height:0!important;display:flex!important;gap:12px!important;align-items:stretch!important;justify-content:stretch!important;overflow:hidden!important}
     body.beinvt-label-pot #canvasHost{flex-direction:row!important}
     body.beinvt-label-wrap #canvasHost{flex-direction:column!important}
@@ -178,12 +178,12 @@ function sizePx(type = labelType) {
     .handle.n{top:-7px;left:50%;margin-left:-5px;cursor:ns-resize}.handle.s{bottom:-7px;left:50%;margin-left:-5px;cursor:ns-resize}.handle.e{right:-7px;top:50%;margin-top:-5px;cursor:ew-resize}.handle.w{left:-7px;top:50%;margin-top:-5px;cursor:ew-resize}.handle.ne{right:-7px;top:-7px;cursor:nesw-resize}.handle.nw{left:-7px;top:-7px;cursor:nwse-resize}.handle.se{right:-7px;bottom:-7px;cursor:nwse-resize}.handle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}
     .gridOverlay{position:absolute;inset:0;pointer-events:none;z-index:2;opacity:.28}.safeZone{position:absolute;border:1px dashed rgba(239,68,68,.8);pointer-events:none;z-index:3}.guide{position:absolute;background:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.8);pointer-events:none;z-index:50}.guide.v{width:1px;top:-9999px;height:20000px}.guide.h{height:1px;left:-9999px;width:20000px}
     .wrapTextInner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;text-align:center;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:manual;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;color:#000;line-height:.86;padding:0 1px}
-    .wrapTextInner.leftText{justify-content:flex-start;text-align:left}.wrapTextInner.smallText{line-height:.92}.wrapTextInner.warningText{white-space:pre-line;line-height:.80;text-align:left;justify-content:flex-start}.wrapTextInner .wrapOn{font-size:.68em;margin-right:.18em;text-transform:none!important}.wrapLogo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}.wrapLogo img{width:100%;height:100%;object-fit:contain!important;image-rendering:auto!important}.wrapLogoFallback{font-size:8px;font-weight:900;border:1px solid #000;border-radius:999px;padding:1px 3px;line-height:1}
+    .wrapTextInner.leftText{justify-content:flex-start;text-align:left}.wrapTextInner.smallText{line-height:.92}.wrapTextInner.warningText{white-space:pre-line;line-height:1.05;text-align:left;justify-content:flex-start;align-items:center}.wrapTextInner .wrapOn{font-size:.68em;margin-right:.18em;text-transform:none!important}.wrapLogo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}.wrapLogo img{width:100%;height:100%;object-fit:contain!important;image-rendering:auto!important}.wrapLogoFallback{font-size:8px;font-weight:900;border:1px solid #000;border-radius:999px;padding:1px 3px;line-height:1}
     #gridSection .beinvtCardBody{padding-top:9px}
     #gridSection .compactGrid{grid-template-columns:1fr 1fr 1fr auto;align-items:end}
     #gridSection .field label{min-height:14px}
     #stageRowsTable td,#stageRowsTable th{font-size:12px}
-    @media(max-width:1100px){aside.panel,.panel.sidebar,.settingsPanel{width:360px!important;min-width:360px!important;max-width:360px!important;flex-basis:360px!important}#canvasHost{flex-direction:column!important}body.beinvt-label-pot #stageDataWrap{flex:0 0 clamp(300px,52vh,560px);min-width:0;width:100%}body.beinvt-label-pot #stageLabelHost{flex:1 1 auto;width:100%}.compactGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.checkRow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:1100px){aside.panel,.panel.sidebar,.settingsPanel{width:420px!important;min-width:420px!important;max-width:420px!important;flex-basis:420px!important}#canvasHost{flex-direction:column!important}body.beinvt-label-pot #stageDataWrap{flex:0 0 clamp(300px,52vh,560px);min-width:0;width:100%}body.beinvt-label-pot #stageLabelHost{flex:1 1 auto;width:100%}.compactGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.checkRow{grid-template-columns:repeat(2,minmax(0,1fr))}}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-clean-css", "1");
@@ -226,7 +226,7 @@ function fallbackLayout(type) {
       ADDRESS: { x: 119, y: 43, w: 234, h: 5, rot: 0, fontSize: 4.6, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       LOT_QR: { x: 359, y: 7, w: 34, h: 34, rot: 0, locked: false, visible: true },
       LOGO: { x: 399, y: 15, w: 18, h: 18, rot: 0, locked: false, visible: true },
-      WARNING: { x: 423, y: 3, w: 53, h: 42, rot: 0, fontSize: 3.9, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" }
+      WARNING: { x: 420, y: 2, w: 58, h: 44, rot: 0, fontSize: 3.2, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" }
     }
   };
 }
@@ -687,6 +687,22 @@ function ensureLeftPanel() {
     </details>
   `;
 }
+
+function dockStageAwayFromLeftPanel() {
+  const panel = findSettingsPanel();
+  const host = $("canvasHost");
+  const stage = document.querySelector(".stageWrap") || (host && host.parentElement);
+  if (!panel || !stage) return;
+  const pr = panel.getBoundingClientRect();
+  const sr = stage.getBoundingClientRect();
+  const targetLeft = Math.ceil(pr.right + 12);
+  if (sr.left < targetLeft - 2) {
+    stage.style.marginLeft = targetLeft + "px";
+    stage.style.width = "calc(100vw - " + (targetLeft + 12) + "px)";
+    stage.style.maxWidth = "calc(100vw - " + (targetLeft + 12) + "px)";
+  }
+}
+
 function nearestCleanupContainer(el) {
   if (!el) return null;
   return el.closest(".beinvtCard,details,fieldset,.section,.card,.panel,aside") || el.parentElement;
@@ -798,6 +814,7 @@ function ensureStageShell() {
       });
     }
   }
+  dockStageAwayFromLeftPanel();
   return $("stageLabelHost");
 }
 function applyZoomSliderCap(labelHost) {
@@ -828,6 +845,7 @@ function renderAll() {
   applyModeClass();
   removeGitHubWorkflowText();
   ensureLeftPanel();
+  dockStageAwayFromLeftPanel();
   removeDuplicateRightMenuControls();
   ensureModeTabs();
   updateModeTabs();
@@ -839,17 +857,34 @@ function renderAll() {
   renderQueue();
   updateUndoButtons();
 }
+
+function woSortNumber(row) {
+  const m = String((row && row.wo) || "").match(/(\d+)/g);
+  if (!m || !m.length) return -1;
+  const n = parseInt(m[m.length - 1], 10);
+  return Number.isFinite(n) ? n : -1;
+}
+function compareWoRowsDescending(a, b) {
+  const bn = woSortNumber(b);
+  const an = woSortNumber(a);
+  if (bn !== an) return bn - an;
+  return String((b && b.wo) || "").localeCompare(String((a && a.wo) || ""), undefined, { numeric: true, sensitivity: "base" });
+}
+function sortRowsLatestFirst(list) {
+  return (list || []).slice().sort(compareWoRowsDescending);
+}
+
 function renderRows() {
   ensureStageShell();
   const q = (($("stageSearch") && $("stageSearch").value) || ($("search") && $("search").value) || "").toLowerCase();
   if ($("search") && $("stageSearch") && $("search").value !== $("stageSearch").value) $("search").value = $("stageSearch").value;
-  filteredRows = rows.filter(r => {
+  filteredRows = sortRowsLatestFirst(rows.filter(r => {
     if (labelType === "POT") {
       if (cleanDisplay(r.scion)) return false;
       if (POT_EXCLUDED_ACTIVITIES.some(rx => rx.test(cleanDisplay(r.act)))) return false;
     }
     return Object.values(r).join(" ").toLowerCase().includes(q);
-  });
+  }));
   if (currentRowIndex >= filteredRows.length) currentRowIndex = 0;
   const head = $("stageRowsHead");
   if (head) head.innerHTML = labelType === "POT" ? potHeaderHtml() : wrapHeaderHtml();
@@ -1113,7 +1148,7 @@ function autoFitWrapText() {
   const ranges = {
     WO: [16, 6], CROP: [11, 5], INTERNAL: [11, 5],
     SCION: [28, 7], ROOTSTOCK: [28, 7],
-    SCION_PATENT: [6, 3], ROOTSTOCK_PATENT: [6, 3], LOT: [6.5, 3], ADDRESS: [5.6, 3], WARNING: [4.8, 2.7]
+    SCION_PATENT: [6, 3], ROOTSTOCK_PATENT: [6, 3], LOT: [6.5, 3], ADDRESS: [5.6, 3], WARNING: [3.6, 2.1]
   };
   for (const [id, range] of Object.entries(ranges)) {
     const obj = document.querySelector(`.obj[data-id="${id}"]`);
@@ -1478,7 +1513,7 @@ function printWrapObjectInner(id, row, o) {
   const textAlign = o.alignH === "left" ? "left" : o.alignH === "right" ? "right" : "center";
   const base = `position:absolute;inset:0;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:${textAlign};white-space:normal;word-break:normal;overflow-wrap:normal;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize || 8}px;line-height:.86;padding:0 1px;color:#000;`;
   if (id === "ROOTSTOCK") return `<div style="${base}text-transform:uppercase"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(wrapRootstockText(row))}</div>`;
-  if (id === "WARNING") return `<div style="${base}white-space:pre-line;line-height:.80;text-transform:uppercase;">${escapeHtml(WRAP_WARNING)}</div>`;
+  if (id === "WARNING") return `<div style="${base}white-space:pre-line;line-height:1.05;text-transform:uppercase;align-items:center;">${escapeHtml(WRAP_WARNING)}</div>`;
   return `<div style="${base}text-transform:uppercase;">${escapeHtml(wrapObjectText(id, row))}</div>`;
 }
 
@@ -1503,6 +1538,7 @@ function nudgeSelected(dx, dy) {
   renderAll();
 }
 function initEvents() {
+  window.addEventListener("resize", dockStageAwayFromLeftPanel);
   ensureLeftPanel();
   removeDuplicateRightMenuControls();
   ensureModeTabs();
