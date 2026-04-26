@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.12-top-menu-card-fit-debug-inputs";
+const APP_VERSION = "8.6.13-geneva-rsch-height-shift";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -11,14 +11,15 @@ const OUTER_CARD_EXTRA_WIDTH = 0;
 const DEBUG_LAYER_LABELS_DEFAULT = false;
 
 /*
-  v8.6.11 config:
+  v8.6.13 config:
   - A = outer dark card (.stageWrap).
   - Debug tools stay installed, but OFF by default.
   - Change LAYER_DEBUG_CONFIG.enabled from false to true to show/debug/move labels.
   - Debug panel can be dragged anywhere on screen and remembers position.
-  - Outer card default width is fitViewport: it fills from the right edge of the left menu to the visible right edge of the page, without forcing the top menu/body wider than the screen.
-  - v8.6.11 fixes left/right oscillation by using a stable natural-left + fixed correction calculation.
-  - Debug now includes T = the actual top control card containing Pot Stakes / Wrap Ties / Zoom / print buttons.
+  - Geneva logo logic checks raw rootstock, derived RSCH rootstock, lot fields, item/name, and printable label rootstock text.
+  - Outer card keeps its current width but shifts right if it overlaps the left menu.
+  - Page render height is trimmed by 5% through pageHeightScale.
+  - Debug includes T = the actual top control card containing Pot Stakes / Wrap Ties / Zoom / print buttons.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -26,6 +27,11 @@ const OUTER_CARD_SIZE_CONFIG = {
   // manual = use manualWidth/manualHeight from the debug panel, capped to the usable right edge by default.
   widthMode: "fitTopMenu",
   heightMode: "fitViewport",
+  // 0.95 trims the render area height by 5% so the normal page does not create a browser scrollbar.
+  pageHeightScale: 0.95,
+  // Preserve the current table/label width, but visually shift A right when it overlaps the left object/settings menu.
+  preserveCurrentWidthOnShift: true,
+  shiftRightFromLeftPanel: true,
   manualWidth: 1600,
   fallbackWidth: 1600,
   extraWidth: 0,
@@ -34,7 +40,7 @@ const OUTER_CARD_SIZE_CONFIG = {
   minWidth: 700,
   height: 1193,
   minHeight: 520,
-  bottomMargin: 8,
+  bottomMargin: 14,
   capManualToAvailable: true,
   applyTo: ["POT", "WRAP"]
 };
@@ -130,6 +136,10 @@ function sizePx(type = labelType) {
   if (localStorage.getItem("beinvtAppVersion") !== APP_VERSION) {
     localStorage.removeItem("beinvtWorkingLayout_POT");
     localStorage.removeItem("beinvtWorkingLayout_WRAP");
+    // Clear old debug-forced A sizes so the new 5% height trim and right-shift logic can apply.
+    localStorage.removeItem("beinvtOuterCardDebugWidth_v8610");
+    localStorage.removeItem("beinvtOuterCardDebugHeight_v8610");
+    localStorage.removeItem("beinvtDebugLayerManualSizes");
     localStorage.setItem("beinvtAppVersion", APP_VERSION);
   }
 })();
@@ -144,7 +154,7 @@ function sizePx(type = labelType) {
     .modeTab.active{border-color:#7da2ff;background:rgba(96,165,250,.22);color:#fff}
     #zoom{accent-color:#7c6cff}
 
-    aside.panel,.panel.sidebar,.settingsPanel{height:calc(100vh - 78px)!important;min-height:0!important;overflow:auto!important;background:#121429!important;border-right:1px solid rgba(255,255,255,.14)!important;width:540px!important;min-width:540px!important;max-width:540px!important;flex:0 0 540px!important}
+    aside.panel,.panel.sidebar,.settingsPanel{height:calc(95vh - 78px)!important;min-height:0!important;overflow:auto!important;background:#121429!important;border-right:1px solid rgba(255,255,255,.14)!important;width:540px!important;min-width:540px!important;max-width:540px!important;flex:0 0 540px!important}
     .beinvtSettingsPanel{display:flex;flex-direction:column;gap:8px;padding:8px 10px 12px;min-height:100%}
     .beinvtCard{border:1px solid rgba(255,255,255,.14);background:#14162d;border-radius:13px;overflow:hidden;flex:0 0 auto;box-shadow:0 8px 24px rgba(0,0,0,.15)}
     .beinvtCardHeader{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.12);font-weight:900;color:#fff;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -355,7 +365,7 @@ function sizePx(type = labelType) {
     .beinvtLayerDebugRoot{position:fixed;inset:0;z-index:999997;pointer-events:none!important;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important}
     .beinvtLayerDebugBox{position:fixed;pointer-events:none!important;border:2px dashed currentColor;border-radius:8px;box-shadow:0 0 0 1px rgba(0,0,0,.55),0 0 18px rgba(255,255,255,.15);background:rgba(255,255,255,.035)}
     .beinvtLayerDebugTag{position:fixed;pointer-events:none!important;z-index:999998;padding:3px 6px;border-radius:7px;border:1px solid currentColor;background:rgba(3,7,18,.92);color:currentColor;font-size:11px;font-weight:950;line-height:1.2;text-shadow:0 1px 1px #000;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.35)}
-    .beinvtLayerDebugPanel{position:fixed;left:18px;top:70px;right:auto;z-index:999999;width:560px;max-width:calc(100vw - 24px);max-height:calc(100vh - 75px);overflow:auto;border:1px solid rgba(255,255,255,.28);border-radius:13px;background:rgba(7,10,28,.96);color:#eef2ff;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.25;box-shadow:0 16px 45px rgba(0,0,0,.45);cursor:grab;user-select:none}
+    .beinvtLayerDebugPanel{position:fixed;left:18px;top:70px;right:auto;z-index:999999;width:560px;max-width:calc(100vw - 24px);max-height:calc(95vh - 75px);overflow:auto;border:1px solid rgba(255,255,255,.28);border-radius:13px;background:rgba(7,10,28,.96);color:#eef2ff;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.25;box-shadow:0 16px 45px rgba(0,0,0,.45);cursor:grab;user-select:none}
     .beinvtLayerDebugPanel b{font-size:13px;color:#fff}.beinvtLayerDebugPanel .muted{color:#aeb7d5}.beinvtLayerDebugPanel .row{display:grid;grid-template-columns:22px 1fr 92px 205px;gap:6px;align-items:center;border-top:1px solid rgba(255,255,255,.10);padding:6px 0}.beinvtLayerDebugPanel .key{font-weight:950}.beinvtLayerDebugPanel .name{font-weight:850;color:#fff;overflow:hidden;text-overflow:ellipsis}.beinvtLayerDebugPanel .size{color:#dbeafe;text-align:right}.beinvtLayerDebugPanel button{border:1px solid rgba(255,255,255,.22);background:#10142d;color:#fff;border-radius:7px;padding:4px 6px;font-size:10px;font-weight:900;cursor:pointer}.beinvtLayerDebugPanel button:hover{background:#1b2250}.beinvtLayerDebugPanel .btns{display:flex;gap:4px;justify-content:flex-end}.beinvtLayerDebugPanel .dimControls{display:grid;grid-template-columns:1fr 1fr 42px;gap:4px;align-items:center}.beinvtLayerDebugPanel .dimControls input{width:100%;min-width:0;box-sizing:border-box;border:1px solid rgba(255,255,255,.20);background:#080b1a;color:#fff;border-radius:7px;padding:4px 5px;font-size:10px;font-weight:850}.beinvtLayerDebugPanel .dimControls input:focus{outline:2px solid rgba(124,108,255,.55)}.beinvtLayerDebugPanel .topBtns{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.beinvtLayerDebugPanel code{color:#fde68a}
     @media print{.beinvtLayerDebugRoot,.beinvtLayerDebugPanel{display:none!important}}
   `;
@@ -631,8 +641,25 @@ function wrapRootstockText(row) {
   return capClean(txt);
 }
 function isGenevaRootstock(row) {
-  const root = cleanDisplay(row && row.rootstock) || derivedRootstock(row) || wrapRootstockText(row);
-  return /geneva/i.test(root);
+  /*
+    v8.6.13: Geneva detection must work for normal rootstock rows and RSCH rootstock rows.
+    The previous logic stopped at raw row.rootstock; for RSCH rows that can be "RSCH Rootstock",
+    so it never checked the derived/lot printable rootstock where "GENEVA" actually appears.
+  */
+  const parts = splitLotParts(row);
+  const haystack = [
+    row && row.rootstock,
+    row && row.name,
+    row && row.item,
+    row && row.itemRootstock,
+    row && row.labelRootstock,
+    row && row.lotNumber,
+    ...parts,
+    derivedRootstock(row),
+    wrapRootstockText(row),
+    displayPotItem(row)
+  ].map(v => cleanDisplay(v)).filter(Boolean).join(" | ");
+  return /geneva/i.test(haystack);
 }
 function logoUrlsForRow(row) {
   return isGenevaRootstock(row) ? [SG_LOGO_URL, GENEVA_SG_LOGO_URL] : [SG_LOGO_URL];
@@ -907,22 +934,24 @@ function rectLooksLikeTopControlBar(el) {
   if (!el || el === document.body || el === document.documentElement) return false;
   const r = el.getBoundingClientRect();
   const vw = viewportWidthNow();
-  if (!r || r.width < Math.max(420, vw * 0.50)) return false;
-  if (r.height < 28 || r.height > 96) return false;
-  if (r.top < -2 || r.top > 92 || r.bottom > 125) return false;
+  if (!r || r.width < Math.max(420, vw * 0.45)) return false;
+  if (r.height < 26 || r.height > 104) return false;
+  if (r.top < -4 || r.top > 96 || r.bottom > 132) return false;
   const txt = String(el.textContent || "").toLowerCase();
-  const hasControls = txt.includes("pot stakes") || txt.includes("wrap ties") || txt.includes("zoom") || txt.includes("print current") || txt.includes("print queue");
-  return hasControls || el.querySelector("#modeTabs,#labelType,#zoom,#printLabel,#printQueue,.modeTab");
+  const hasControls = txt.includes("beinvt label designer") || txt.includes("pot stakes") || txt.includes("wrap ties") || txt.includes("zoom") || txt.includes("print current") || txt.includes("print queue") || txt.includes("worst-case");
+  return hasControls || !!el.querySelector("#modeTabs,#labelType,#zoom,#printLabel,#printQueue,#testMode,.modeTab,button");
 }
 function scoreTopControlBarCandidate(el) {
   const r = el.getBoundingClientRect();
   let score = Math.round(r.width * 10) - Math.round(r.top * 4) - Math.abs(Math.round(r.height) - 48);
   const txt = String(el.textContent || "").toLowerCase();
-  if (txt.includes("pot stakes") && txt.includes("wrap ties")) score += 8000;
-  if (txt.includes("zoom")) score += 2500;
-  if (txt.includes("print current") || txt.includes("print queue")) score += 1500;
-  if (el.querySelector("#modeTabs,#labelType,#zoom,.modeTab")) score += 3000;
-  if (el.matches && el.matches("header,.topbar,.toolbar,[role='banner']")) score += 1200;
+  if (txt.includes("beinvt label designer")) score += 9000;
+  if (txt.includes("pot stakes") && txt.includes("wrap ties")) score += 9000;
+  if (txt.includes("zoom")) score += 3000;
+  if (txt.includes("print current") || txt.includes("print queue")) score += 2200;
+  if (txt.includes("worst-case")) score += 1200;
+  if (el.querySelector("#modeTabs,#labelType,#zoom,#testMode,.modeTab")) score += 4500;
+  if (el.matches && el.matches("header,.topbar,.toolbar,[role='banner']")) score += 2500;
   return score;
 }
 function topMenuElement() {
@@ -993,23 +1022,32 @@ function outerCardRightLimit() {
   const top = topMenuBounds();
   return Math.max(300, Math.min(viewportW, top.right || viewportW) - rightMargin);
 }
+function outerCardCurrentShift(stage) {
+  const el = stage || document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
+  if (!el) return 0;
+  return Math.round(Number(el.dataset.beinvtOuterCardShiftX || 0) || 0);
+}
 function outerCardNaturalLeft(stage) {
   const el = stage || document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
   if (!el) return outerCardDesiredLeft();
   const r = el.getBoundingClientRect();
   if (!r || !Number.isFinite(r.left)) return outerCardDesiredLeft();
-  return Math.round(r.left);
+  // Remove our own visual shift so the measurement does not feed back and make A wiggle left/right.
+  return Math.round(r.left - outerCardCurrentShift(el));
 }
 function outerCardLayoutMetrics(stage) {
   const cfg = outerCardSizeRuntimeConfig();
   const minW = Math.max(300, Number(cfg.minWidth || 700));
   const desiredLeft = outerCardDesiredLeft();
   const naturalLeft = outerCardNaturalLeft(stage);
-  const actualLeft = desiredLeft;
+  const correction = cfg.shiftRightFromLeftPanel === false ? 0 : Math.max(0, Math.round(desiredLeft - naturalLeft));
+  const actualLeft = naturalLeft + correction;
   const rightLimit = outerCardRightLimit();
-  const rawAvailable = Math.floor(rightLimit - actualLeft);
+  // Preserve current table/label width while shifting right. This fixes the left menu overlap without squeezing the table.
+  const widthAnchorLeft = cfg.preserveCurrentWidthOnShift === false ? actualLeft : naturalLeft;
+  const rawAvailable = Math.floor(rightLimit - widthAnchorLeft);
   const availableWidth = rawAvailable >= minW ? rawAvailable : Math.max(300, rawAvailable);
-  return { desiredLeft, naturalLeft, correction: 0, actualLeft, rightLimit, availableWidth };
+  return { desiredLeft, naturalLeft, correction, actualLeft, rightLimit, availableWidth, widthAnchorLeft };
 }
 function outerCardAvailableWidth(stage) {
   return Math.max(300, outerCardLayoutMetrics(stage).availableWidth);
@@ -1037,7 +1075,9 @@ function outerCardAvailableHeight(stage) {
   }
   if (!top) top = Math.max(0, topMenuBounds().bottom + 8);
   const minH = Math.max(260, Number(cfg.minHeight || 520));
-  const available = Math.floor(vh - top - bottomMargin);
+  const rawAvailable = Math.floor(vh - top - bottomMargin);
+  const scale = Math.min(1, Math.max(0.60, Number(cfg.pageHeightScale || 1)));
+  const available = Math.floor(rawAvailable * scale);
   return Math.max(Math.min(minH, Math.max(260, vh - bottomMargin)), available);
 }
 function outerCardTargetHeight(stage) {
@@ -1090,8 +1130,12 @@ function forceOuterCardSize() {
   stage.dataset.beinvtOuterCardWidthMode = String(outerCardSizeRuntimeConfig().widthMode || "fitTopMenu");
   stage.dataset.beinvtOuterCardLeft = String(metrics.actualLeft);
   stage.dataset.beinvtOuterCardRightLimit = String(metrics.rightLimit);
+  stage.dataset.beinvtOuterCardShiftX = String(metrics.correction || 0);
 
   stage.style.setProperty("box-sizing", "border-box", "important");
+  stage.style.setProperty("position", "relative", "important");
+  stage.style.setProperty("transform", "translateX(" + (metrics.correction || 0) + "px)", "important");
+  stage.style.setProperty("will-change", "transform", "important");
   stage.style.setProperty("width", width + "px", "important");
   stage.style.setProperty("min-width", width + "px", "important");
   stage.style.setProperty("max-width", width + "px", "important");
@@ -1131,7 +1175,11 @@ function dockStageAwayFromLeftPanel() {
   const width = Math.max(300, metrics.availableWidth + Number(window.BEINVT_OUTER_CARD_EXTRA_WIDTH ?? OUTER_CARD_EXTRA_WIDTH ?? 0));
   const height = outerCardTargetHeight(stage);
 
+  stage.dataset.beinvtOuterCardShiftX = String(metrics.correction || 0);
   stage.style.setProperty("box-sizing", "border-box", "important");
+  stage.style.setProperty("position", "relative", "important");
+  stage.style.setProperty("transform", "translateX(" + (metrics.correction || 0) + "px)", "important");
+  stage.style.setProperty("will-change", "transform", "important");
   stage.style.setProperty("margin-left", "0px", "important");
   stage.style.setProperty("margin-right", "0px", "important");
   stage.style.setProperty("min-width", width + "px", "important");
@@ -1358,7 +1406,7 @@ function updateDebugLayerLabels() {
     return `<div class="row" title="${escapeHtml(t.note)}"><div class="key" style="color:${escapeHtml(t.color)}">${escapeHtml(t.key)}</div><div class="name">${escapeHtml(t.name)}</div><div class="size">${escapeHtml(size)}</div>${debugDimensionInputs(t)}</div>`;
   }).join("");
   const ocInfo = outerCardDebugInfo();
-  panel.innerHTML = `<b>Layer Debug: ON</b> <span class="muted">drag this panel anywhere</span><div class="muted">T is the top control card containing Pot Stakes / Wrap Ties / Zoom / print buttons. Found: <code>${escapeHtml(ocInfo.topbarFound)}</code>. A target: <code>${escapeHtml(ocInfo.targetWidth)}x${escapeHtml(ocInfo.targetHeight)}</code>. Width mode: <code>${escapeHtml(ocInfo.mode)}</code>. Height mode: <code>${escapeHtml(ocInfo.heightMode)}</code>. T left/width/right/bottom: <code>${escapeHtml(ocInfo.topbarLeft)}/${escapeHtml(ocInfo.topbarWidth)}/${escapeHtml(ocInfo.topbarRight)}/${escapeHtml(ocInfo.topbarBottom)}</code>. A left/right/available: <code>${escapeHtml(ocInfo.targetLeft)}/${escapeHtml(ocInfo.rightLimit)}/${escapeHtml(ocInfo.availableWidth)}</code>. Inline: <code>${escapeHtml(ocInfo.inlineWidth)}</code>. Computed: <code>${escapeHtml(ocInfo.computedWidth)}</code>.</div><div class="topBtns"><button type="button" id="beinvtDebugOffBtn">Hide labels</button><button type="button" id="beinvtDebugRefreshBtn">Refresh</button><button type="button" id="beinvtDebugClearBtn">Clear manual sizes</button><button type="button" id="beinvtDebugCopyBtn">Copy sizes</button></div><div class="muted">Type W/H values and press <code>Set</code>. Manual sizes now persist for debug layers instead of snapping back. Clear manual sizes returns A to fitTopMenu/fitViewport. T is reference-only.</div>${rows}`;
+  panel.innerHTML = `<b>Layer Debug: ON</b> <span class="muted">drag this panel anywhere</span><div class="muted">T is the top control card containing Pot Stakes / Wrap Ties / Zoom / print buttons. Found: <code>${escapeHtml(ocInfo.topbarFound)}</code>. A target: <code>${escapeHtml(ocInfo.targetWidth)}x${escapeHtml(ocInfo.targetHeight)}</code>. Width mode: <code>${escapeHtml(ocInfo.mode)}</code>. Height mode: <code>${escapeHtml(ocInfo.heightMode)}</code>. T left/width/right/bottom: <code>${escapeHtml(ocInfo.topbarLeft)}/${escapeHtml(ocInfo.topbarWidth)}/${escapeHtml(ocInfo.topbarRight)}/${escapeHtml(ocInfo.topbarBottom)}</code>. A left/right/available/shift: <code>${escapeHtml(ocInfo.targetLeft)}/${escapeHtml(ocInfo.rightLimit)}/${escapeHtml(ocInfo.availableWidth)}/${escapeHtml(ocInfo.leftCorrection)}</code>. Inline: <code>${escapeHtml(ocInfo.inlineWidth)}</code>. Computed: <code>${escapeHtml(ocInfo.computedWidth)}</code>.</div><div class="topBtns"><button type="button" id="beinvtDebugOffBtn">Hide labels</button><button type="button" id="beinvtDebugRefreshBtn">Refresh</button><button type="button" id="beinvtDebugClearBtn">Clear manual sizes</button><button type="button" id="beinvtDebugCopyBtn">Copy sizes</button></div><div class="muted">Type W/H values and press <code>Set</code>. Manual sizes now persist for debug layers instead of snapping back. Clear manual sizes returns A to fitTopMenu/fitViewport. T is reference-only.</div>${rows}`;
   const offBtn = document.getElementById("beinvtDebugOffBtn");
   const refreshBtn = document.getElementById("beinvtDebugRefreshBtn");
   const clearBtn = document.getElementById("beinvtDebugClearBtn");
