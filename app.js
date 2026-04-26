@@ -1,169 +1,22 @@
-const APP_VERSION = "8.6.40_print_size_fast_qr_safe";
+const APP_VERSION = "8.6.41_label_size_presets_from_v8638";
 const INCH = 96;
 const LABEL_SIZES = {
+  POT: { widthIn: 0.75, heightIn: 5 },
+  WRAP: { widthIn: 5, heightIn: 0.75 },
+  FIELD: { widthIn: 5, heightIn: 0.75 },
+  SHIP: { widthIn: 5, heightIn: 0.75 }
+};
+const BASE_LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
   WRAP: { widthIn: 5, heightIn: 0.5 },
   FIELD: { widthIn: 5, heightIn: 0.5 },
   SHIP: { widthIn: 5, heightIn: 0.5 }
 };
-const BASE_LABEL_SIZES = JSON.parse(JSON.stringify(LABEL_SIZES));
-const PRINT_SIZE_CONFIG = {
-  storageKey: "beinvtPrintSizePrefs_v8640",
-  minWidthIn: 0.20,
-  minHeightIn: 0.20,
-  maxWidthIn: 12,
-  maxHeightIn: 12,
-  precision: 2,
-  defaultOrientationByType: {
-    POT: "portrait",
-    WRAP: "landscape",
-    FIELD: "landscape",
-    SHIP: "landscape"
-  }
+const LABEL_SIZE_PRESET_CONFIG = {
+  storageKey: "beinvtLabelSizePresetPrefs_v8641",
+  potWidthPresets: [0.5, 0.75, 1],
+  wrapHeightPresets: [0.5, 0.75, 1]
 };
-let printSizePrefs = loadPrintSizePrefs();
-function loadPrintSizePrefs() {
-  try {
-    const raw = localStorage.getItem(PRINT_SIZE_CONFIG.storageKey);
-    return raw ? JSON.parse(raw) : {};
-  } catch (e) {
-    return {};
-  }
-}
-function savePrintSizePrefs() {
-  try { localStorage.setItem(PRINT_SIZE_CONFIG.storageKey, JSON.stringify(printSizePrefs || {})); } catch (e) {}
-}
-function defaultPrintOrientation(type) {
-  const base = BASE_LABEL_SIZES[type] || BASE_LABEL_SIZES.POT;
-  return (PRINT_SIZE_CONFIG.defaultOrientationByType[type] || (base.widthIn >= base.heightIn ? "landscape" : "portrait"));
-}
-function normalizePrintInches(v, fallback, min, max) {
-  const n = Number(String(v ?? "").replace(/[^0-9.]/g, ""));
-  const f = Number(fallback || 1);
-  const raw = Number.isFinite(n) && n > 0 ? n : f;
-  return Math.max(min, Math.min(max, raw));
-}
-function normalizePrintOrientation(v, type) {
-  const s = String(v || "").toLowerCase();
-  if (s === "portrait" || s === "landscape") return s;
-  return defaultPrintOrientation(type);
-}
-function normalizePrintSizeFor(type, raw) {
-  const base = BASE_LABEL_SIZES[type] || BASE_LABEL_SIZES.POT;
-  const source = raw || {};
-  let widthIn = normalizePrintInches(source.widthIn ?? source.width, base.widthIn, PRINT_SIZE_CONFIG.minWidthIn, PRINT_SIZE_CONFIG.maxWidthIn);
-  let heightIn = normalizePrintInches(source.heightIn ?? source.height, base.heightIn, PRINT_SIZE_CONFIG.minHeightIn, PRINT_SIZE_CONFIG.maxHeightIn);
-  const orientation = normalizePrintOrientation(source.orientation, type);
-  if (orientation === "landscape" && heightIn > widthIn) [widthIn, heightIn] = [heightIn, widthIn];
-  if (orientation === "portrait" && widthIn > heightIn) [widthIn, heightIn] = [heightIn, widthIn];
-  return {
-    widthIn: Number(widthIn.toFixed(PRINT_SIZE_CONFIG.precision)),
-    heightIn: Number(heightIn.toFixed(PRINT_SIZE_CONFIG.precision)),
-    orientation
-  };
-}
-function applyStoredPrintSizes() {
-  Object.keys(LABEL_SIZES).forEach(type => {
-    const normalized = normalizePrintSizeFor(type, printSizePrefs[type]);
-    LABEL_SIZES[type].widthIn = normalized.widthIn;
-    LABEL_SIZES[type].heightIn = normalized.heightIn;
-    LABEL_SIZES[type].orientation = normalized.orientation;
-    printSizePrefs[type] = normalized;
-  });
-}
-function currentPrintSize(type = labelType) {
-  const normalized = normalizePrintSizeFor(type, LABEL_SIZES[type] || BASE_LABEL_SIZES[type]);
-  if (LABEL_SIZES[type]) LABEL_SIZES[type].orientation = normalized.orientation;
-  return normalized;
-}
-function formatPrintInches(v) {
-  const n = Number(v || 0);
-  return Number.isFinite(n) ? n.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1") : "";
-}
-function isQrSizeProtectedObject(id, type = labelType) {
-  if (type === "FIELD" && id === "WO_QR") return false;
-  return id === "QR" || id === "WO_QR" || id === "LOT_QR";
-}
-function scaleLayoutForPrintSizeChange(oldPx, newPx) {
-  if (!layout || !layout.objects || !oldPx || !newPx || !oldPx.w || !oldPx.h || !newPx.w || !newPx.h) return;
-  const sx = newPx.w / oldPx.w;
-  const sy = newPx.h / oldPx.h;
-  if (!Number.isFinite(sx) || !Number.isFinite(sy) || sx <= 0 || sy <= 0) return;
-
-  // Keep text normal and readable by scaling fonts with one uniform factor.
-  // Do not non-uniformly stretch QR codes; they must stay square to scan reliably.
-  const uniformScale = Math.sqrt(sx * sy);
-  Object.entries(layout.objects).forEach(([id, o]) => {
-    if (!o) return;
-    o.x = Math.round(Number(o.x || 0) * sx);
-    o.y = Math.round(Number(o.y || 0) * sy);
-
-    if (isQrSizeProtectedObject(id, labelType)) {
-      const oldSize = Math.max(4, Math.min(Number(o.w || 34), Number(o.h || 34)));
-      const nextSize = Math.max(18, Math.round(oldSize * uniformScale));
-      o.w = nextSize;
-      o.h = nextSize;
-    } else {
-      o.w = Math.max(4, Math.round(Number(o.w || 4) * sx));
-      o.h = Math.max(4, Math.round(Number(o.h || 4) * sy));
-    }
-
-    if (Number.isFinite(Number(o.fontSize)) && Number(o.fontSize) > 0) {
-      o.fontSize = Number(Math.max(1.5, Number(o.fontSize) * uniformScale).toFixed(1));
-    }
-  });
-  layout.safeMarginPx = Math.max(0, Math.round(Number(layout.safeMarginPx || 0) * Math.min(sx, sy)));
-  layout.gridPx = Math.max(1, Math.round(Number(layout.gridPx || 4) * Math.min(sx, sy)));
-  layout.snapPx = Math.max(1, Math.round(Number(layout.snapPx || 5) * Math.min(sx, sy)));
-  clampAllObjects();
-}
-function setCurrentPrintSize(widthIn, heightIn, orientation, scaleLayout = true) {
-  const type = labelType;
-  const oldPx = sizePx(type);
-  const normalized = normalizePrintSizeFor(type, { widthIn, heightIn, orientation });
-  const old = currentPrintSize(type);
-  const changed = old.widthIn !== normalized.widthIn || old.heightIn !== normalized.heightIn || old.orientation !== normalized.orientation;
-  if (!changed) { syncPrintSizeControls(); return; }
-  if (layout) pushHistory();
-  LABEL_SIZES[type].widthIn = normalized.widthIn;
-  LABEL_SIZES[type].heightIn = normalized.heightIn;
-  LABEL_SIZES[type].orientation = normalized.orientation;
-  printSizePrefs[type] = normalized;
-  savePrintSizePrefs();
-  const newPx = sizePx(type);
-  if (scaleLayout) scaleLayoutForPrintSizeChange(oldPx, newPx);
-  saveWorkingLayout();
-  resetZoomToAutoMax();
-
-  // Keep this change lightweight. Rebuilding the full table/left panel here made
-  // normal clicks feel delayed after resizing. Only the preview needs a refresh.
-  syncPrintSizeControls();
-  renderCanvas();
-  refreshDebugLayerLabelsSoon();
-}
-function syncPrintSizeControls() {
-  const width = $("printWidthIn");
-  const height = $("printHeightIn");
-  const orient = $("printOrientation");
-  const note = $("printSizeNote");
-  if (!width && !height && !orient && !note) return;
-  const s = currentPrintSize(labelType);
-  if (width && document.activeElement !== width) width.value = formatPrintInches(s.widthIn);
-  if (height && document.activeElement !== height) height.value = formatPrintInches(s.heightIn);
-  if (orient) orient.value = s.orientation;
-  if (note) note.textContent = `Print page: ${formatPrintInches(s.widthIn)}in × ${formatPrintInches(s.heightIn)}in (${s.orientation}). Objects and fonts scale with size changes; QR codes stay square/readable.`;
-}
-function applyPrintSizeControls() {
-  const width = Number(($("printWidthIn") && $("printWidthIn").value) || 0);
-  const height = Number(($("printHeightIn") && $("printHeightIn").value) || 0);
-  const orientation = ($("printOrientation") && $("printOrientation").value) || defaultPrintOrientation(labelType);
-  setCurrentPrintSize(width, height, orientation, true);
-}
-function resetPrintSizeForCurrentLabel() {
-  const base = BASE_LABEL_SIZES[labelType] || BASE_LABEL_SIZES.POT;
-  setCurrentPrintSize(base.widthIn, base.heightIn, defaultPrintOrientation(labelType), true);
-}
-applyStoredPrintSizes();
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
 const GENEVA_SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=260263&c=11150895&h=NMkHvroppy8Yi93204J1rZiq_7V-dJBmcFNuScfEc2hRzqB9";
 const GENEVA_LOGO_SHIFT_Y = -1;
@@ -385,6 +238,112 @@ function readJson(key, fallback) {
     return clone(fallback);
   }
 }
+function readLabelSizePrefs() {
+  try {
+    const raw = localStorage.getItem(LABEL_SIZE_PRESET_CONFIG.storageKey);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+function writeLabelSizePrefs(prefs) {
+  try { localStorage.setItem(LABEL_SIZE_PRESET_CONFIG.storageKey, JSON.stringify(prefs || {})); } catch (e) {}
+}
+function normalizeInchesValue(v, fallback, min = 0.2, max = 12) {
+  const n = Number(String(v ?? "").replace(/[^0-9.]/g, ""));
+  const f = Number(fallback || 1);
+  const raw = Number.isFinite(n) && n > 0 ? n : f;
+  return Number(Math.max(min, Math.min(max, raw)).toFixed(2));
+}
+function labelSizeInches(type = labelType) {
+  const base = LABEL_SIZES[type] || LABEL_SIZES.POT;
+  const prefs = readLabelSizePrefs();
+  const pref = prefs[type] || {};
+  return {
+    widthIn: normalizeInchesValue(pref.widthIn ?? pref.width, base.widthIn),
+    heightIn: normalizeInchesValue(pref.heightIn ?? pref.height, base.heightIn)
+  };
+}
+function saveLabelSizeInches(type, size) {
+  const prefs = readLabelSizePrefs();
+  const base = LABEL_SIZES[type] || LABEL_SIZES.POT;
+  prefs[type] = {
+    widthIn: normalizeInchesValue(size && size.widthIn, base.widthIn),
+    heightIn: normalizeInchesValue(size && size.heightIn, base.heightIn)
+  };
+  writeLabelSizePrefs(prefs);
+}
+function baseLabelSizeInches(type = labelType) {
+  return clone(BASE_LABEL_SIZES[type] || BASE_LABEL_SIZES.POT);
+}
+function labelSizeScaleFactors(type = labelType) {
+  const base = baseLabelSizeInches(type);
+  const cur = labelSizeInches(type);
+  return {
+    sx: cur.widthIn / Math.max(0.01, base.widthIn),
+    sy: cur.heightIn / Math.max(0.01, base.heightIn),
+    current: cur,
+    base
+  };
+}
+function formatPresetInches(v) {
+  const n = Number(v || 0);
+  return Number.isFinite(n) ? n.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1") : "";
+}
+function isQrSizeProtectedObject(id, type = labelType) {
+  if (type === "FIELD" && id === "WO_QR") return false;
+  return id === "QR" || id === "WO_QR" || id === "LOT_QR";
+}
+function scaleObjectNumber(v, factor, min = 0) {
+  const n = Number(v || 0) * Number(factor || 1);
+  return Math.max(min, Number(n.toFixed(1)));
+}
+function scaleLayoutForLabelSize(layoutObj, type, oldSize, newSize) {
+  if (!layoutObj || !layoutObj.objects || !oldSize || !newSize) return layoutObj;
+  const sx = normalizeInchesValue(newSize.widthIn, 1) / Math.max(0.01, normalizeInchesValue(oldSize.widthIn, 1));
+  const sy = normalizeInchesValue(newSize.heightIn, 1) / Math.max(0.01, normalizeInchesValue(oldSize.heightIn, 1));
+  if (!Number.isFinite(sx) || !Number.isFinite(sy) || sx <= 0 || sy <= 0) return layoutObj;
+  const fontScale = type === "POT" ? sx : sy;
+  Object.entries(layoutObj.objects).forEach(([id, o]) => {
+    if (!o) return;
+    o.x = scaleObjectNumber(o.x, sx, 0);
+    o.y = scaleObjectNumber(o.y, sy, 0);
+    if (isQrSizeProtectedObject(id, type)) {
+      // QR codes must remain square. Pot presets change width, so QR size follows width.
+      // Wrap-like presets only change height, so QR dimensions stay square and non-stretched.
+      const sideScale = type === "POT" ? sx : Math.min(sx, sy);
+      const oldSide = Math.max(4, Math.min(Number(o.w || 34), Number(o.h || 34)));
+      const side = Math.max(12, Number((oldSide * sideScale).toFixed(1)));
+      o.w = side;
+      o.h = side;
+    } else {
+      o.w = scaleObjectNumber(o.w, sx, 4);
+      o.h = scaleObjectNumber(o.h, sy, 4);
+    }
+    if (Number.isFinite(Number(o.fontSize)) && Number(o.fontSize) > 0) {
+      o.fontSize = Number(Math.max(1.5, Number(o.fontSize) * fontScale).toFixed(1));
+    }
+  });
+  layoutObj.safeMarginPx = scaleObjectNumber(layoutObj.safeMarginPx || 0, Math.min(sx, sy), 0);
+  layoutObj.gridPx = Math.max(1, Math.round(Number(layoutObj.gridPx || 4) * Math.min(sx, sy)));
+  layoutObj.snapPx = Math.max(1, Math.round(Number(layoutObj.snapPx || 5) * Math.min(sx, sy)));
+  layoutObj.labelSize = clone(newSize);
+  return layoutObj;
+}
+function scaleDefaultLayoutForCurrentSize(layoutObj, type) {
+  const current = labelSizeInches(type);
+  const base = baseLabelSizeInches(type);
+  layoutObj.labelSize = clone(current);
+  return scaleLayoutForLabelSize(layoutObj, type, base, current);
+}
+function wrapVerticalScale(type = labelType) {
+  const base = baseLabelSizeInches(type);
+  const cur = labelSizeInches(type);
+  return cur.heightIn / Math.max(0.01, base.heightIn);
+}
+function wrapBasePx(v, type = labelType) {
+  return Number((Number(v || 0) * wrapVerticalScale(type)).toFixed(1));
+}
 function cleanDisplay(v) {
   const s = String(v ?? "").trim();
   if (!s) return "";
@@ -418,7 +377,7 @@ function isImageObject(id) {
   return IMAGE_OBJECT_IDS.has(id);
 }
 function sizePx(type = labelType) {
-  const s = LABEL_SIZES[type] || LABEL_SIZES.POT;
+  const s = labelSizeInches(type);
   return { w: Math.round(s.widthIn * INCH), h: Math.round(s.heightIn * INCH) };
 }
 
@@ -437,6 +396,9 @@ function sizePx(type = labelType) {
     localStorage.removeItem("beinvtLayerManualSizes_v8612");
     localStorage.removeItem("beinvtLayerManualSizes_v8615");
     localStorage.removeItem("beinvtLayerManualSizes_v8616");
+    // Remove the laggy free-form print size/orientation prefs from the abandoned v8.6.39/v8.6.40 path.
+    // v8.6.41 uses simple, fixed presets only.
+    localStorage.removeItem("beinvtPrintSizePrefs_v8640");
     localStorage.setItem("beinvtAppVersion", APP_VERSION);
   }
 })();
@@ -475,6 +437,8 @@ function sizePx(type = labelType) {
     .buttonRow{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
     .buttonRow button,.beinvtCard button{border:1px solid rgba(255,255,255,.18);background:#0d1022;color:#fff;border-radius:9px;padding:7px 10px;font-weight:800;cursor:pointer}
     .buttonRow button:hover,.beinvtCard button:hover{background:#161b38}
+    .sizePresetBtn.active{border-color:#22c55e!important;background:rgba(34,197,94,.20)!important;color:#dcfce7!important}
+    body.beinvt-light-theme .sizePresetBtn.active{background:#dcfce7!important;border-color:#16a34a!important;color:#064e3b!important}
     .buttonRow .danger,.danger{border-color:rgba(248,113,113,.5)!important;color:#fecaca!important}
     .smallNote{font-size:11px;color:#9aa4c4;line-height:1.35}
     #layoutJson{min-height:86px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:1.3}
@@ -523,6 +487,7 @@ function sizePx(type = labelType) {
     .inner{position:absolute;display:flex;overflow:hidden;align-items:center;justify-content:center;text-align:center;line-height:.94;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;transform-origin:center center;color:#000}
     .potItemInner{white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:manual;line-height:.9;padding:0;text-wrap:wrap}
     .obj img,.obj canvas{width:100%;height:100%;display:block;image-rendering:pixelated}
+    .obj[data-id="QR"] img,.obj[data-id="WO_QR"] img,.obj[data-id="LOT_QR"] img{object-fit:contain!important}
     .handle{display:none;position:absolute;width:11px;height:11px;background:#facc15;border:1px solid #111827;border-radius:3px;z-index:40}
     .obj.selected .handle{display:block}
     .handle.n{top:-7px;left:50%;margin-left:-5px;cursor:ns-resize}.handle.s{bottom:-7px;left:50%;margin-left:-5px;cursor:ns-resize}.handle.e{right:-7px;top:50%;margin-top:-5px;cursor:ew-resize}.handle.w{left:-7px;top:50%;margin-top:-5px;cursor:ew-resize}.handle.ne{right:-7px;top:-7px;cursor:nesw-resize}.handle.nw{left:-7px;top:-7px;cursor:nwse-resize}.handle.se{right:-7px;bottom:-7px;cursor:nwse-resize}.handle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}
@@ -1349,7 +1314,7 @@ function sizePx(type = labelType) {
 
 function fallbackLayout(type) {
   if (type === "POT") {
-    return {
+    const potLayout = {
       name: "Pot Stakes Clean Default",
       labelType: "POT",
       safeMarginPx: 5,
@@ -1362,8 +1327,9 @@ function fallbackLayout(type) {
         WEEK: { x: 11, y: 330, w: 50, h: 24, rot: 0, fontSize: 18, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" }
       }
     };
+    return scaleDefaultLayoutForCurrentSize(potLayout, "POT");
   }
-  return {
+  const wrapLayout = {
     name: type === "FIELD" ? "Field Labels Clean Default" : (type === "SHIP" ? "Shipping Labels Clean Default" : "Finished Trees Clean Default"),
     labelType: type === "FIELD" ? "FIELD" : (type === "SHIP" ? "SHIP" : "WRAP"),
     safeMarginPx: 3,
@@ -1385,6 +1351,7 @@ function fallbackLayout(type) {
       WARNING: { x: 420, y: 2, w: 58, h: 44, rot: 0, fontSize: 3.2, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" }
     }
   };
+  return scaleDefaultLayoutForCurrentSize(wrapLayout, wrapLayout.labelType);
 }
 
 function normalizeLayout(src) {
@@ -1399,21 +1366,23 @@ function normalizeLayout(src) {
   if (isWrapLikeMode(type) && sourceObjects.ITEM && !sourceObjects.SCION) {
     out.objects = clone(base.objects);
   }
+  const scale = labelSizeScaleFactors(type);
   if (type === "FIELD" && out.objects && out.objects.WO_QR) {
-    out.objects.WO_QR.x = WRAP_LIKE_PREVIEW_CONFIG.fieldRowX;
-    out.objects.WO_QR.y = 2;
-    out.objects.WO_QR.w = 34;
-    out.objects.WO_QR.h = 44;
-    out.objects.WO_QR.fontSize = 13;
+    out.objects.WO_QR.x = Number((WRAP_LIKE_PREVIEW_CONFIG.fieldRowX * scale.sx).toFixed(1));
+    out.objects.WO_QR.y = Number((2 * scale.sy).toFixed(1));
+    out.objects.WO_QR.w = Number((34 * scale.sx).toFixed(1));
+    out.objects.WO_QR.h = Number((44 * scale.sy).toFixed(1));
+    out.objects.WO_QR.fontSize = Number((13 * scale.sy).toFixed(1));
     out.objects.WO_QR.rot = 0;
     out.objects.WO_QR.visible = true;
   }
   if (isWrapLikeMode(type) && out.objects && out.objects.LOGO) {
-    out.objects.LOGO.x = WRAP_LIKE_PREVIEW_CONFIG.logoX;
-    out.objects.LOGO.y = WRAP_LIKE_PREVIEW_CONFIG.logoY;
-    out.objects.LOGO.w = WRAP_LIKE_PREVIEW_CONFIG.logoWidth;
-    out.objects.LOGO.h = WRAP_LIKE_PREVIEW_CONFIG.logoHeight;
+    out.objects.LOGO.x = Number((WRAP_LIKE_PREVIEW_CONFIG.logoX * scale.sx).toFixed(1));
+    out.objects.LOGO.y = Number((WRAP_LIKE_PREVIEW_CONFIG.logoY * scale.sy).toFixed(1));
+    out.objects.LOGO.w = Number((WRAP_LIKE_PREVIEW_CONFIG.logoWidth * scale.sx).toFixed(1));
+    out.objects.LOGO.h = Number((WRAP_LIKE_PREVIEW_CONFIG.logoHeight * scale.sy).toFixed(1));
   }
+  out.labelSize = labelSizeInches(type);
   return out;
 }
 function loadDefaults() {
@@ -1430,7 +1399,10 @@ function loadWorkingLayout(type) {
   return normalizeLayout(DEFAULT_LAYOUTS[type] || fallbackLayout(type));
 }
 function saveWorkingLayout() {
-  if (layout) localStorage.setItem("beinvtWorkingLayout_" + labelType, JSON.stringify(layout));
+  if (layout) {
+    layout.labelSize = labelSizeInches(labelType);
+    localStorage.setItem("beinvtWorkingLayout_" + labelType, JSON.stringify(layout));
+  }
 }
 function setLayout(next, keepHistory = true) {
   if (keepHistory) pushHistory();
@@ -1816,25 +1788,28 @@ function applyWrapDataAwareStack(row) {
   const shipSingle = shippingSingleLineInfo(row);
   const hasScionPatent = !scionOnlyCrop && !!cleanDisplay(wrapObjectText("SCION_PATENT", row));
   const hasRootstockPatent = !scionOnlyCrop && !!cleanDisplay(wrapObjectText("ROOTSTOCK_PATENT", row));
+  const sy = wrapVerticalScale(labelType);
+  const labelH = sizePx(labelType).h;
+  const v = n => Number((Number(n || 0) * sy).toFixed(1));
   const mainX = 119, mainW = 234;
   ["SCION", "SCION_PATENT", "ROOTSTOCK", "ROOTSTOCK_PATENT", "LOT", "ADDRESS"].forEach(id => {
     if (o[id]) { o[id].x = mainX; o[id].w = mainW; o[id].rot = 0; o[id].alignH = "center"; o[id].alignV = "middle"; }
   });
   if (isShippingMode()) {
-    if (o.SCION) { o.SCION.y = shipSingle ? 8 : 1; o.SCION.h = shipSingle ? 20 : 19; }
-    if (o.SCION_PATENT) { o.SCION_PATENT.y = shipSingle ? 28 : 17; o.SCION_PATENT.h = cleanDisplay(wrapObjectText("SCION_PATENT", row)) ? 6 : 0; }
-    if (o.ROOTSTOCK) { o.ROOTSTOCK.y = shipSingle ? 0 : 21; o.ROOTSTOCK.h = shipSingle ? 0 : 17; }
-    if (o.ROOTSTOCK_PATENT) { o.ROOTSTOCK_PATENT.y = shipSingle ? 0 : 37; o.ROOTSTOCK_PATENT.h = shipSingle ? 0 : (cleanDisplay(wrapObjectText("ROOTSTOCK_PATENT", row)) ? 6 : 0); }
+    if (o.SCION) { o.SCION.y = shipSingle ? v(8) : v(1); o.SCION.h = shipSingle ? v(20) : v(19); }
+    if (o.SCION_PATENT) { o.SCION_PATENT.y = shipSingle ? v(28) : v(17); o.SCION_PATENT.h = cleanDisplay(wrapObjectText("SCION_PATENT", row)) ? v(6) : 0; }
+    if (o.ROOTSTOCK) { o.ROOTSTOCK.y = shipSingle ? 0 : v(21); o.ROOTSTOCK.h = shipSingle ? 0 : v(17); }
+    if (o.ROOTSTOCK_PATENT) { o.ROOTSTOCK_PATENT.y = shipSingle ? 0 : v(37); o.ROOTSTOCK_PATENT.h = shipSingle ? 0 : (cleanDisplay(wrapObjectText("ROOTSTOCK_PATENT", row)) ? v(6) : 0); }
     if (o.LOT) { o.LOT.y = 0; o.LOT.h = 0; }
     if (o.LOT_QR) { o.LOT_QR.x = 0; o.LOT_QR.y = 0; o.LOT_QR.w = 0; o.LOT_QR.h = 0; }
     if (o.LOGO) { o.LOGO.x = Math.max(0, Number(WRAP_LIKE_PREVIEW_CONFIG.logoX || 390) - 31); }
     if (o.WARNING) { o.WARNING.x = Math.max(0, Number((o.LOGO && o.LOGO.x) || 359) + Number((o.LOGO && o.LOGO.w) || WRAP_LIKE_PREVIEW_CONFIG.logoWidth || 30) + 3); o.WARNING.w = Math.max(40, 480 - o.WARNING.x - 2); }
-    if (o.ADDRESS) { o.ADDRESS.y = 43; o.ADDRESS.h = 5; }
+    if (o.ADDRESS) { o.ADDRESS.y = v(43); o.ADDRESS.h = Math.max(v(5), labelH - o.ADDRESS.y); }
   }
   if (scionOnlyCrop) {
     if (o.SCION) {
-      o.SCION.y = 10;
-      o.SCION.h = 29;
+      o.SCION.y = v(10);
+      o.SCION.h = v(29);
       o.SCION.alignH = "center";
       o.SCION.alignV = "middle";
     }
@@ -1845,41 +1820,41 @@ function applyWrapDataAwareStack(row) {
       }
     });
     if (o.ADDRESS) {
-      o.ADDRESS.y = 43;
-      o.ADDRESS.h = 5;
+      o.ADDRESS.y = v(43);
+      o.ADDRESS.h = Math.max(v(5), labelH - o.ADDRESS.y);
     }
     clampAllObjects();
     return;
   }
-  let y = 1;
+  let y = v(1);
   if (o.SCION) {
     o.SCION.y = y;
-    o.SCION.h = hasScionPatent ? 14 : (hasRootstockPatent ? 17 : 18);
+    o.SCION.h = hasScionPatent ? v(14) : (hasRootstockPatent ? v(17) : v(18));
     y += o.SCION.h;
   }
   if (o.SCION_PATENT) {
     o.SCION_PATENT.y = y;
-    o.SCION_PATENT.h = hasScionPatent ? 5 : 0;
+    o.SCION_PATENT.h = hasScionPatent ? v(5) : 0;
     if (hasScionPatent) y += o.SCION_PATENT.h;
   }
   if (o.ROOTSTOCK) {
     o.ROOTSTOCK.y = y;
-    o.ROOTSTOCK.h = hasRootstockPatent ? 14 : (hasScionPatent ? 17 : 18);
+    o.ROOTSTOCK.h = hasRootstockPatent ? v(14) : (hasScionPatent ? v(17) : v(18));
     y += o.ROOTSTOCK.h;
   }
   if (o.ROOTSTOCK_PATENT) {
     o.ROOTSTOCK_PATENT.y = y;
-    o.ROOTSTOCK_PATENT.h = hasRootstockPatent ? 5 : 0;
+    o.ROOTSTOCK_PATENT.h = hasRootstockPatent ? v(5) : 0;
     if (hasRootstockPatent) y += o.ROOTSTOCK_PATENT.h;
   }
   if (o.LOT) {
     o.LOT.y = y;
-    o.LOT.h = (hasScionPatent || hasRootstockPatent) ? 4 : 6;
+    o.LOT.h = (hasScionPatent || hasRootstockPatent) ? v(4) : v(6);
     y += o.LOT.h;
   }
   if (o.ADDRESS) {
     o.ADDRESS.y = y;
-    o.ADDRESS.h = Math.max(4, 48 - y);
+    o.ADDRESS.h = Math.max(v(4), labelH - y);
   }
   clampAllObjects();
 }
@@ -2301,8 +2276,9 @@ function findSettingsPanel() {
 function ensureLeftPanel() {
   const panel = findSettingsPanel();
   if (!panel) return;
-  if (panel.dataset.beinvtCleanPanel === "1") { applyObjectsPaneVisibility(); return; }
+  if (panel.dataset.beinvtCleanPanel === "1" && panel.dataset.beinvtCleanPanelVersion === APP_VERSION) { applyObjectsPaneVisibility(); return; }
   panel.dataset.beinvtCleanPanel = "1";
+  panel.dataset.beinvtCleanPanelVersion = APP_VERSION;
   panel.classList.add("beinvtSettingsPanel");
   panel.innerHTML = `
     <section class="beinvtCard beinvtObjectsCard" id="objectsSection">
@@ -2323,14 +2299,6 @@ function ensureLeftPanel() {
           <div class="field"><label for="rot">Rot</label><input id="rot" type="number" step="1"></div>
           <div class="field"><label for="fontSize">Font Size</label><input id="fontSize" type="number" step="1"></div>
         </div>
-        <div class="smallNote" style="margin-top:10px;font-weight:900">Print Size / Orientation</div>
-        <div class="compactGrid" style="margin-top:6px">
-          <div class="field"><label for="printWidthIn">Print W (in)</label><input id="printWidthIn" type="number" min="0.2" max="12" step="0.01"></div>
-          <div class="field"><label for="printHeightIn">Print H (in)</label><input id="printHeightIn" type="number" min="0.2" max="12" step="0.01"></div>
-          <div class="field"><label for="printOrientation">Orientation</label><select id="printOrientation"><option value="landscape">Landscape</option><option value="portrait">Portrait</option></select></div>
-          <div class="field"><label>&nbsp;</label><button id="resetPrintSize" type="button" style="width:100%">Reset Size</button></div>
-        </div>
-        <div class="smallNote" id="printSizeNote" style="margin-top:6px"></div>
         <div class="buttonRow" style="margin-top:9px">
           <label class="checkItem"><input id="lockToggle" type="checkbox"> Lock</label>
           <label class="checkItem"><input id="visibleToggle" type="checkbox"> Visible</label>
@@ -2359,6 +2327,10 @@ function ensureLeftPanel() {
       <summary class="beinvtCardHeader">Presets / Import / Export</summary>
       <div class="beinvtCardBody">
         <div class="field"><label for="presetSelect">Saved Presets</label><select id="presetSelect"></select></div>
+        <div id="labelSizePresetBox" style="margin-top:8px">
+          <div class="smallNote" id="labelSizePresetNote"></div>
+          <div class="buttonRow" id="labelSizePresetButtons" style="margin-top:6px"></div>
+        </div>
         <div class="buttonRow" style="margin-top:8px"><button id="savePreset" type="button">Save</button><button id="loadPreset" type="button">Load</button><button id="deletePreset" class="danger" type="button">Delete</button><button id="exportLayout" type="button">Export</button><button id="importLayout" type="button">Import</button><button id="downloadLayout" type="button">Download JSON</button></div>
         <div class="field" style="margin-top:8px"><textarea id="layoutJson" placeholder="Exported layout JSON appears here. Paste JSON here and click Import."></textarea></div>
       </div>
@@ -3238,8 +3210,8 @@ function removeDuplicateRightMenuControls() {
   const duplicateIds = [
     "selectedName", "x", "y", "w", "h", "rot", "fontSize", "lockToggle", "visibleToggle",
     "safeToggle", "safeMargin", "safeValue", "gridToggle", "snapToggle", "snapGridToggle", "gridPx", "snapPx",
-    "printWidthIn", "printHeightIn", "printOrientation", "resetPrintSize", "printSizeNote",
-    "printCalibration", "saveCalibration", "measuredW", "measuredH", "calStatus"
+    "printCalibration", "saveCalibration", "measuredW", "measuredH", "calStatus",
+    "printWidthIn", "printHeightIn", "printOrientation", "resetPrintSize", "printSizeNote"
   ];
   for (const id of duplicateIds) {
     document.querySelectorAll('[id="' + id + '"]').forEach(el => {
@@ -3397,6 +3369,7 @@ function renderAll() {
   renderObjectPanel();
   syncControls();
   renderPresetList();
+  renderLabelSizePresets();
   renderQueue();
   updateUndoButtons();
   refreshDebugLayerLabelsSoon();
@@ -3661,17 +3634,9 @@ function renderQrInto(el, text) {
   const img = document.createElement("img");
   img.src = qrUrl(text);
   img.alt = "QR";
-  img.style.width = "100%";
-  img.style.height = "100%";
-  img.style.objectFit = "contain";
-  img.style.background = "#fff";
-  img.style.imageRendering = "pixelated";
   img.onerror = () => {
     el.innerHTML = "";
     const c = document.createElement("canvas");
-    c.style.width = "100%";
-    c.style.height = "100%";
-    c.style.objectFit = "contain";
     el.appendChild(c);
     if (window.BEINVT_QR_FALLBACK) window.BEINVT_QR_FALLBACK.draw(c, text);
   };
@@ -3760,20 +3725,10 @@ function alignV(v) {
 }
 
 function autoFitAllTextSoon() {
-  // Debounced/cheap auto-fit: v8.6.39 ran multiple immediate passes per render,
-  // which made clicks feel slow after changing print size. One animation-frame
-  // pass plus one settle pass is enough for the preview and print output.
-  if (window.beinvtAutoFitRaf) cancelAnimationFrame(window.beinvtAutoFitRaf);
-  if (window.beinvtAutoFitTimer) clearTimeout(window.beinvtAutoFitTimer);
-  window.beinvtAutoFitRaf = requestAnimationFrame(() => {
-    window.beinvtAutoFitRaf = 0;
-    autoFitAllText();
-    window.beinvtAutoFitTimer = setTimeout(() => {
-      window.beinvtAutoFitTimer = 0;
-      autoFitAllText();
-      syncControls();
-    }, 70);
-  });
+  autoFitAllText();
+  requestAnimationFrame(autoFitAllText);
+  setTimeout(autoFitAllText, 80);
+  setTimeout(autoFitAllText, 220);
 }
 function autoFitAllText() {
   if (!layout) return;
@@ -3800,7 +3755,7 @@ function autoFitPotText() {
       inner.style.overflowWrap = "normal";
       inner.style.whiteSpace = "normal";
     }
-    let lo = 5, hi = Math.max(id === "ITEM" ? 96 : 48, Number(o.fontSize || 0), Math.min(180, Math.max(maxW, maxH) * 1.25)), best = lo;
+    let lo = 5, hi = id === "ITEM" ? 96 : 48, best = lo;
     while (lo <= hi) {
       const mid = Math.floor((lo + hi) / 2);
       inner.style.fontSize = mid + "px";
@@ -3823,7 +3778,7 @@ function autoFitWrapText() {
     const o = layout.objects[id];
     if (!obj || !inner || !o) continue;
     if (!inner.textContent.trim() && id !== "ADDRESS" && id !== "WARNING") continue;
-    let hi = Math.max(range[0], Number(o.fontSize || 0), Math.min(160, Math.max(Number(o.w || 0), Number(o.h || 0)) * 1.35)), lo = range[1], best = lo;
+    let hi = range[0], lo = range[1], best = lo;
     for (let fs = hi; fs >= lo; fs -= 0.2) {
       inner.style.fontSize = fs.toFixed(1) + "px";
       if (fits(inner)) { best = fs; break; }
@@ -4020,7 +3975,6 @@ function syncControls() {
   if ($("safeValue")) $("safeValue").textContent = "";
   if ($("gridPx")) $("gridPx").value = Number(layout.gridPx || 4);
   if ($("snapPx")) $("snapPx").value = Number(layout.snapPx || 5);
-  syncPrintSizeControls();
 }
 function applyControls() {
   if (!layout || !layout.objects) return;
@@ -4074,6 +4028,49 @@ function renderPresetList() {
   if (!select) return;
   const names = Object.keys(presets).sort();
   select.innerHTML = '<option value="">Select saved preset...</option>' + names.map(n => `<option>${escapeHtml(n)}</option>`).join("");
+}
+function renderLabelSizePresets() {
+  const box = $("labelSizePresetBox");
+  const holder = $("labelSizePresetButtons");
+  const note = $("labelSizePresetNote");
+  if (!box || !holder) return;
+  const current = labelSizeInches(labelType);
+  const isPot = labelType === "POT";
+  const options = isPot ? LABEL_SIZE_PRESET_CONFIG.potWidthPresets : LABEL_SIZE_PRESET_CONFIG.wrapHeightPresets;
+  const currentValue = isPot ? current.widthIn : current.heightIn;
+  if (note) {
+    note.textContent = isPot
+      ? `Pot stake width presets. Current print size: ${formatPresetInches(current.widthIn)}in × ${formatPresetInches(current.heightIn)}in.`
+      : `${labelType === "SHIP" ? "Shipping" : (labelType === "FIELD" ? "Field" : "Finished tree")} label height presets. Current print size: ${formatPresetInches(current.widthIn)}in × ${formatPresetInches(current.heightIn)}in.`;
+  }
+  holder.innerHTML = "";
+  options.forEach(v => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "sizePresetBtn" + (Math.abs(Number(v) - Number(currentValue)) < 0.001 ? " active" : "");
+    btn.textContent = isPot ? `${formatPresetInches(v)}in Width` : `${formatPresetInches(v)}in Height`;
+    btn.onclick = () => applyLabelSizePreset(v);
+    holder.appendChild(btn);
+  });
+}
+function applyLabelSizePreset(value) {
+  const type = labelType;
+  const oldSize = labelSizeInches(type);
+  const numeric = Number(value || 0);
+  if (!Number.isFinite(numeric) || numeric <= 0) return;
+  const newSize = type === "POT"
+    ? { widthIn: numeric, heightIn: oldSize.heightIn || (LABEL_SIZES.POT && LABEL_SIZES.POT.heightIn) || 5 }
+    : { widthIn: oldSize.widthIn || 5, heightIn: numeric };
+  if (Math.abs(oldSize.widthIn - newSize.widthIn) < 0.001 && Math.abs(oldSize.heightIn - newSize.heightIn) < 0.001) return;
+  if (layout) {
+    pushHistory();
+    scaleLayoutForLabelSize(layout, type, oldSize, newSize);
+    layout.labelSize = clone(newSize);
+  }
+  saveLabelSizeInches(type, newSize);
+  if (layout) saveWorkingLayout();
+  resetZoomToAutoMax();
+  renderAll();
 }
 function savePreset() {
   const name = prompt("Preset name:", layout.name || `${labelType} Custom`);
@@ -4142,7 +4139,7 @@ function printQueue() {
 function printRows(items) {
   if (labelType === "POT") applyPotAutoStack();
   autoFitAllText();
-  const s = LABEL_SIZES[labelType];
+  const s = labelSizeInches(labelType);
   const b = sizePx();
   const win = window.open("", "_blank");
   let pages = "";
@@ -4162,7 +4159,7 @@ function renderPrintPage(row) {
     const top = isWrapLikeMode(labelType) && id === "LOGO" ? logoTopForRow(o, row) : o.y;
     const outer = `position:absolute;left:${o.x}px;top:${top}px;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
     if (isWrapLikeMode(labelType)) out += `<div style="${outer}">${printWrapObjectInner(id, row, o)}</div>`;
-    else if (id === "QR") out += `<div style="${outer}"><img src="${qrUrl(row.wo)}" style="width:100%;height:100%;object-fit:contain;background:#fff;image-rendering:pixelated"></div>`;
+    else if (id === "QR") out += `<div style="${outer}"><img src="${qrUrl(row.wo)}" style="width:100%;height:100%;object-fit:contain;image-rendering:pixelated"></div>`;
     else out += `<div style="${outer}">${printTextInner(id, row, o)}</div>`;
   }
   return out + "</div>";
@@ -4186,8 +4183,8 @@ function printWrapObjectInner(id, row, o) {
     const top = (boxH - boxW) / 2;
     return `<div style="position:absolute;left:${left}px;top:${top}px;width:${boxH}px;height:${boxW}px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${fs}px;line-height:1;text-transform:uppercase;white-space:nowrap;writing-mode:horizontal-tb;text-orientation:mixed;color:#000;transform-origin:center center;transform:rotate(-90deg);">ROW</div>`;
   }
-  if (id === "WO_QR") return `<img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;object-fit:contain;background:#fff;image-rendering:pixelated">`;
-  if (id === "LOT_QR") { const txt = wrapRightQrText(row); return txt ? `<img src="${qrUrl(txt)}" style="width:100%;height:100%;object-fit:contain;background:#fff;image-rendering:pixelated">` : ""; }
+  if (id === "WO_QR") return `<img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;object-fit:contain;image-rendering:pixelated">`;
+  if (id === "LOT_QR") { const txt = wrapRightQrText(row); return txt ? `<img src="${qrUrl(txt)}" style="width:100%;height:100%;object-fit:contain;image-rendering:pixelated">` : ""; }
   if (id === "LOGO") {
     const urls = logoUrlsForRow(row);
     if (urls.length > 1) {
@@ -4240,14 +4237,6 @@ function initEvents() {
   if ($("gridPx")) $("gridPx").onchange = applyControls;
   if ($("snapPx")) $("snapPx").onchange = applyControls;
   if ($("safeMargin")) $("safeMargin").onchange = applyControls;
-  for (const id of ["printWidthIn", "printHeightIn", "printOrientation"]) {
-    const inp = $(id);
-    if (inp) {
-      inp.onchange = applyPrintSizeControls;
-      inp.onkeydown = ev => { if (ev.key === "Enter") applyPrintSizeControls(); };
-    }
-  }
-  if ($("resetPrintSize")) $("resetPrintSize").onclick = resetPrintSizeForCurrentLabel;
   for (const id of ["x", "y", "w", "h", "rot", "fontSize"]) {
     const inp = $(id);
     if (inp) {
