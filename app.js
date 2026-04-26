@@ -1,4 +1,5 @@
-const APP_VERSION = "8.6.41_label_size_presets_from_v8638";
+const APP_VERSION = "8.6.42_wrap_qr_autosize";
+const WRAP_QR_BALANCE_VERSION = "8.6.42";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -335,6 +336,72 @@ function scaleDefaultLayoutForCurrentSize(layoutObj, type) {
   const base = baseLabelSizeInches(type);
   layoutObj.labelSize = clone(current);
   return scaleLayoutForLabelSize(layoutObj, type, base, current);
+}
+function wrapLikeQrBalanceKey(size) {
+  const widthIn = formatPresetInches(size && size.widthIn);
+  const heightIn = formatPresetInches(size && size.heightIn);
+  return `${WRAP_QR_BALANCE_VERSION}|${widthIn}x${heightIn}`;
+}
+function wrapLikeQrSidePx(labelHeightPx, type, role) {
+  const baseRatio = role === "single" ? 0.76 : 0.72;
+  const preferred = Math.round(Number(labelHeightPx || 48) * baseRatio);
+  return clamp(preferred, 34, Math.max(34, Math.round(Number(labelHeightPx || 48) - 8)));
+}
+function rebalanceWrapLikeQrLayout(layoutObj, type) {
+  if (!layoutObj || !layoutObj.objects || !isWrapLikeMode(type)) return layoutObj;
+  const size = layoutObj.labelSize || labelSizeInches(type);
+  const labelW = Math.round(normalizeInchesValue(size && size.widthIn, 5) * INCH);
+  const labelH = Math.round(normalizeInchesValue(size && size.heightIn, 0.75) * INCH);
+  const sx = labelW / Math.max(1, 5 * INCH);
+  const sy = labelH / Math.max(1, 0.5 * INCH);
+  const o = layoutObj.objects;
+  const margin = Math.max(4, Math.round(4 * sx));
+  const gap = Math.max(6, Math.round(6 * Math.min(sx, sy)));
+  const centerX = Math.round(119 * sx);
+  const defaultRightEdge = Math.round(353 * sx);
+  const rightAnchor = Math.max(centerX + 110, Math.min(
+    Number((o.LOGO && o.LOGO.x) || (390 * sx)),
+    Number((o.WARNING && o.WARNING.x) || (420 * sx))
+  ));
+
+  if (o.WO_QR && type !== "FIELD" && o.WO_QR.visible !== false) {
+    const side = wrapLikeQrSidePx(labelH, type, type === "SHIP" ? "single" : "left");
+    o.WO_QR.w = side;
+    o.WO_QR.h = side;
+    o.WO_QR.x = margin;
+    o.WO_QR.y = Math.max(0, Math.round((labelH - side) / 2));
+  }
+
+  if (o.LOT_QR && type !== "SHIP" && o.LOT_QR.visible !== false) {
+    const side = wrapLikeQrSidePx(labelH, type, type === "FIELD" ? "single" : "right");
+    o.LOT_QR.w = side;
+    o.LOT_QR.h = side;
+    o.LOT_QR.x = Math.max(centerX + 92, Math.round(rightAnchor - gap - side));
+    o.LOT_QR.y = Math.max(0, Math.round((labelH - side) / 2));
+  }
+
+  const leftTextStart = o.WO_QR && type !== "FIELD" && o.WO_QR.visible !== false
+    ? Math.round(Number(o.WO_QR.x || 0) + Number(o.WO_QR.w || 0) + gap)
+    : Math.round(42 * sx);
+  const leftTextWidth = Math.max(38, centerX - leftTextStart - gap);
+  ["WO", "CROP", "INTERNAL"].forEach(id => {
+    if (!o[id]) return;
+    o[id].x = leftTextStart;
+    o[id].w = leftTextWidth;
+  });
+
+  const rightTextEdge = o.LOT_QR && type !== "SHIP" && o.LOT_QR.visible !== false
+    ? Math.max(centerX + 140, Math.round(Number(o.LOT_QR.x || defaultRightEdge) - gap))
+    : defaultRightEdge;
+  const centerWidth = Math.max(140, rightTextEdge - centerX);
+  ["SCION", "SCION_PATENT", "ROOTSTOCK", "ROOTSTOCK_PATENT", "LOT", "ADDRESS"].forEach(id => {
+    if (!o[id]) return;
+    o[id].x = centerX;
+    o[id].w = centerWidth;
+  });
+
+  layoutObj.__wrapQrBalanceKey = wrapLikeQrBalanceKey(size);
+  return layoutObj;
 }
 function wrapVerticalScale(type = labelType) {
   const base = baseLabelSizeInches(type);
@@ -1383,6 +1450,11 @@ function normalizeLayout(src) {
     out.objects.LOGO.h = Number((WRAP_LIKE_PREVIEW_CONFIG.logoHeight * scale.sy).toFixed(1));
   }
   out.labelSize = labelSizeInches(type);
+  if (isWrapLikeMode(type)) {
+    const balanceKey = wrapLikeQrBalanceKey(out.labelSize);
+    if (out.__wrapQrBalanceKey !== balanceKey) rebalanceWrapLikeQrLayout(out, type);
+    out.__wrapQrBalanceKey = balanceKey;
+  }
   return out;
 }
 function loadDefaults() {
@@ -4066,6 +4138,7 @@ function applyLabelSizePreset(value) {
     pushHistory();
     scaleLayoutForLabelSize(layout, type, oldSize, newSize);
     layout.labelSize = clone(newSize);
+    if (isWrapLikeMode(type)) rebalanceWrapLikeQrLayout(layout, type);
   }
   saveLabelSizeInches(type, newSize);
   if (layout) saveWorkingLayout();
