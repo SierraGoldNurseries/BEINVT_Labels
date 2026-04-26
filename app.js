@@ -1,4 +1,4 @@
-const APP_VERSION = "6.9.0-pot-settings-wrap-individuals";
+const APP_VERSION = "7.0.0-no-overlap-left-menu-wrap-clean";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
@@ -150,6 +150,62 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
   document.head.appendChild(tag);
 })();
 
+(function injectNoOverlapCss(){
+  const css = `
+    *{box-sizing:border-box!important}
+    html,body{min-width:0!important;overflow:hidden!important}
+    body{--beinvt-top-offset:118px;background:#0b1020!important}
+    .beinvt-main-shell{display:grid!important;grid-template-columns:minmax(300px,360px) minmax(0,1fr)!important;gap:12px!important;align-items:stretch!important;width:100%!important;max-width:100vw!important;height:calc(100vh - var(--beinvt-top-offset))!important;min-height:520px!important;overflow:hidden!important;padding:8px 10px!important}
+    .beinvt-main-shell > aside.panel,.beinvt-left-settings-panel{order:1!important;grid-column:1!important;width:100%!important;min-width:0!important;max-width:none!important;height:100%!important;max-height:none!important;overflow:auto!important;position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;z-index:10!important;margin:0!important;float:none!important;transform:none!important}
+    .beinvt-main-shell > .stageWrap,.beinvt-stage-main{order:2!important;grid-column:2!important;width:100%!important;min-width:0!important;max-width:none!important;height:100%!important;max-height:none!important;overflow:hidden!important;margin:0!important;position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;z-index:1!important;float:none!important;transform:none!important}
+    .stageWrap{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;padding:8px!important;gap:8px!important;overflow:hidden!important;min-width:0!important;background:radial-gradient(circle at center, rgba(255,255,255,.08), rgba(255,255,255,.02))!important}
+    #canvasHost{display:grid!important;gap:10px!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;overflow:hidden!important;align-items:stretch!important}
+    body.beinvt-label-pot #canvasHost{grid-template-columns:minmax(560px,1fr) minmax(248px,340px)!important;grid-template-rows:1fr!important;min-height:0!important}
+    body.beinvt-label-wrap #canvasHost{grid-template-columns:1fr!important;grid-template-rows:minmax(430px,1fr) 118px!important;min-height:0!important}
+    #stageDataWrap{order:1!important;grid-column:auto!important;grid-row:auto!important;width:100%!important;min-width:0!important;max-width:none!important;height:100%!important;min-height:0!important;max-height:none!important;flex:unset!important;align-self:stretch!important;overflow:hidden!important;border-radius:12px!important;position:relative!important;z-index:1!important}
+    body.beinvt-label-pot #stageDataWrap{grid-column:1!important;grid-row:1!important;min-width:0!important;width:100%!important;flex:unset!important;min-height:0!important;height:100%!important;max-height:none!important}
+    body.beinvt-label-wrap #stageDataWrap{grid-column:1!important;grid-row:1!important;min-height:0!important;height:100%!important;max-height:none!important;flex:unset!important}
+    .stageTableScroll{width:100%!important;height:100%!important;min-height:0!important;overflow:auto!important;position:relative!important}
+    #stageRowsTable{width:100%!important;min-width:920px!important;table-layout:fixed!important}
+    body.beinvt-label-pot #stageRowsTable{min-width:1040px!important}
+    body.beinvt-label-wrap #stageRowsTable{min-width:1060px!important}
+    #stageLabelHost{order:2!important;grid-column:auto!important;grid-row:auto!important;min-width:0!important;min-height:0!important;width:100%!important;height:100%!important;max-height:none!important;display:flex!important;overflow:hidden!important;position:relative!important;z-index:1!important;padding:6px!important;background:transparent!important}
+    body.beinvt-label-pot #stageLabelHost{grid-column:2!important;grid-row:1!important;align-items:flex-start!important;justify-content:center!important;min-width:0!important;flex:unset!important;padding-top:4px!important}
+    body.beinvt-label-wrap #stageLabelHost{grid-column:1!important;grid-row:2!important;align-items:flex-start!important;justify-content:center!important;min-height:0!important;padding-top:8px!important;padding-bottom:0!important;flex:unset!important}
+    #stageLabelHost .stageStack{width:100%!important;height:100%!important;max-height:100%!important;min-width:0!important;min-height:0!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;padding:0!important;overflow:hidden!important}
+    body.beinvt-label-wrap #stageLabelHost .stageStack{justify-content:flex-start!important}
+    .labelPreviewRow{max-width:100%!important;min-width:0!important;width:auto!important;display:flex!important;flex-wrap:nowrap!important;overflow:hidden!important;gap:12px!important;align-items:center!important;justify-content:center!important}
+    body.beinvt-label-pot .labelPreviewRow{flex-direction:column!important;width:100%!important;gap:10px!important;align-items:center!important;justify-content:flex-start!important}
+    body.beinvt-label-wrap .labelPreviewRow{flex-direction:row!important;width:100%!important;gap:14px!important;align-items:flex-start!important;justify-content:center!important}
+    .stageFrame{overflow:visible!important;max-width:100%!important;max-height:100%!important;flex:0 0 auto!important}
+    .labelPreviewRow .stageMeta{display:flex!important;flex:0 0 auto!important;width:240px!important;max-width:240px!important;min-width:220px!important;align-self:center!important;gap:8px!important;padding:8px!important;z-index:5!important}
+    body.beinvt-label-pot .labelPreviewRow .stageMeta{width:100%!important;max-width:300px!important;min-width:240px!important;flex-direction:column!important;align-items:stretch!important;order:1!important}
+    body.beinvt-label-pot .stageFrame{order:2!important}
+    body.beinvt-label-wrap .labelPreviewRow .stageMeta{width:260px!important;max-width:260px!important;min-width:240px!important;flex-direction:column!important;align-items:stretch!important}
+    .stageMeta .metaPill{width:100%!important;min-width:0!important;font-size:13px!important;padding:8px 10px!important;white-space:nowrap!important}
+    #objectPanel{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;width:100%!important;min-width:0!important}
+    body.beinvt-label-wrap #objectPanel{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+    .objectBtn{min-width:0!important;max-width:100%!important;white-space:normal!important;overflow:hidden!important;line-height:1.1!important}
+    .objectBtn span:first-child{overflow:hidden!important;text-overflow:ellipsis!important}
+    .settingsGroupTabs{display:flex!important;flex-wrap:wrap!important;gap:6px!important;margin:0 0 10px 0!important;padding:8px!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:12px!important;background:rgba(15,23,42,.95)!important;position:sticky!important;top:0!important;z-index:40!important}
+    .settingsGroupTab{border:1px solid rgba(255,255,255,.16)!important;border-radius:999px!important;background:rgba(255,255,255,.05)!important;color:#e5e7eb!important;padding:7px 10px!important;font-size:12px!important;font-weight:800!important;cursor:pointer!important;max-width:145px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+    .settingsGroupTab.active{border-color:#60a5fa!important;background:rgba(96,165,250,.22)!important;color:#fff!important}
+    .beinvt-settings-compact .section[data-settings-group].beinvt-hidden-section{display:none!important}
+    .beinvt-settings-compact .section[data-settings-group]{margin-bottom:10px!important;position:relative!important;z-index:1!important}
+    .beinvt-legacy-data-section{display:none!important}
+    .wrapTextInner{position:absolute!important;inset:0!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;overflow:hidden!important;white-space:normal!important;word-break:break-word!important;overflow-wrap:anywhere!important;line-height:.82!important;text-transform:uppercase!important;font-family:"Times New Roman",Georgia,serif!important;font-weight:900!important;padding:0 1px!important}
+    .wrapTextInner.leftText{justify-content:flex-start!important;text-align:left!important}
+    .wrapTextInner.smallText{line-height:.88!important}
+    .wrapTextInner.rootstockInner{text-transform:none!important;white-space:nowrap!important;line-height:.82!important}
+    .wrapTextInner .wrapOn{font-size:.62em!important;margin-right:.16em!important;text-transform:none!important;display:inline-block!important;vertical-align:baseline!important}
+    @media(max-width:1180px){.beinvt-main-shell{grid-template-columns:1fr!important;grid-template-rows:auto 1fr!important;height:auto!important;min-height:0!important;overflow:auto!important}.beinvt-main-shell > aside.panel,.beinvt-left-settings-panel{grid-column:1!important;grid-row:1!important;max-height:260px!important}.beinvt-main-shell > .stageWrap,.beinvt-stage-main{grid-column:1!important;grid-row:2!important;height:calc(100vh - 360px)!important;min-height:520px!important}body.beinvt-label-pot #canvasHost{grid-template-columns:1fr!important;grid-template-rows:minmax(340px,1fr) auto!important}body.beinvt-label-pot #stageDataWrap{grid-column:1!important;grid-row:1!important}body.beinvt-label-pot #stageLabelHost{grid-column:1!important;grid-row:2!important;min-height:320px!important}}
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-no-overlap-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
 if(localStorage.getItem("beinvtAppVersion") !== APP_VERSION){
   localStorage.removeItem("beinvtWorkingLayout_POT");
   localStorage.removeItem("beinvtWorkingLayout_WRAP");
@@ -246,19 +302,19 @@ function fallbackLayout(t){
     safeMarginPx:3,
     gridPx:4,
     objects:{
-      WO_QR:{x:2,y:5,w:38,h:38,rot:0,locked:false,visible:true},
-      WO:{x:42,y:2,w:68,h:14,rot:0,fontSize:14,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
-      CROP:{x:42,y:17,w:68,h:14,rot:0,fontSize:11,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
-      INTERNAL:{x:42,y:32,w:68,h:12,rot:0,fontSize:10,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
-      SCION:{x:114,y:1,w:238,h:15,rot:0,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      SCION_ROYALTY:{x:114,y:15,w:238,h:5,rot:0,fontSize:5,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ROOTSTOCK:{x:114,y:20,w:238,h:15,rot:0,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ROOTSTOCK_ROYALTY:{x:114,y:34,w:238,h:5,rot:0,fontSize:5,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      LOT:{x:114,y:39,w:238,h:4,rot:0,fontSize:4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ADDRESS:{x:114,y:43,w:238,h:4,rot:0,fontSize:4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      LOT_QR:{x:356,y:7,w:34,h:34,rot:0,locked:false,visible:true},
-      LOGO:{x:393,y:14,w:20,h:20,rot:0,locked:false,visible:true},
-      WARNING:{x:418,y:2,w:60,h:44,rot:0,fontSize:4.3,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"}
+      WO_QR:{x:2,y:6,w:36,h:36,rot:0,locked:false,visible:true},
+      WO:{x:41,y:3,w:69,h:12,rot:0,fontSize:13,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
+      CROP:{x:41,y:17,w:69,h:12,rot:0,fontSize:10,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
+      INTERNAL:{x:41,y:31,w:69,h:12,rot:0,fontSize:9,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
+      SCION:{x:114,y:2,w:240,h:16,rot:0,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      SCION_ROYALTY:{x:114,y:18,w:240,h:4,rot:0,fontSize:4.4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ROOTSTOCK:{x:114,y:22,w:240,h:16,rot:0,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ROOTSTOCK_ROYALTY:{x:114,y:38,w:240,h:4,rot:0,fontSize:4.4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      LOT:{x:114,y:42,w:240,h:3,rot:0,fontSize:3.4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ADDRESS:{x:114,y:45,w:240,h:3,rot:0,fontSize:3.4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      LOT_QR:{x:358,y:7,w:33,h:33,rot:0,locked:false,visible:true},
+      LOGO:{x:394,y:14,w:19,h:19,rot:0,locked:false,visible:true},
+      WARNING:{x:418,y:3,w:60,h:42,rot:0,fontSize:4.0,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"}
     }
   };
 }
@@ -448,7 +504,10 @@ function isRschRow(row){
 }
 function displayPotItem(row){
   const olive=/olive/i.test(row.crop||"");
-  let txt=olive?(derivedScion(row)||derivedRootstock(row)||"ITEM"):(derivedRootstock(row)||derivedScion(row)||"ITEM");
+  const scion=cleanDisplay(derivedScion(row));
+  const rootstock=cleanDisplay(derivedRootstock(row));
+  const crop=cleanDisplay(row.crop);
+  let txt=olive?(scion||rootstock||crop||"ITEM"):(rootstock||scion||crop||"ITEM");
   if(/^platinum\s+pistachio\s+rootstock$/i.test(String(txt||"").trim())) txt = "Platinum";
   return cap(txt);
 }
@@ -586,10 +645,73 @@ function applyPotAutoStack(){
 let __potTightenPass=false;
 function tightenPotLayoutAfterFit(){ return false; }
 
+function hasAnyId(sec,ids){
+  return ids.some(id=>sec.querySelector && sec.querySelector('#'+id));
+}
+function sectionContainsText(sec,patterns){
+  const t=String(sec&&sec.textContent||'').toLowerCase();
+  return patterns.some(p=>t.includes(String(p).toLowerCase()));
+}
+function isLegacyDataSection(sec){
+  if(!sec) return false;
+  if(sec.querySelector && (sec.querySelector('#rowsBody') || sec.querySelector('#rowsTable') || sec.querySelector('#search'))) return true;
+  const h=sec.querySelector && sec.querySelector('h1,h2,h3,h4,.sectionTitle,.title');
+  const title=String((h&&h.textContent)||sec.getAttribute('aria-label')||'').trim().toLowerCase();
+  return title==='data' && sectionContainsText(sec,['search labels','work order','activity']);
+}
+function hideLegacyDataSections(){
+  document.querySelectorAll('.section').forEach(sec=>{
+    if(isLegacyDataSection(sec)){
+      sec.classList.add('beinvt-legacy-data-section');
+      sec.style.display='none';
+    }
+  });
+}
+function ensureMainLayoutNoOverlap(){
+  const stage=document.querySelector('.stageWrap') || ($('canvasHost') && $('canvasHost').closest('.stageWrap'));
+  const panels=[...document.querySelectorAll('aside.panel,.panel.sidebar,.settingsPanel')];
+  const panel=panels.find(p=>p.querySelector('#objectPanel')||p.querySelector('#queueList')||p.querySelector('#presetSelect')||p.querySelector('#layoutJson'))||panels[0];
+  if(!stage||!panel||panel===stage||stage.contains(panel)) return;
+  let parent=stage.parentElement;
+  if(!parent) return;
+  try{
+    if(panel.parentElement!==parent) parent.insertBefore(panel,stage);
+    else if([...parent.children].indexOf(panel)>[...parent.children].indexOf(stage)) parent.insertBefore(panel,stage);
+  }catch(e){}
+  parent.classList.add('beinvt-main-shell');
+  stage.classList.add('beinvt-stage-main');
+  panel.classList.add('beinvt-left-settings-panel');
+  panel.style.position='relative';
+  panel.style.transform='none';
+  panel.style.float='none';
+  stage.style.position='relative';
+  stage.style.transform='none';
+  stage.style.float='none';
+}
+function classifySettingsSection(sec,idx){
+  if(!sec) return `Settings ${idx+1}`;
+  if(hasAnyId(sec,['objectPanel','selectedName'])) return 'Objects';
+  if(hasAnyId(sec,['x','y','w','h','rot','fontSize','centerH','centerV','centerBoth'])) return 'Object Position';
+  if(hasAnyId(sec,['safeToggle','gridToggle','gridPx','safeMargin','snapToggle','snapPx','snapGridToggle'])) return 'Guides & Snap';
+  if(hasAnyId(sec,['queueList','addCurrent','clearQueue'])) return 'Print Queue';
+  if(hasAnyId(sec,['presetSelect','savePreset','loadPreset','deletePreset'])) return 'Presets';
+  if(hasAnyId(sec,['layoutJson','exportLayout','importLayout','downloadLayout','resetLayout'])) return 'Layout JSON';
+  if(hasAnyId(sec,['printCalibration','saveCalibration','measuredW','measuredH'])) return 'Calibration';
+  if(hasAnyId(sec,['printLabel','printQueue','testMode'])) return 'Print Actions';
+  if(isLegacyDataSection(sec)) return 'Data';
+  const raw=(sec.querySelector('h1,h2,h3,h4,.sectionTitle,.title')||{}).textContent||sec.getAttribute('aria-label')||'';
+  const clean=String(raw||'').trim().replace(/\s+/g,' ');
+  if(clean && !/^settings\s*\d+$/i.test(clean)) return clean.slice(0,28);
+  const txt=String(sec.textContent||'').toLowerCase();
+  if(txt.includes('preset')) return 'Presets';
+  if(txt.includes('queue')) return 'Print Queue';
+  if(txt.includes('calibration')) return 'Calibration';
+  if(txt.includes('safe')||txt.includes('grid')||txt.includes('snap')) return 'Guides & Snap';
+  if(txt.includes('selected')||txt.includes('object')) return 'Objects';
+  return `Settings ${idx+1}`;
+}
 function settingsSectionTitle(sec,idx){
-  const heading=sec.querySelector("h1,h2,h3,h4,.sectionTitle,.title");
-  const raw=(heading&&heading.textContent)||sec.getAttribute("aria-label")||`Settings ${idx+1}`;
-  return String(raw||"").trim().replace(/\s+/g," ").slice(0,28)||`Settings ${idx+1}`;
+  return classifySettingsSection(sec,idx);
 }
 function activateSettingsGroup(idx){
   const tabs=document.querySelectorAll(".settingsGroupTab[data-settings-group]");
@@ -599,16 +721,22 @@ function activateSettingsGroup(idx){
   localStorage.setItem("beinvtSettingsGroup",String(idx));
 }
 function ensureSettingsGroups(){
+  hideLegacyDataSections();
   const panel=document.querySelector("aside.panel")||document.querySelector(".panel.sidebar")||document.querySelector(".settingsPanel");
-  if(!panel||panel.querySelector("#settingsGroupTabs")) return;
+  if(!panel) return;
   let sections=[];
-  try{ sections=[...panel.querySelectorAll(":scope > .section")]; }catch(e){ sections=[...panel.querySelectorAll(".section")]; }
-  sections=sections.filter(sec=>!sec.querySelector("#rowsBody")&&!sec.querySelector("#stageRowsTable")&&!sec.closest("#canvasHost"));
-  if(sections.length<3) return;
+  try{ sections=[...panel.querySelectorAll(":scope > .section")]; }catch(e){ sections=[...panel.querySelectorAll(".section")].filter(sec=>sec.parentElement===panel); }
+  sections=sections.filter(sec=>!isLegacyDataSection(sec)&&sec.style.display!=="none"&&!sec.classList.contains("beinvt-legacy-data-section")&&!sec.querySelector("#stageRowsTable")&&!sec.closest("#canvasHost"));
+  if(sections.length<2) return;
   panel.classList.add("beinvt-settings-compact");
-  const tabs=document.createElement("div");
-  tabs.id="settingsGroupTabs";
-  tabs.className="settingsGroupTabs";
+  let tabs=panel.querySelector("#settingsGroupTabs");
+  if(!tabs){
+    tabs=document.createElement("div");
+    tabs.id="settingsGroupTabs";
+    tabs.className="settingsGroupTabs";
+    panel.insertBefore(tabs,sections[0]);
+  }
+  tabs.innerHTML="";
   sections.forEach((sec,idx)=>{
     sec.dataset.settingsGroup=String(idx);
     const btn=document.createElement("button");
@@ -619,7 +747,6 @@ function ensureSettingsGroups(){
     btn.onclick=()=>activateSettingsGroup(idx);
     tabs.appendChild(btn);
   });
-  panel.insertBefore(tabs,sections[0]);
   const saved=Number(localStorage.getItem("beinvtSettingsGroup")||0);
   activateSettingsGroup(Number.isFinite(saved)&&saved>=0&&saved<sections.length?saved:0);
 }
@@ -628,6 +755,9 @@ function renderAll(){
   applyModeClass();
   removeGitHubWorkflowText();
   ensureModeTabs();
+  ensureStageShell();
+  hideLegacyDataSections();
+  ensureMainLayoutNoOverlap();
   ensureSettingsGroups();
   updateModeTabs();
   if($("labelType")) $("labelType").value=labelType;
@@ -657,8 +787,11 @@ function ensureStageShell(){
     const oldBody=$("rowsBody");
     if(oldBody){
       const oldSection=oldBody.closest(".section");
-      if(oldSection) oldSection.style.display="none";
+      if(oldSection){ oldSection.classList.add("beinvt-legacy-data-section"); oldSection.style.display="none"; }
+      else { const oldWrap=oldBody.closest("table,div"); if(oldWrap) oldWrap.style.display="none"; }
     }
+    hideLegacyDataSections();
+    ensureMainLayoutNoOverlap();
     const stageSearch=$("stageSearch");
     if(stageSearch){
       stageSearch.value=($("search")&&$("search").value)||"";
@@ -676,14 +809,21 @@ function effectiveStageZoom(requested,s,labelHost){
   if(!isFinite(z)||z<=0) z=1;
   const hostW=Math.max(1,(labelHost&&labelHost.clientWidth)||window.innerWidth||900);
   const hostH=Math.max(1,(labelHost&&labelHost.clientHeight)||window.innerHeight||500);
-  const metaW=labelType==="WRAP"?164:160;
-  const gap=18;
-  let maxByW=(hostW-metaW-gap-18)/Math.max(1,s.w);
-  const maxByH=(hostH-12)/Math.max(1,s.h);
-  const hardMax=labelType==="WRAP"?1.12:1.30;
-  if(labelType==="POT") maxByW=(hostW-metaW-gap-8)/Math.max(1,s.w);
-  const maxZ=Math.max(0.25,Math.min(hardMax,maxByW,maxByH));
-  return clamp(z,0.25,maxZ);
+  const metaW=labelType==="WRAP"?274:0;
+  const metaH=labelType==="POT"?92:0;
+  const gap=labelType==="WRAP"?18:10;
+  const pad=26;
+  let maxByW=(hostW-metaW-gap-pad)/Math.max(1,s.w);
+  let maxByH=(hostH-metaH-gap-pad)/Math.max(1,s.h);
+  const hardMax=labelType==="WRAP"?1.08:1.18;
+  if(labelType==="POT"){
+    maxByW=(hostW-pad)/Math.max(1,s.w);
+    maxByH=(hostH-metaH-gap-pad)/Math.max(1,s.h);
+  }
+  const maxZ=Math.max(0.22,Math.min(hardMax,maxByW,maxByH));
+  const out=clamp(z,0.22,maxZ);
+  if($('zoom') && Number($('zoom').value)>maxZ) $('zoom').title=`Zoom is capped at ${maxZ.toFixed(2)} so the layout does not overlap or create extra scrollbars.`;
+  return out;
 }
 
 function renderCanvas(){
@@ -1232,18 +1372,26 @@ function applyControls(){
 
 function centerSelected(axis){
   pushHistory();
-  const o=layout.objects[selectedId],b=labelBounds();
+  const o=layout.objects[selectedId],b=labelBounds(),limH=activeBottomLimit();
   if(axis==="h"||axis==="both")o.x=Math.round((b.w-o.w)/2);
-  if(axis==="v"||axis==="both")o.y=Math.round((b.h-o.h)/2);
+  if(axis==="v"||axis==="both")o.y=Math.round((limH-o.h)/2);
+  clampObject(selectedId);
   saveWorkingLayout();
   renderAll();
 }
 
 
 function cellText(v){ return escapeHtml(capClean(v)); }
+function isExcludedPotActivity(act){
+  const a=String(act||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  return /pres*ships*sorting/.test(a) || /shippings*request/.test(a) || /propagations*materials*processing/.test(a);
+}
+function potTableItemText(r){
+  return cleanDisplay(derivedRootstock(r)) || cleanDisplay(displayPotItem(r)) || cleanDisplay(derivedScion(r)) || cleanDisplay(r.crop);
+}
 function buildRowHtml(r){
   if(labelType==="POT"){
-    return `<td>${cellText(r.wo)}</td><td>${cellText(r.act)}</td><td>${cellText(derivedRootstock(r)||displayPotItem(r)||"")}</td><td>${cellText(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
+    return `<td>${cellText(r.wo)}</td><td>${cellText(r.act)}</td><td>${cellText(potTableItemText(r))}</td><td>${cellText(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
   }
   return `<td>${cellText(r.wo)}</td><td>${cellText(r.crop)}</td><td>${cellText(wrapScionText(r))}</td><td>${cellText(wrapRootstockText(r))}</td><td>${cellText(r.internalId)}</td><td>${cellText(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
 }
@@ -1268,12 +1416,15 @@ function renderRows(){
   const q=(($("stageSearch")&&$("stageSearch").value)||($("search")&&$("search").value)||"").toLowerCase();
   if($("search") && $("stageSearch") && $("search").value!==$("stageSearch").value) $("search").value=$("stageSearch").value;
   filteredRows=rows.filter(r=>{
-    if(labelType==="POT" && cleanDisplay(r.scion)) return false;
+    if(labelType==="POT"){
+      if(cleanDisplay(r.scion)) return false;
+      if(isExcludedPotActivity(r.act)) return false;
+    }
     return Object.values(r).join(" ").toLowerCase().includes(q);
   });
   if(currentRowIndex>=filteredRows.length)currentRowIndex=0;
   const headerHtml=labelType==="POT"
-    ? "<th style='width:17%'>WO</th><th style='width:25%'>Activity</th><th style='width:28%'>Item / Rootstock</th><th style='width:14%'>Color</th><th style='width:10%'>Labels</th><th style='width:6%'></th>"
+    ? "<th style='width:14%'>WO</th><th style='width:22%'>Activity</th><th style='width:34%'>Item / Rootstock</th><th style='width:14%'>Color</th><th style='width:10%'>Labels</th><th style='width:6%'></th>"
     : "<th style='width:12%'>WO</th><th style='width:12%'>Crop</th><th style='width:20%'>Scion</th><th style='width:20%'>Rootstock</th><th style='width:12%'>Internal ID</th><th style='width:10%'>Color</th><th style='width:8%'>Labels</th><th style='width:6%'></th>";
   const stageHead=$("stageRowsHead");
   if(stageHead) stageHead.innerHTML=headerHtml;
@@ -1442,6 +1593,9 @@ function bindDirectionalButtons(){
 
 function initEvents(){
   ensureModeTabs();
+  ensureStageShell();
+  hideLegacyDataSections();
+  ensureMainLayoutNoOverlap();
   ensureSettingsGroups();
   removeGitHubWorkflowText();
   bindDirectionalButtons();
