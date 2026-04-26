@@ -805,10 +805,14 @@ function dockStageAwayFromLeftPanel() {
   const correction = Math.ceil(targetLeft - sr.left);
   if (correction > 0) stage.style.marginLeft = correction + "px";
 
-  const desiredWidth = Math.max(700, pageRight - targetLeft + 100);
-  stage.style.width = desiredWidth + "px";
-  stage.style.maxWidth = desiredWidth + "px";
-  stage.style.flexBasis = desiredWidth + "px";
+ const OUTER_CARD_EXTRA_WIDTH = 160; // increase this number to make the outer layer wider
+
+const desiredWidth = Math.max(640, pageRight - targetLeft + OUTER_CARD_EXTRA_WIDTH);
+
+stage.style.width = desiredWidth + "px";
+stage.style.maxWidth = desiredWidth + "px";
+stage.style.flexBasis = desiredWidth + "px";
+stage.style.minWidth = desiredWidth + "px";
 
   const host = $("canvasHost");
   if (host) {
