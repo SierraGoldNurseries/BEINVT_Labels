@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.16-width-authority-debug-lock";
+const APP_VERSION = "8.6.17-left-panel-730-smaller-pills";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -25,6 +25,7 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - v8.6.14: debug W/H fields no longer refresh while typing, and A manual debug width is not capped.
   - v8.6.16: width authority is T top menu minus L left panel; top-menu right edge is no longer clipped to viewport.
   - v8.6.16: debug panel stops auto-refresh while interacting, so Set buttons cannot be destroyed before click.
+  - v8.6.17: left settings panel is 730px wide in both templates; preview meta pills are 10% smaller.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -50,7 +51,7 @@ const OUTER_CARD_SIZE_CONFIG = {
   applyTo: ["POT", "WRAP"]
 };
 const LAYER_DEBUG_CONFIG = {
-  enabled: true,
+  enabled: false,
   movable: true,
   rememberPosition: true,
   defaultLeft: 18,
@@ -164,7 +165,7 @@ function sizePx(type = labelType) {
     .modeTab.active{border-color:#7da2ff;background:rgba(96,165,250,.22);color:#fff}
     #zoom{accent-color:#7c6cff}
 
-    aside.panel,.panel.sidebar,.settingsPanel{height:1177px!important;min-height:0!important;max-height:1177px!important;overflow:auto!important;background:#121429!important;border-right:1px solid rgba(255,255,255,.14)!important;width:540px!important;min-width:540px!important;max-width:540px!important;flex:0 0 540px!important}
+    aside.panel,.panel.sidebar,.settingsPanel{height:1177px!important;min-height:0!important;max-height:1177px!important;overflow:auto!important;background:#121429!important;border-right:1px solid rgba(255,255,255,.14)!important;width:730px!important;min-width:730px!important;max-width:730px!important;flex:0 0 730px!important}
     .beinvtSettingsPanel{display:flex;flex-direction:column;gap:8px;padding:8px 10px 12px;min-height:100%}
     .beinvtCard{border:1px solid rgba(255,255,255,.14);background:#14162d;border-radius:13px;overflow:hidden;flex:0 0 auto;box-shadow:0 8px 24px rgba(0,0,0,.15)}
     .beinvtCardHeader{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.12);font-weight:900;color:#fff;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -221,11 +222,11 @@ function sizePx(type = labelType) {
     .labelPreviewRow{display:flex;align-items:center;justify-content:center;gap:8px;max-width:100%;max-height:100%;min-width:0;overflow:visible}
     body.beinvt-label-pot .labelPreviewRow{flex-direction:column;gap:6px}
     body.beinvt-label-wrap .labelPreviewRow{flex-direction:row;gap:8px}
-    .stageMeta{display:flex;gap:8px;align-items:stretch;justify-content:center;min-width:220px;max-width:340px;padding:8px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:#171a35;color:#e5e7eb;position:relative;z-index:20;box-shadow:0 10px 28px rgba(0,0,0,.22)}
-    body.beinvt-label-pot .stageMeta{width:min(100%,320px);flex-direction:column}
-    body.beinvt-label-wrap .stageMeta{width:205px;flex-direction:column;flex:0 0 205px}
-    .stageMeta .metaPill{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 10px;border-radius:11px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);font-size:12px;line-height:1.15;font-weight:800;white-space:nowrap}
-    .stageMeta b{font-size:13px;color:#fff}
+    .stageMeta{display:flex;gap:7px;align-items:stretch;justify-content:center;min-width:198px;max-width:306px;padding:7px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:#171a35;color:#e5e7eb;position:relative;z-index:20;box-shadow:0 10px 28px rgba(0,0,0,.22)}
+    body.beinvt-label-pot .stageMeta{width:min(100%,288px);flex-direction:column}
+    body.beinvt-label-wrap .stageMeta{width:185px;flex-direction:column;flex:0 0 185px}
+    .stageMeta .metaPill{display:flex;justify-content:space-between;gap:9px;align-items:center;padding:7px 9px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);font-size:11px;line-height:1.12;font-weight:800;white-space:nowrap}
+    .stageMeta b{font-size:12px;color:#fff}
     .stageFrame{position:relative;flex:0 0 auto;display:block;overflow:visible}
     .stageInner{position:absolute;left:0;top:0;transform-origin:left top}
     .labelCanvas{background:#fff;color:#000;position:relative;overflow:hidden;border:1px solid rgba(0,0,0,.55);box-shadow:0 18px 46px rgba(0,0,0,.42)}
@@ -246,7 +247,7 @@ function sizePx(type = labelType) {
     #gridSection .compactGrid{grid-template-columns:1fr 1fr 1fr auto;align-items:end}
     #gridSection .field label{min-height:14px}
     #stageRowsTable td,#stageRowsTable th{font-size:12px}
-    @media(max-width:1100px){aside.panel,.panel.sidebar,.settingsPanel{width:440px!important;min-width:440px!important;max-width:440px!important;flex-basis:440px!important}#canvasHost{flex-direction:column!important}body.beinvt-label-pot #stageDataWrap{flex:0 0 clamp(300px,52vh,560px);min-width:0;width:100%}body.beinvt-label-pot #stageLabelHost{flex:1 1 auto;width:100%}.compactGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.checkRow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:1100px){aside.panel,.panel.sidebar,.settingsPanel{width:730px!important;min-width:730px!important;max-width:730px!important;flex-basis:730px!important}#canvasHost{flex-direction:column!important}body.beinvt-label-pot #stageDataWrap{flex:0 0 clamp(300px,52vh,560px);min-width:0;width:100%}body.beinvt-label-pot #stageLabelHost{flex:1 1 auto;width:100%}.compactGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.checkRow{grid-template-columns:repeat(2,minmax(0,1fr))}}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-clean-css", "1");
@@ -409,6 +410,11 @@ function sizePx(type = labelType) {
     /* v8.6.16 final overrides. Keep L + A aligned to T and set requested fixed debug dimensions. */
     body.beinvt-label-pot aside.panel,body.beinvt-label-pot .panel.sidebar,body.beinvt-label-pot .settingsPanel,
     body.beinvt-label-wrap aside.panel,body.beinvt-label-wrap .panel.sidebar,body.beinvt-label-wrap .settingsPanel{
+      width:730px!important;
+      min-width:730px!important;
+      max-width:730px!important;
+      flex:0 0 730px!important;
+      flex-basis:730px!important;
       height:1177px!important;
       min-height:1177px!important;
       max-height:1177px!important;
@@ -467,6 +473,58 @@ function sizePx(type = labelType) {
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v867-layer-debug-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
+
+(function injectLeftPanel730MetaPillsV8617Css(){
+  const css = `
+    /* v8.6.17: fixed requested left panel width and smaller label-color/qty pills. */
+    body.beinvt-label-pot aside.panel,
+    body.beinvt-label-pot .panel.sidebar,
+    body.beinvt-label-pot .settingsPanel,
+    body.beinvt-label-wrap aside.panel,
+    body.beinvt-label-wrap .panel.sidebar,
+    body.beinvt-label-wrap .settingsPanel{
+      width:730px!important;
+      min-width:730px!important;
+      max-width:730px!important;
+      flex:0 0 730px!important;
+      flex-basis:730px!important;
+      height:1177px!important;
+      min-height:1177px!important;
+      max-height:1177px!important;
+    }
+    .stageMeta{
+      gap:7px!important;
+      min-width:198px!important;
+      max-width:306px!important;
+      padding:7px!important;
+      border-radius:13px!important;
+    }
+    body.beinvt-label-pot .stageMeta{
+      width:min(100%,288px)!important;
+      flex-direction:column!important;
+    }
+    body.beinvt-label-wrap .stageMeta{
+      width:185px!important;
+      flex:0 0 185px!important;
+      flex-direction:column!important;
+    }
+    .stageMeta .metaPill{
+      gap:9px!important;
+      padding:7px 9px!important;
+      border-radius:10px!important;
+      font-size:11px!important;
+      line-height:1.12!important;
+    }
+    .stageMeta b{
+      font-size:12px!important;
+    }
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-v8617-left-panel-730-meta-pills", "1");
   tag.textContent = css;
   document.head.appendChild(tag);
 })();
