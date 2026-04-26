@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.27-logo-width-row-negative-x";
+const APP_VERSION = "8.6.28-row-left-align-no-negative-x";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -37,6 +37,7 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - v8.6.25: Field left object is renamed Row; Row text prints as one sideways word instead of stacked R/O/W.
   - v8.6.26: Field Row default X is -2; Finished Trees/Field SG Logo height is 50; left pane height is synced to the right stage bottom.
   - v8.6.27: Finished Trees/Field SG Logo defaults to x=390 and width=30; Field Row object can use negative X values.
+  - v8.6.28: Field Row no longer allows negative X; Row text is left-aligned inside the Row object instead.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -708,7 +709,7 @@ function sizePx(type = labelType) {
     body.beinvt-stage-fixed.beinvt-label-pot #stageLabelHost{flex:0 0 360px!important;width:360px!important;min-width:360px!important;max-width:360px!important;height:100%!important}
     body.beinvt-stage-fixed.beinvt-label-wrap #stageDataWrap{width:100%!important;max-width:none!important;flex:0 0 clamp(390px,54vh,700px)!important}
     body.beinvt-stage-fixed.beinvt-label-wrap #stageLabelHost{width:100%!important;max-width:none!important;flex:1 1 auto!important}
-    .fieldRowText{font-size:13px!important;line-height:1!important;letter-spacing:0!important;padding:0!important;writing-mode:horizontal-tb!important;text-orientation:mixed!important;transform:rotate(-90deg)!important;white-space:nowrap!important;overflow:visible!important}
+    .fieldRowText{font-size:13px!important;line-height:1!important;letter-spacing:0!important;padding:2px 0 0 0!important;writing-mode:horizontal-tb!important;text-orientation:mixed!important;transform:rotate(-90deg)!important;white-space:nowrap!important;overflow:visible!important;text-align:left!important}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v8624-stable-stage-field-row-css", "1");
@@ -739,7 +740,7 @@ function fallbackLayout(type) {
     gridPx: 4,
     snapPx: 5,
     objects: {
-      WO_QR: { x: type === "FIELD" ? -2 : 4, y: type === "FIELD" ? 2 : 7, w: 34, h: type === "FIELD" ? 44 : 34, rot: 0, fontSize: type === "FIELD" ? 13 : undefined, locked: false, visible: true },
+      WO_QR: { x: type === "FIELD" ? 0 : 4, y: type === "FIELD" ? 2 : 7, w: 34, h: type === "FIELD" ? 44 : 34, rot: 0, fontSize: type === "FIELD" ? 13 : undefined, locked: false, visible: true },
       WO: { x: 42, y: 2, w: 72, h: 13, rot: 0, fontSize: 13, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
       CROP: { x: 42, y: 16, w: 72, h: 11, rot: 0, fontSize: 9, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
       INTERNAL: { x: 42, y: 29, w: 72, h: 12, rot: 0, fontSize: 10, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
@@ -769,7 +770,7 @@ function normalizeLayout(src) {
     out.objects = clone(base.objects);
   }
   if (type === "FIELD" && out.objects && out.objects.WO_QR) {
-    out.objects.WO_QR.x = -2;
+    out.objects.WO_QR.x = 0;
     out.objects.WO_QR.y = 2;
     out.objects.WO_QR.w = 34;
     out.objects.WO_QR.h = 44;
@@ -2784,9 +2785,12 @@ function makeFieldRowInner(holder, o) {
   inner.style.width = boxH + "px";
   inner.style.height = boxW + "px";
   inner.style.display = "flex";
-  inner.style.alignItems = "center";
+  // v8.6.28: align the sideways ROW word toward the visual left edge of the box.
+  // Because the word is rotated -90deg, flex-start on the pre-rotated cross-axis
+  // places it to the left visually while keeping ROW as one sideways word.
+  inner.style.alignItems = "flex-start";
   inner.style.justifyContent = "center";
-  inner.style.textAlign = "center";
+  inner.style.textAlign = "left";
   inner.style.fontFamily = "Times New Roman, Georgia, serif";
   inner.style.fontWeight = "900";
   inner.style.fontSize = fs + "px";
@@ -2798,7 +2802,7 @@ function makeFieldRowInner(holder, o) {
   inner.style.letterSpacing = "0";
   inner.style.transformOrigin = "center center";
   inner.style.transform = "rotate(-90deg)";
-  inner.style.padding = "0";
+  inner.style.padding = "2px 0 0 0";
   holder.appendChild(inner);
   return holder;
 }
@@ -3061,10 +3065,8 @@ function clampObject(id) {
   const limH = activeBottomLimit();
   o.w = clamp(Number(o.w || 10), 4, b.w);
   o.h = clamp(Number(o.h || 10), 4, limH);
-  // v8.6.27: Field Labels ROW marker needs to sit slightly off the left edge.
-  // Keep all other objects constrained at 0.
-  const minX = (labelType === "FIELD" && id === "WO_QR") ? -20 : 0;
-  o.x = clamp(Number(o.x || 0), minX, Math.max(minX, b.w - o.w));
+  // v8.6.28: Keep Row / WO_QR inside the label bounds; use left-aligned Row text instead of negative X.
+  o.x = clamp(Number(o.x || 0), 0, Math.max(0, b.w - o.w));
   o.y = clamp(Number(o.y || 0), 0, Math.max(0, limH - o.h));
 }
 function clampAllObjects() {
