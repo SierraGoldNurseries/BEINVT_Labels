@@ -60,7 +60,7 @@ const OUTER_CARD_SIZE_CONFIG = {
   applyTo: ["POT", "WRAP", "FIELD"]
 };
 const LAYER_DEBUG_CONFIG = {
-  enabled: false,
+  enabled: true,
   movable: true,
   rememberPosition: true,
   defaultLeft: 18,
