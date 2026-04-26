@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.4-geneva-rootstock-logo";
+const APP_VERSION = "8.6.5-geneva-logo-full-width";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -6,7 +6,7 @@ const LABEL_SIZES = {
 };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
 const GENEVA_SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=260263&c=11150895&h=NMkHvroppy8Yi93204J1rZiq_7V-dJBmcFNuScfEc2hRzqB9";
-const GENEVA_LOGO_SHIFT_Y = -7;
+const GENEVA_LOGO_SHIFT_Y = -1;
 const WRAP_ADDRESS = "SIERRA GOLD NURSERIES YUBA CITY, CA 95991";
 const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTINGS\nWHETHER FOR SALE\nOR OWN USE IS\nPROHIBITED UNDER\nU.S. PLANT PATENT LAWS.\nSALES OUTSIDE THE\nU.S. ARE PROHIBITED.";
 
@@ -244,6 +244,31 @@ function sizePx(type = labelType) {
   document.head.appendChild(tag);
 })();
 
+(function injectStageEdgeV865Css(){
+  const css = `
+    /* v8.6.5: use more of the right-side page width and tighten the stage gutters. */
+    .stageWrap{padding:1px!important;gap:2px!important}
+    #canvasHost{gap:2px!important}
+    #stageDataWrap,#stageLabelHost{min-width:0!important}
+
+    body.beinvt-label-pot #stageDataWrap{flex:1 1 auto!important;width:auto!important;min-width:0!important;max-width:none!important}
+    body.beinvt-label-pot #stageLabelHost{flex:0 0 clamp(290px,20vw,360px)!important;min-width:290px!important;max-width:360px!important;justify-content:flex-end!important;align-items:center!important;padding:2px 4px 2px 1px!important}
+    body.beinvt-label-pot #stageLabelHost .stageStack{width:100%!important;max-width:100%!important;align-items:flex-end!important}
+    body.beinvt-label-pot .stageMeta{width:min(100%,300px)!important;max-width:300px!important}
+
+    body.beinvt-label-wrap #stageDataWrap{width:100%!important;max-width:none!important;flex:0 0 clamp(400px,56vh,740px)!important}
+    body.beinvt-label-wrap #stageLabelHost{width:100%!important;max-width:none!important;flex:1 1 auto!important;justify-content:center!important;align-items:center!important;padding:2px 4px 6px!important}
+    body.beinvt-label-wrap #stageLabelHost .stageStack{width:100%!important;max-width:100%!important;align-items:center!important}
+    body.beinvt-label-wrap .stageMeta{flex:0 0 190px!important;width:190px!important}
+    body.beinvt-label-wrap .labelPreviewRow{width:100%!important;max-width:100%!important;justify-content:center!important;gap:8px!important}
+    body.beinvt-label-wrap .stageFrame{max-width:calc(100% - 198px)!important}
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-v865-stage-edge-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
 function fallbackLayout(type) {
   if (type === "POT") {
     return {
@@ -278,7 +303,7 @@ function fallbackLayout(type) {
       LOT: { x: 119, y: 37, w: 234, h: 6, rot: 0, fontSize: 5, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       ADDRESS: { x: 119, y: 43, w: 234, h: 5, rot: 0, fontSize: 4.6, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       LOT_QR: { x: 359, y: 7, w: 34, h: 34, rot: 0, locked: false, visible: true },
-      LOGO: { x: 399, y: 15, w: 18, h: 18, rot: 0, locked: false, visible: true },
+      LOGO: { x: 399, y: 4, w: 18, h: 40, rot: 0, locked: false, visible: true },
       WARNING: { x: 420, y: 2, w: 58, h: 44, rot: 0, fontSize: 3.2, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" }
     }
   };
@@ -764,9 +789,9 @@ function dockStageAwayFromLeftPanel() {
   // to run all the way to the toolbar/page right edge. This keeps the gap tiny,
   // prevents overlap, and gives the table/label all remaining horizontal space.
   const topbar = document.querySelector(".topbar,.toolbar,header");
-  const pageRight = Math.floor((topbar && topbar.getBoundingClientRect().right) || window.innerWidth || document.documentElement.clientWidth || 1200) - 3;
+  const pageRight = Math.floor((topbar && topbar.getBoundingClientRect().right) || window.innerWidth || document.documentElement.clientWidth || 1200) - 1;
   const pr = panel.getBoundingClientRect();
-  const targetLeft = Math.ceil(pr.right + 3);
+  const targetLeft = Math.ceil(pr.right + 1);
 
   stage.style.boxSizing = "border-box";
   stage.style.marginLeft = "0px";
@@ -780,7 +805,7 @@ function dockStageAwayFromLeftPanel() {
   const correction = Math.ceil(targetLeft - sr.left);
   if (correction > 0) stage.style.marginLeft = correction + "px";
 
-  const desiredWidth = Math.max(640, pageRight - targetLeft);
+  const desiredWidth = Math.max(700, pageRight - targetLeft + 1);
   stage.style.width = desiredWidth + "px";
   stage.style.maxWidth = desiredWidth + "px";
   stage.style.flexBasis = desiredWidth + "px";
@@ -923,8 +948,8 @@ function applyZoomSliderCap(labelHost) {
   const host = labelHost || $("stageLabelHost");
   const hostW = Math.max(1, (host && host.clientWidth) || window.innerWidth || 900);
   const hostH = Math.max(1, (host && host.clientHeight) || window.innerHeight || 500);
-  const metaW = labelType === "WRAP" ? 215 : 0;
-  const metaH = labelType === "POT" ? 118 : 0;
+  const metaW = labelType === "WRAP" ? 200 : 0;
+  const metaH = labelType === "POT" ? 112 : 0;
   const availableW = labelType === "WRAP" ? hostW - metaW - 22 : hostW - 12;
   const availableH = labelType === "POT" ? hostH - metaH - 16 : hostH - 12;
   const maxByW = availableW / Math.max(1, s.w);
