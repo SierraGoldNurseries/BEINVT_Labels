@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.32-color-config-centered-zoom";
+const APP_VERSION = "8.6.33-theme-toggle-aligned-meta";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -28,7 +28,9 @@ const WRAP_LIKE_PREVIEW_CONFIG = {
   metaBelowHeightPx: 44,
   // Center keeps Finished Trees / Field / Shipping zoom-out anchored in the middle.
   // Use "left" only if you intentionally want the label preview locked to the left edge.
-  previewAlign: "center"
+  previewAlign: "center",
+  // Keep the label color/qty row glued to the label width when objects pane is hidden/shown.
+  metaLockToLabelWidth: true
 };
 
 // Shared color config for ALL templates: Pot Stakes, Finished Trees, Field Labels, Shipping Labels.
@@ -66,6 +68,14 @@ const LABEL_COLOR_CONFIG = {
 const OUTER_CARD_EXTRA_WIDTH = 0;
 const TABLE_CARD_WIDTH_EXTRA_BY_LABEL = { POT: 196, WRAP: 194, FIELD: 194, SHIP: 194 }; // reference: target missing width; actual layout now fills to top menu right edge
 const DEBUG_LAYER_LABELS_DEFAULT = false;
+
+// UI theme config. Default is dark; the top-bar switch toggles light mode.
+const UI_THEME_CONFIG = {
+  storageKey: "beinvtUiTheme",
+  defaultTheme: "dark",
+  lightEmoji: "☀️",
+  darkEmoji: "🌙"
+};
 
 /*
   v8.6.13 config:
@@ -843,6 +853,59 @@ function sizePx(type = labelType) {
   document.head.appendChild(tag);
 })();
 
+(function injectThemeAndAlignedMetaV8633Css(){
+  const css = `
+    /* v8.6.33 theme switch + fixed wrap-like preview/meta alignment. */
+    .beinvtThemeSwitch{
+      position:relative!important;display:inline-flex!important;align-items:center!important;gap:6px!important;
+      width:58px!important;height:28px!important;padding:2px!important;border-radius:999px!important;
+      border:1px solid rgba(255,255,255,.26)!important;background:#0b1024!important;color:#fff!important;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.04),0 2px 10px rgba(0,0,0,.24)!important;
+      cursor:pointer!important;vertical-align:middle!important;overflow:hidden!important;
+    }
+    .beinvtThemeSwitch .trackEmoji{position:absolute!important;z-index:1!important;font-size:13px!important;line-height:1!important;opacity:.75!important;top:7px!important}
+    .beinvtThemeSwitch .moon{left:8px!important}.beinvtThemeSwitch .sun{right:8px!important}
+    .beinvtThemeSwitch .knob{
+      position:absolute!important;z-index:2!important;left:3px!important;top:3px!important;width:22px!important;height:22px!important;
+      border-radius:999px!important;background:#111827!important;color:#facc15!important;display:flex!important;align-items:center!important;justify-content:center!important;
+      font-size:12px!important;box-shadow:0 2px 8px rgba(0,0,0,.45)!important;transition:transform .18s ease,background .18s ease,color .18s ease!important;
+    }
+    .beinvtThemeSwitch.light{background:#e5e7eb!important;border-color:rgba(17,24,39,.20)!important;color:#111827!important}
+    .beinvtThemeSwitch.light .knob{transform:translateX(30px)!important;background:#ffffff!important;color:#eab308!important}
+    body.beinvt-light-theme{background:#f4f7fb!important;color:#111827!important}
+    body.beinvt-light-theme .topbar,body.beinvt-light-theme .toolbar,body.beinvt-light-theme header{background:#ffffff!important;color:#111827!important;border-color:rgba(15,23,42,.14)!important}
+    body.beinvt-light-theme .stageWrap,body.beinvt-light-theme #canvasHost{background:#edf2f7!important;color:#111827!important}
+    body.beinvt-light-theme #stageDataWrap,body.beinvt-light-theme #stageLabelHost,body.beinvt-light-theme .beinvtCard,body.beinvt-light-theme .settingsPanel,body.beinvt-light-theme aside.panel,body.beinvt-light-theme .panel.sidebar{background:#ffffff!important;color:#111827!important;border-color:rgba(15,23,42,.16)!important}
+    body.beinvt-light-theme table,body.beinvt-light-theme tr,body.beinvt-light-theme td,body.beinvt-light-theme th{color:#111827!important;border-color:rgba(15,23,42,.12)!important}
+    body.beinvt-light-theme tr.active,body.beinvt-light-theme tbody tr.active{background:#dbeafe!important;color:#111827!important}
+    body.beinvt-light-theme input,body.beinvt-light-theme select,body.beinvt-light-theme textarea{background:#ffffff!important;color:#111827!important;border-color:rgba(15,23,42,.18)!important}
+    body.beinvt-light-theme .modeTab,body.beinvt-light-theme button{background:#ffffff!important;color:#111827!important;border-color:rgba(15,23,42,.22)!important}
+    body.beinvt-light-theme .modeTab.active,body.beinvt-light-theme button.good{background:#dbeafe!important;border-color:#2563eb!important;color:#0f172a!important}
+    body.beinvt-light-theme .stageMeta{background:#ffffff!important;color:#111827!important;border-color:rgba(15,23,42,.18)!important}
+    body.beinvt-light-theme .stageMeta .metaPill:not(.colorPill){background:#eef2ff!important;color:#111827!important;border-color:rgba(15,23,42,.14)!important}
+
+    body.beinvt-label-wrap #stageLabelHost{align-items:center!important;justify-content:center!important;overflow:hidden!important}
+    body.beinvt-label-wrap #stageLabelHost .stageStack{width:100%!important;max-width:100%!important;align-items:center!important;justify-content:center!important;overflow:visible!important}
+    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow{
+      flex-direction:column!important;align-items:center!important;justify-content:center!important;
+      width:100%!important;max-width:100%!important;overflow:visible!important;margin:0 auto!important;
+    }
+    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow .stageFrame{
+      max-width:none!important;align-self:center!important;flex:0 0 auto!important;margin-left:auto!important;margin-right:auto!important;
+      transform-origin:center center!important;
+    }
+    body.beinvt-label-wrap .stageMeta.stageMetaBelowLabel{
+      align-self:center!important;margin-left:auto!important;margin-right:auto!important;transform-origin:top center!important;
+    }
+    body.beinvt-objects-pane-hidden.beinvt-label-wrap #stageLabelHost .stageStack,
+    body.beinvt-stage-fixed.beinvt-label-wrap #stageLabelHost .stageStack{align-items:center!important;justify-content:center!important}
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-v8633-theme-aligned-meta-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
 function fallbackLayout(type) {
   if (type === "POT") {
     return {
@@ -1412,7 +1475,66 @@ function cleanupTopbarExtraText() {
     node.nodeValue = txt;
   });
 }
+function removeWorstCaseTestButton() {
+  const selectors = ["#testMode", "[data-testid='testMode']", "[data-mode='TEST']"].join(",");
+  document.querySelectorAll(selectors).forEach(el => el.remove());
+  document.querySelectorAll("button,a,span,label,div").forEach(el => {
+    if (!el || ["SCRIPT", "STYLE"].includes(el.tagName)) return;
+    const txt = String(el.textContent || "").trim();
+    if (/worst[-\s]*case\s*test/i.test(txt)) {
+      const btn = el.closest("button") || el;
+      btn.remove();
+    }
+  });
+}
+function applyThemeClass() {
+  if (!document.body) return;
+  document.body.classList.toggle("beinvt-light-theme", uiTheme === "light");
+  document.body.classList.toggle("beinvt-dark-theme", uiTheme !== "light");
+}
+function setUiTheme(nextTheme) {
+  uiTheme = String(nextTheme || "dark").toLowerCase() === "light" ? "light" : "dark";
+  localStorage.setItem(UI_THEME_CONFIG.storageKey, uiTheme);
+  applyThemeClass();
+  updateThemeToggleButton();
+}
+function toggleUiTheme() {
+  setUiTheme(uiTheme === "light" ? "dark" : "light");
+}
+function updateThemeToggleButton() {
+  const btn = $("beinvtThemeToggleBtn");
+  if (!btn) return;
+  const isLight = uiTheme === "light";
+  btn.classList.toggle("light", isLight);
+  btn.setAttribute("aria-label", isLight ? "Switch to dark theme" : "Switch to light theme");
+  btn.setAttribute("title", isLight ? "Switch to dark theme" : "Switch to light theme");
+  const knob = btn.querySelector(".knob");
+  if (knob) knob.textContent = isLight ? UI_THEME_CONFIG.lightEmoji : UI_THEME_CONFIG.darkEmoji;
+}
+function findTopbarButtonByText(pattern) {
+  const rx = pattern instanceof RegExp ? pattern : new RegExp(String(pattern || ""), "i");
+  return [...document.querySelectorAll("button,a")].find(el => rx.test(String(el.textContent || "").trim()));
+}
+function ensureThemeToggleButton() {
+  const printQueueBtn = $("printQueue") || findTopbarButtonByText(/^print\s+queue$/i);
+  const parent = (printQueueBtn && printQueueBtn.parentNode) || (($("modeTabs") && $("modeTabs").parentNode) || null);
+  if (!parent) return;
+  let btn = $("beinvtThemeToggleBtn");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.id = "beinvtThemeToggleBtn";
+    btn.type = "button";
+    btn.className = "beinvtThemeSwitch";
+    btn.innerHTML = `<span class="trackEmoji moon">${UI_THEME_CONFIG.darkEmoji}</span><span class="trackEmoji sun">${UI_THEME_CONFIG.lightEmoji}</span><span class="knob"></span>`;
+    btn.onclick = toggleUiTheme;
+  }
+  if (printQueueBtn && printQueueBtn.nextSibling !== btn) parent.insertBefore(btn, printQueueBtn.nextSibling);
+  else if (!btn.parentNode) parent.appendChild(btn);
+  updateThemeToggleButton();
+}
 function applyModeClass() {
+  applyThemeClass();
+  removeWorstCaseTestButton();
   document.body.classList.toggle("beinvt-label-pot", labelType === "POT");
   document.body.classList.toggle("beinvt-label-wrap", isWrapLikeMode(labelType));
   document.body.classList.toggle("beinvt-label-field", labelType === "FIELD");
@@ -1633,6 +1755,8 @@ function updateTopbarUtilityButtons() {
     guidesBtn.textContent = showObjectGuides ? "Hide Guides" : "Show Guides";
     guidesBtn.classList.toggle("good", !showObjectGuides);
   }
+  updateThemeToggleButton();
+  removeWorstCaseTestButton();
 }
 function ensureTopbarUtilityButtons(anchor) {
   const parent = anchor && anchor.parentNode;
@@ -1655,6 +1779,7 @@ function ensureTopbarUtilityButtons(anchor) {
     guidesBtn.onclick = () => setObjectGuidesVisible(!showObjectGuides);
     parent.insertBefore(guidesBtn, leftBtn.nextSibling);
   }
+  ensureThemeToggleButton();
   updateTopbarUtilityButtons();
 }
 function ensureModeTabs() {
@@ -2784,6 +2909,8 @@ function renderAll() {
   dockStageAwayFromLeftPanel();
   removeDuplicateRightMenuControls();
   ensureModeTabs();
+  ensureThemeToggleButton();
+  removeWorstCaseTestButton();
   cleanupTopbarExtraText();
   updateModeTabs();
   renderRows();
@@ -2905,23 +3032,35 @@ function applyPotAutoStack() {
   }
   clampAllObjects();
 }
-function applyWrapLikeMetaPreviewLayout(meta, previewRow, zoom, s) {
+function applyWrapLikeMetaPreviewLayout(meta, previewRow, zoom, s, frame) {
   if (!meta || !previewRow || !isWrapLikeMode(labelType)) return;
   const cfg = WRAP_LIKE_PREVIEW_CONFIG;
   if (cfg.metaBelowLabel === false) return;
   const rawScale = cfg.metaScaleWithZoom === false ? 1 : Number(zoom || 1);
   const scale = clamp(rawScale, Number(cfg.metaMinScale || 0.72), Number(cfg.metaMaxScale || 1.35));
-  const visualW = Math.max(160, Math.ceil(Number(s && s.w || 480) * Number(zoom || 1)));
-  const layoutW = Math.max(160, Math.ceil(visualW / Math.max(0.01, scale)));
+  const labelVisibleW = Math.max(160, Math.ceil(Number(s && s.w || 480) * Number(zoom || 1)));
+  const layoutW = Math.max(160, Math.ceil(labelVisibleW / Math.max(0.01, scale)));
   const align = (cfg.previewAlign || "center").toLowerCase() === "left" ? "flex-start" : "center";
   previewRow.style.setProperty("--beinvt-wrap-meta-gap", Math.max(0, Number(cfg.metaGapPx || 6)) + "px");
   previewRow.style.setProperty("align-items", align, "important");
   previewRow.style.setProperty("justify-content", "center", "important");
+  previewRow.style.setProperty("width", "100%", "important");
+  previewRow.style.setProperty("max-width", "100%", "important");
+  if (frame) {
+    frame.style.setProperty("align-self", align, "important");
+    frame.style.setProperty("margin-left", align === "center" ? "auto" : "0", "important");
+    frame.style.setProperty("margin-right", align === "center" ? "auto" : "0", "important");
+    frame.style.setProperty("max-width", "none", "important");
+    frame.style.setProperty("transform-origin", "center center", "important");
+  }
   meta.classList.add("stageMetaBelowLabel");
   // layoutW * scale = actual visible label width, so the color bar aligns exactly under the label.
   meta.style.setProperty("width", layoutW + "px", "important");
+  meta.style.setProperty("min-width", layoutW + "px", "important");
   meta.style.setProperty("max-width", layoutW + "px", "important");
   meta.style.setProperty("align-self", align, "important");
+  meta.style.setProperty("margin-left", align === "center" ? "auto" : "0", "important");
+  meta.style.setProperty("margin-right", align === "center" ? "auto" : "0", "important");
   meta.style.setProperty("transform", "scale(" + scale.toFixed(3) + ")", "important");
   meta.style.setProperty("transform-origin", "top center", "important");
 }
@@ -2976,7 +3115,7 @@ function renderCanvas() {
     attachObjectEvents(obj);
   }
   if (isWrapLikeMode(labelType) && WRAP_LIKE_PREVIEW_CONFIG.metaBelowLabel !== false) {
-    applyWrapLikeMetaPreviewLayout(meta, previewRow, zoom, s);
+    applyWrapLikeMetaPreviewLayout(meta, previewRow, zoom, s, frame);
     previewRow.appendChild(frame);
     previewRow.appendChild(meta);
   } else {
@@ -3582,6 +3721,8 @@ function initEvents() {
   ensureLeftPanel();
   removeDuplicateRightMenuControls();
   ensureModeTabs();
+  ensureThemeToggleButton();
+  removeWorstCaseTestButton();
   bindDirectionalButtons();
   if ($("labelType")) $("labelType").onchange = ev => { labelType = ev.target.value; selectedId = defaultSelectedId(labelType); undoStack = []; redoStack = []; setLayout(loadWorkingLayout(labelType), false); };
   if ($("zoom")) $("zoom").oninput = function() { this.dataset.beinvtManualZoom = "1"; this.dataset.beinvtZoomMode = labelType; renderCanvas(); };
@@ -3610,7 +3751,7 @@ function initEvents() {
   if ($("resetLayout")) $("resetLayout").onclick = resetLayout;
   if ($("printCalibration")) $("printCalibration").onclick = printCalibration;
   if ($("saveCalibration")) $("saveCalibration").onclick = saveCalibration;
-  if ($("testMode")) $("testMode").onclick = () => { testMode = !testMode; $("testMode").classList.toggle("good", testMode); renderCanvas(); };
+  removeWorstCaseTestButton();
   if ($("printLabel")) $("printLabel").onclick = printLabel;
   if ($("printQueue")) $("printQueue").onclick = printQueue;
   if ($("addCurrent")) $("addCurrent").onclick = () => addToQueue();
