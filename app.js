@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.19-hide-objects-pane-only";
+const APP_VERSION = "8.6.20-hide-objects-pane-direct";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -28,6 +28,7 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - v8.6.17: left settings panel is 730px wide in both templates; preview meta pills are 10% smaller.
   - v8.6.18: add topbar/left-panel toggles for object guide lines and hiding the left pane; hidden pane lets A use full T width.
   - v8.6.19: hide-pane toggle now hides only the real left object/settings pane (.beinvtSettingsPanel), never table/label cards.
+  - v8.6.20: stop using body.beinvt-left-pane-hidden; remove stale broad hide CSS and hide only .beinvtSettingsPanel directly.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -60,6 +61,21 @@ const LAYER_DEBUG_CONFIG = {
   defaultTop: 70,
   showShortcut: true
 };
+
+(function cleanupOldLeftPaneHideCssV8620(){
+  try {
+    if (document.body) document.body.classList.remove("beinvt-left-pane-hidden");
+    document.querySelectorAll([
+      'style[data-beinvt-v8618-guide-left-pane-toggle-css]',
+      'style[data-beinvt-v8619-hide-objects-pane-only-css]',
+      'style[data-beinvt-v8620-hide-objects-pane-direct-css]'
+    ].join(',')).forEach(el => el.remove());
+    document.querySelectorAll('style').forEach(el => {
+      const txt = String(el.textContent || '');
+      if (txt.includes('body.beinvt-left-pane-hidden aside.panel') || txt.includes('body.beinvt-left-pane-hidden .panel.sidebar')) el.remove();
+    });
+  } catch (e) {}
+})();
 const WRAP_ADDRESS = "SIERRA GOLD NURSERIES YUBA CITY, CA 95991";
 const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTINGS\nWHETHER FOR SALE\nOR OWN USE IS\nPROHIBITED UNDER\nU.S. PLANT PATENT LAWS.\nSALES OUTSIDE THE\nU.S. ARE PROHIBITED.";
 
@@ -567,11 +583,11 @@ function sizePx(type = labelType) {
       display:none!important;
     }
     /*
-      v8.6.19: hide ONLY the actual object/settings pane that ensureLeftPanel()
-      marks with .beinvtSettingsPanel. Do NOT hide broad .panel/.sidebar/aside
-      selectors because the table/preview cards can share generic panel classes.
+      v8.6.20: hide ONLY the real objects/settings pane.
+      Do NOT use body.beinvt-left-pane-hidden or broad aside/.panel selectors;
+      older versions used that broad class and it could affect table/label wrappers.
     */
-    body.beinvt-left-pane-hidden .beinvtSettingsPanel{
+    body.beinvt-objects-pane-hidden .beinvtSettingsPanel{
       display:none!important;
       visibility:hidden!important;
       width:0!important;
@@ -585,27 +601,27 @@ function sizePx(type = labelType) {
       overflow:hidden!important;
       pointer-events:none!important;
     }
-    body.beinvt-left-pane-hidden .stageWrap{
+    body.beinvt-objects-pane-hidden .stageWrap{
       margin-left:0!important;
     }
-    body.beinvt-left-pane-hidden .stageWrap,
-    body.beinvt-left-pane-hidden #canvasHost,
-    body.beinvt-left-pane-hidden #stageDataWrap,
-    body.beinvt-left-pane-hidden #stageLabelHost,
-    body.beinvt-left-pane-hidden .stageStack,
-    body.beinvt-left-pane-hidden .labelPreviewRow{
+    body.beinvt-objects-pane-hidden .stageWrap,
+    body.beinvt-objects-pane-hidden #canvasHost,
+    body.beinvt-objects-pane-hidden #stageDataWrap,
+    body.beinvt-objects-pane-hidden #stageLabelHost,
+    body.beinvt-objects-pane-hidden .stageStack,
+    body.beinvt-objects-pane-hidden .labelPreviewRow{
       display:flex!important;
       visibility:visible!important;
       opacity:1!important;
     }
-    body.beinvt-left-pane-hidden #stageDataWrap{
+    body.beinvt-objects-pane-hidden #stageDataWrap{
       flex:1 1 auto!important;
       min-width:0!important;
       max-width:none!important;
     }
   `;
   const tag = document.createElement("style");
-  tag.setAttribute("data-beinvt-v8618-guide-left-pane-toggle-css", "1");
+  tag.setAttribute("data-beinvt-v8620-hide-objects-pane-direct-css", "1");
   tag.textContent = css;
   document.head.appendChild(tag);
 })();
@@ -1025,8 +1041,47 @@ function applyModeClass() {
   document.body.classList.toggle("beinvt-label-pot", labelType === "POT");
   document.body.classList.toggle("beinvt-label-wrap", labelType === "WRAP");
   document.body.classList.toggle("beinvt-hide-object-guides", !showObjectGuides);
-  document.body.classList.toggle("beinvt-left-pane-hidden", !!leftPaneHidden);
+  // v8.6.20: never use the old broad hide class. It can trigger stale CSS from older script runs.
+  document.body.classList.remove("beinvt-left-pane-hidden");
+  document.body.classList.toggle("beinvt-objects-pane-hidden", !!leftPaneHidden);
+  applyObjectsPaneVisibility();
   updateTopbarUtilityButtons();
+}
+function getObjectsPanePanel() {
+  let panel = document.querySelector(".beinvtSettingsPanel");
+  if (panel) return panel;
+  panel = findSettingsPanel();
+  if (panel) panel.classList.add("beinvtSettingsPanel");
+  return panel;
+}
+function clearObjectsPaneInlineHide(panel) {
+  if (!panel) return;
+  ["display", "visibility", "width", "min-width", "max-width", "flex", "flex-basis", "padding", "margin", "border", "overflow", "pointer-events"].forEach(prop => panel.style.removeProperty(prop));
+  panel.removeAttribute("aria-hidden");
+  panel.dataset.beinvtObjectsPaneHidden = "0";
+}
+function applyObjectsPaneVisibility() {
+  const panel = getObjectsPanePanel();
+  if (!panel) return;
+  if (leftPaneHidden) {
+    panel.classList.add("beinvtSettingsPanel");
+    panel.dataset.beinvtObjectsPaneHidden = "1";
+    panel.setAttribute("aria-hidden", "true");
+    panel.style.setProperty("display", "none", "important");
+    panel.style.setProperty("visibility", "hidden", "important");
+    panel.style.setProperty("width", "0px", "important");
+    panel.style.setProperty("min-width", "0px", "important");
+    panel.style.setProperty("max-width", "0px", "important");
+    panel.style.setProperty("flex", "0 0 0px", "important");
+    panel.style.setProperty("flex-basis", "0px", "important");
+    panel.style.setProperty("padding", "0px", "important");
+    panel.style.setProperty("margin", "0px", "important");
+    panel.style.setProperty("border", "0px", "important");
+    panel.style.setProperty("overflow", "hidden", "important");
+    panel.style.setProperty("pointer-events", "none", "important");
+  } else {
+    clearObjectsPaneInlineHide(panel);
+  }
 }
 function persistPreviewUiPrefs() {
   localStorage.setItem("beinvtShowObjectGuides", JSON.stringify(!!showObjectGuides));
@@ -1040,11 +1095,13 @@ function setObjectGuidesVisible(on) {
   renderCanvas();
 }
 function setLeftPaneHidden(on) {
-  const panel = findSettingsPanel();
+  const panel = getObjectsPanePanel();
   if (panel) panel.classList.add("beinvtSettingsPanel");
   leftPaneHidden = !!on;
   persistPreviewUiPrefs();
+  if (document.body) document.body.classList.remove("beinvt-left-pane-hidden");
   applyModeClass();
+  applyObjectsPaneVisibility();
   forceOuterCardSize();
   dockStageAwayFromLeftPanel();
   renderCanvas();
@@ -1130,7 +1187,7 @@ function findSettingsPanel() {
 function ensureLeftPanel() {
   const panel = findSettingsPanel();
   if (!panel) return;
-  if (panel.dataset.beinvtCleanPanel === "1") return;
+  if (panel.dataset.beinvtCleanPanel === "1") { applyObjectsPaneVisibility(); return; }
   panel.dataset.beinvtCleanPanel = "1";
   panel.classList.add("beinvtSettingsPanel");
   panel.innerHTML = `
@@ -1462,6 +1519,8 @@ function forceOuterCardSize() {
   const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
   if (!stage) return;
   if (leftPaneHidden) {
+    if (document.body) document.body.classList.remove("beinvt-left-pane-hidden");
+    applyObjectsPaneVisibility();
     [stage, $("canvasHost"), $("stageDataWrap"), $("stageLabelHost")].filter(Boolean).forEach(el => {
       el.style.setProperty("display", "flex", "important");
       el.style.setProperty("visibility", "visible", "important");
