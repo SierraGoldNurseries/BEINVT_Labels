@@ -1,4 +1,4 @@
-const APP_VERSION = "8.5.0-max-zoom-no-overlap-3col-objects";
+onst APP_VERSION = "8.6.0-full-width-wrap-pot-right";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -136,13 +136,13 @@ function sizePx(type = labelType) {
     .beinvtDuplicateSettings{display:none!important}
     .beinvtSettingsPanel .beinvtCard{display:block!important}
 
-    .stageWrap{display:flex!important;flex-direction:column!important;height:calc(100vh - 86px)!important;min-height:0!important;overflow:hidden!important;padding:3px!important;gap:3px!important;background:radial-gradient(circle at center,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;min-width:0!important;max-width:100vw!important}
-    #canvasHost{width:100%!important;height:100%!important;min-height:0!important;display:flex!important;gap:4px!important;align-items:stretch!important;justify-content:stretch!important;overflow:hidden!important}
+    .stageWrap{display:flex!important;flex-direction:column!important;height:calc(100vh - 86px)!important;min-height:0!important;overflow:hidden!important;padding:3px!important;gap:3px!important;background:radial-gradient(circle at center,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;min-width:0!important;max-width:none!important;width:auto!important;flex:1 1 auto!important;margin-right:0!important}
+    #canvasHost{width:100%!important;height:100%!important;min-height:0!important;display:flex!important;gap:3px!important;align-items:stretch!important;justify-content:stretch!important;overflow:hidden!important}
     body.beinvt-label-pot #canvasHost{flex-direction:row!important}
     body.beinvt-label-wrap #canvasHost{flex-direction:column!important}
     #stageDataWrap{background:#0f1228;border:1px solid rgba(255,255,255,.16);border-radius:13px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 34px rgba(0,0,0,.22);min-width:0;min-height:0}
-    body.beinvt-label-pot #stageDataWrap{flex:1 1 72%;min-width:540px;height:100%}
-    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(420px,55vh,690px);width:100%}
+    body.beinvt-label-pot #stageDataWrap{flex:1 1 auto;min-width:0;height:100%;width:auto}
+    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(420px,55vh,690px);width:100%;max-width:none}
     #stageDataSearchRow{padding:8px;border-bottom:1px solid rgba(255,255,255,.10);background:#13162e;display:flex;gap:8px;align-items:center}
     #stageSearch{width:100%;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.15);background:#090d1f;color:#e5e7eb;padding:7px 10px;font-size:13px}
     .stageTableScroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;background:#0f1228}
@@ -153,15 +153,15 @@ function sizePx(type = labelType) {
     #stageRowsTable tr:hover td{background:rgba(255,255,255,.055)!important}
     #stageRowsTable button{border:1px solid rgba(255,255,255,.18);background:#080b1a;color:#fff;border-radius:8px;padding:5px 8px;font-weight:800;cursor:pointer}
 
-    #stageLabelHost{min-width:0;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:8px;position:relative}
-    body.beinvt-label-pot #stageLabelHost{flex:0 0 min(370px,34%);height:100%;align-items:center;justify-content:center;padding:4px 4px}
-    body.beinvt-label-wrap #stageLabelHost{flex:1 1 auto;align-items:flex-start;justify-content:center;padding:4px 6px 8px}
-    .stageStack{display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:flex-start;max-width:100%;max-height:100%}
+    #stageLabelHost{min-width:0;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:6px;position:relative}
+    body.beinvt-label-pot #stageLabelHost{flex:0 0 clamp(285px,18vw,335px);height:100%;align-items:center;justify-content:flex-end;padding:4px 8px 4px 3px;max-width:335px}
+    body.beinvt-label-wrap #stageLabelHost{flex:1 1 auto;align-items:flex-start;justify-content:center;padding:4px 4px 8px;width:100%;max-width:none}
+    .stageStack{display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:flex-start;max-width:100%;max-height:100%;min-width:0}
     .labelPreviewRow{display:flex;align-items:center;justify-content:center;gap:8px;max-width:100%;max-height:100%;min-width:0;overflow:visible}
-    body.beinvt-label-pot .labelPreviewRow{flex-direction:column;gap:6px}
-    body.beinvt-label-wrap .labelPreviewRow{flex-direction:row;gap:8px}
+    body.beinvt-label-pot .labelPreviewRow{flex-direction:column;gap:6px;align-items:flex-end;justify-content:center;width:100%}
+    body.beinvt-label-wrap .labelPreviewRow{flex-direction:row;gap:8px;width:100%;justify-content:center}
     .stageMeta{display:flex;gap:8px;align-items:stretch;justify-content:center;min-width:220px;max-width:340px;padding:8px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:#171a35;color:#e5e7eb;position:relative;z-index:20;box-shadow:0 10px 28px rgba(0,0,0,.22)}
-    body.beinvt-label-pot .stageMeta{width:min(100%,320px);flex-direction:column}
+    body.beinvt-label-pot .stageMeta{width:min(100%,300px);flex-direction:column}
     body.beinvt-label-wrap .stageMeta{width:205px;flex-direction:column;flex:0 0 205px}
     .stageMeta .metaPill{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 10px;border-radius:11px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);font-size:12px;line-height:1.15;font-weight:800;white-space:nowrap}
     .stageMeta b{font-size:13px;color:#fff}
@@ -185,7 +185,7 @@ function sizePx(type = labelType) {
     #gridSection .compactGrid{grid-template-columns:1fr 1fr 1fr auto;align-items:end}
     #gridSection .field label{min-height:14px}
     #stageRowsTable td,#stageRowsTable th{font-size:12px}
-    @media(max-width:1100px){aside.panel,.panel.sidebar,.settingsPanel{width:440px!important;min-width:440px!important;max-width:440px!important;flex-basis:440px!important}#canvasHost{flex-direction:column!important}body.beinvt-label-pot #stageDataWrap{flex:0 0 clamp(300px,52vh,560px);min-width:0;width:100%}body.beinvt-label-pot #stageLabelHost{flex:1 1 auto;width:100%}.compactGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.checkRow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    body.beinvt-label-pot #stageLabelHost .stageStack{align-items:flex-end!important;width:100%} body.beinvt-label-wrap #stageLabelHost .stageStack{width:100%;align-items:center!important} @media(max-width:1100px){aside.panel,.panel.sidebar,.settingsPanel{width:440px!important;min-width:440px!important;max-width:440px!important;flex-basis:440px!important}#canvasHost{flex-direction:column!important}body.beinvt-label-pot #stageDataWrap{flex:0 0 clamp(300px,52vh,560px);min-width:0;width:100%}body.beinvt-label-pot #stageLabelHost{flex:1 1 auto;width:100%;max-width:none}.compactGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.checkRow{grid-template-columns:repeat(2,minmax(0,1fr))}}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-clean-css", "1");
@@ -695,25 +695,33 @@ function dockStageAwayFromLeftPanel() {
   const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
   if (!panel || !stage) return;
 
-  // The page can leave the render table/preview underneath the rebuilt left menu
-  // after refresh. Measure real positions and push the stage only far enough to
-  // clear the menu, keeping the gap small when it is already beside the menu.
-  stage.style.marginLeft = "0px";
-  stage.style.width = "";
-  stage.style.maxWidth = "";
-
+  // Keep the render table/preview immediately to the right of the rebuilt left menu.
+  // The original page layout sometimes keeps a narrow old column width, which lets
+  // the wider left menu overlap the table. This measures the visible menu and moves
+  // the stage to exactly menu-right + a small gap, while still filling the full
+  // remaining browser width.
   const pr = panel.getBoundingClientRect();
-  const sr = stage.getBoundingClientRect();
-  const minGap = 4;
-  const correction = Math.ceil(pr.right + minGap - sr.left);
+  const minGap = 3;
+  const desiredLeft = Math.ceil(pr.right + minGap);
 
-  if (correction > 0) {
-    stage.style.marginLeft = correction + "px";
-    stage.style.width = `calc(100vw - ${Math.ceil(pr.right + minGap)}px)`;
-    stage.style.maxWidth = `calc(100vw - ${Math.ceil(pr.right + minGap)}px)`;
+  stage.style.marginLeft = "0px";
+  stage.style.marginRight = "0px";
+  stage.style.maxWidth = "none";
+  stage.style.flex = "1 1 auto";
+  let sr = stage.getBoundingClientRect();
+
+  let correction = desiredLeft - Math.ceil(sr.left);
+  correction = clamp(correction, -160, 640);
+  stage.style.marginLeft = correction + "px";
+  stage.style.width = `calc(100vw - ${desiredLeft}px)`;
+  stage.style.maxWidth = `calc(100vw - ${desiredLeft}px)`;
+
+  sr = stage.getBoundingClientRect();
+  if (sr.left < desiredLeft - 1) {
+    const extra = Math.ceil(desiredLeft - sr.left);
+    stage.style.marginLeft = (correction + extra) + "px";
   }
 }
-
 
 function nearestCleanupContainer(el) {
   if (!el) return null;
@@ -792,6 +800,7 @@ function startPanelWatchdog() {
     removeDuplicateRightMenuControls();
     renderObjectPanel();
     syncControls();
+    dockStageAwayFromLeftPanel();
     if (passes > 40) clearInterval(timer);
   };
   const timer = setInterval(tick, 200);
@@ -845,12 +854,12 @@ function applyZoomSliderCap(labelHost) {
   const hostW = Math.max(1, (host && host.clientWidth) || window.innerWidth || 900);
   const hostH = Math.max(1, (host && host.clientHeight) || window.innerHeight || 500);
   const metaW = labelType === "WRAP" ? 215 : 0;
-  const metaH = labelType === "POT" ? 118 : 0;
-  const availableW = labelType === "WRAP" ? hostW - metaW - 22 : hostW - 12;
-  const availableH = labelType === "POT" ? hostH - metaH - 16 : hostH - 12;
+  const metaH = labelType === "POT" ? 112 : 0;
+  const availableW = labelType === "WRAP" ? hostW - metaW - 16 : hostW - 8;
+  const availableH = labelType === "POT" ? hostH - metaH - 12 : hostH - 8;
   const maxByW = availableW / Math.max(1, s.w);
   const maxByH = availableH / Math.max(1, s.h);
-  const hardMax = labelType === "WRAP" ? 3.25 : 1.95;
+  const hardMax = labelType === "WRAP" ? 3.55 : 2.10;
   const max = clamp(Math.min(maxByW, maxByH, hardMax), 0.35, hardMax);
 
   if (zoomInput) {
@@ -1049,6 +1058,8 @@ function renderCanvas() {
   stack.appendChild(previewRow);
   labelHost.appendChild(stack);
   autoFitAllTextSoon();
+  setTimeout(dockStageAwayFromLeftPanel, 0);
+  setTimeout(dockStageAwayFromLeftPanel, 120);
 }
 function addGrid(canvas) {
   const gp = Number((layout && layout.gridPx) || 4);
