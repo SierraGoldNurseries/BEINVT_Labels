@@ -1,4 +1,4 @@
-const APP_VERSION = "7.1.0-fill-space-objects-zoom-wrap-table";
+const APP_VERSION = "7.2.0-objects-default-wrap-fit-zoom";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
@@ -1956,3 +1956,288 @@ window.addEventListener('resize',()=>{
 });
 
 boot();
+
+/* --------------------------------------------------------------------------
+   v7.2.0 override layer
+   - pins Objects panel open at the top so it cannot disappear behind grouped tabs
+   - sizes the left settings/menu and table/label split to use bottom space cleanly
+   - caps the zoom range to the real usable max, so the slider has no dead/blank area
+   - gives Wrap Ties more label-preview space and fits/wraps text by default after layout
+   -------------------------------------------------------------------------- */
+(function injectV720Css(){
+  const css = `
+    body{overflow:hidden!important}
+    .beinvt-main-shell{grid-template-columns:minmax(390px,450px) minmax(0,1fr)!important;gap:10px!important;padding:6px 10px 10px!important;height:calc(100vh - var(--beinvt-top-offset,96px))!important;min-height:0!important;overflow:hidden!important}
+    .beinvt-main-shell > aside.panel,.beinvt-left-settings-panel{height:100%!important;max-height:none!important;overflow:auto!important;min-width:0!important;width:100%!important;padding-bottom:10px!important}
+    .beinvt-main-shell > .stageWrap,.beinvt-stage-main{height:100%!important;min-height:0!important;overflow:hidden!important}
+    #canvasHost{height:100%!important;min-height:0!important;overflow:hidden!important}
+    body.beinvt-label-pot #canvasHost{grid-template-columns:minmax(0,1fr) minmax(260px,345px)!important;grid-template-rows:1fr!important}
+    body.beinvt-label-wrap #canvasHost{grid-template-columns:1fr!important;grid-template-rows:minmax(0,2fr) minmax(190px,1.35fr)!important}
+    body.beinvt-label-wrap #stageDataWrap{height:100%!important;min-height:0!important;max-height:none!important;overflow:hidden!important}
+    body.beinvt-label-wrap #stageLabelHost{min-height:190px!important;height:100%!important;align-items:flex-start!important;justify-content:center!important;padding:8px 6px 4px!important;overflow:hidden!important}
+    body.beinvt-label-pot #stageDataWrap,body.beinvt-label-pot #stageLabelHost{height:100%!important;min-height:0!important;max-height:none!important;overflow:hidden!important}
+    .stageTableScroll{overflow-y:auto!important;overflow-x:hidden!important;min-height:0!important;height:100%!important}
+    #stageRowsTable,body.beinvt-label-pot #stageRowsTable,body.beinvt-label-wrap #stageRowsTable{width:100%!important;min-width:0!important;table-layout:fixed!important}
+    #stageRowsTable th,#stageRowsTable td{min-width:0!important;max-width:none!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+    body.beinvt-label-wrap .labelPreviewRow{width:100%!important;max-width:100%!important;gap:10px!important;justify-content:center!important;align-items:flex-start!important;overflow:hidden!important}
+    body.beinvt-label-wrap .labelPreviewRow .stageMeta{width:255px!important;min-width:235px!important;max-width:255px!important;align-self:flex-start!important;flex:0 0 255px!important}
+    body.beinvt-label-pot .labelPreviewRow .stageMeta{width:100%!important;min-width:250px!important;max-width:320px!important;flex:0 0 auto!important}
+    .stageMeta .metaPill{min-height:34px!important;padding:8px 10px!important}
+    .beinvt-settings-compact .section[data-settings-group].beinvt-pinned-objects-section{display:block!important;visibility:visible!important;opacity:1!important;margin-bottom:10px!important}
+    .beinvt-pinned-objects-section{display:block!important;visibility:visible!important;opacity:1!important;border:1px solid rgba(96,165,250,.22)!important;border-radius:12px!important;background:rgba(15,23,42,.55)!important;padding:10px!important}
+    .beinvt-pinned-objects-section h2,.beinvt-pinned-objects-section h3,.beinvt-pinned-objects-section h4{margin-top:0!important}
+    #objectPanel{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;width:100%!important;min-height:48px!important}
+    body.beinvt-label-wrap #objectPanel{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+    .objectBtn{display:flex!important;flex-direction:column!important;gap:4px!important;align-items:flex-start!important;justify-content:center!important;min-height:42px!important;white-space:normal!important;overflow:hidden!important}
+    .objectBtn span:first-child{display:block!important;width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    .objectBtn .badge{max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    .wrapTextInner,.wrapTextInner.rootstockInner{white-space:normal!important;word-break:break-word!important;overflow-wrap:anywhere!important;line-height:.76!important;min-width:0!important;max-width:100%!important;max-height:100%!important;padding:0 1px!important}
+    .wrapTextInner.smallText{line-height:.82!important}
+    .wrapTextInner.leftText{justify-content:flex-start!important;text-align:left!important}
+    .wrapTextInner .wrapOn{white-space:nowrap!important;display:inline!important;font-size:.62em!important;margin-right:.16em!important;text-transform:none!important}
+    input#zoom{max-width:160px!important;accent-color:#5b7cfa!important}
+    @media(max-width:1180px){.beinvt-main-shell{grid-template-columns:1fr!important;height:auto!important;min-height:0!important;overflow:auto!important}.beinvt-main-shell > aside.panel,.beinvt-left-settings-panel{max-height:340px!important}.beinvt-main-shell > .stageWrap,.beinvt-stage-main{height:calc(100vh - 390px)!important;min-height:540px!important}body.beinvt-label-wrap #canvasHost{grid-template-rows:minmax(240px,2fr) minmax(190px,1.35fr)!important}}
+  `;
+  const old=document.querySelector('style[data-beinvt-v720-css]');
+  if(old) old.remove();
+  const tag=document.createElement('style');
+  tag.setAttribute('data-beinvt-v720-css','1');
+  tag.textContent=css;
+  document.head.appendChild(tag);
+})();
+
+function fallbackLayout(t){
+  if(t==="POT") return {
+    name:"Pot Standard restored",
+    labelType:"POT",
+    safeMarginPx:5,
+    gridPx:4,
+    objects:{
+      WO:{x:3,y:8,w:66,h:18,rot:0,fontSize:16,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      QR:{x:11,y:30,w:50,h:50,rot:0,locked:false,visible:true},
+      ITEM:{x:2,y:84,w:68,h:230,rot:90,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      WEEK:{x:11,y:320,w:50,h:24,rot:0,fontSize:18,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
+    }
+  };
+  return {
+    name:"Wrap Tie Standard - default fitted individual objects",
+    labelType:"WRAP",
+    safeMarginPx:3,
+    gridPx:4,
+    objects:{
+      WO_QR:{x:2,y:5,w:38,h:38,rot:0,locked:false,visible:true},
+      WO:{x:42,y:2,w:68,h:12,rot:0,fontSize:13,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
+      CROP:{x:42,y:15,w:68,h:11,rot:0,fontSize:10,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
+      INTERNAL:{x:42,y:29,w:68,h:12,rot:0,fontSize:10,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
+      SCION:{x:114,y:1,w:238,h:15,rot:0,fontSize:20,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      SCION_ROYALTY:{x:114,y:16,w:238,h:4,rot:0,fontSize:3.8,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ROOTSTOCK:{x:114,y:20,w:238,h:16,rot:0,fontSize:20,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ROOTSTOCK_ROYALTY:{x:114,y:36,w:238,h:4,rot:0,fontSize:3.8,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      LOT:{x:114,y:40,w:238,h:3,rot:0,fontSize:3,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ADDRESS:{x:114,y:43,w:238,h:4,rot:0,fontSize:3.2,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      LOT_QR:{x:356,y:6,w:36,h:36,rot:0,locked:false,visible:true},
+      LOGO:{x:395,y:13,w:22,h:22,rot:0,locked:false,visible:true},
+      WARNING:{x:421,y:2,w:57,h:44,rot:0,fontSize:3.2,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"}
+    }
+  };
+}
+
+function pinObjectsSection(){
+  let panel=document.querySelector('.beinvt-left-settings-panel')||document.querySelector('aside.panel')||document.querySelector('.panel.sidebar')||document.querySelector('.settingsPanel');
+  if(!panel) return;
+  let objPanel=document.getElementById('objectPanel');
+  let objSection=objPanel && objPanel.closest('.section');
+  if(!objSection){
+    objSection=document.createElement('div');
+    objSection.className='section beinvt-created-objects-section';
+    objSection.innerHTML='<h3>Objects</h3><div id="objectPanel"></div>';
+    const tabs=panel.querySelector('#settingsGroupTabs');
+    if(tabs && tabs.nextSibling) panel.insertBefore(objSection,tabs.nextSibling);
+    else panel.insertBefore(objSection,panel.firstChild);
+    objPanel=document.getElementById('objectPanel');
+  }
+  objSection.classList.add('beinvt-pinned-objects-section');
+  objSection.classList.remove('beinvt-hidden-section');
+  objSection.style.display='block';
+  objSection.style.visibility='visible';
+  objSection.style.opacity='1';
+  let heading=objSection.querySelector('h1,h2,h3,h4,.sectionTitle,.title');
+  if(!heading){
+    heading=document.createElement('h3');
+    objSection.insertBefore(heading,objSection.firstChild);
+  }
+  heading.textContent='Objects';
+  const tabs=panel.querySelector('#settingsGroupTabs');
+  if(tabs && objSection.previousElementSibling!==tabs){
+    panel.insertBefore(objSection,tabs.nextSibling);
+  }else if(!tabs && objSection!==panel.firstElementChild){
+    panel.insertBefore(objSection,panel.firstChild);
+  }
+}
+
+function ensureSettingsGroups(){
+  hideLegacyDataSections();
+  const panel=document.querySelector('.beinvt-left-settings-panel')||document.querySelector('aside.panel')||document.querySelector('.panel.sidebar')||document.querySelector('.settingsPanel');
+  if(!panel) return;
+  let sections=[];
+  try{ sections=[...panel.querySelectorAll(':scope > .section')]; }catch(e){ sections=[...panel.querySelectorAll('.section')].filter(sec=>sec.parentElement===panel); }
+  sections=sections.filter(sec=>!isLegacyDataSection(sec)&&sec.style.display!=="none"&&!sec.classList.contains('beinvt-legacy-data-section')&&!sec.querySelector('#stageRowsTable')&&!sec.closest('#canvasHost'));
+  if(sections.length<1) return;
+  panel.classList.add('beinvt-settings-compact');
+  let tabs=panel.querySelector('#settingsGroupTabs');
+  if(!tabs){
+    tabs=document.createElement('div');
+    tabs.id='settingsGroupTabs';
+    tabs.className='settingsGroupTabs';
+    panel.insertBefore(tabs,sections[0]);
+  }
+  tabs.innerHTML='';
+  const titles=sections.map((sec,idx)=>settingsSectionTitle(sec,idx));
+  sections.forEach((sec,idx)=>{
+    sec.dataset.settingsGroup=String(idx);
+    sec.dataset.settingsTitle=titles[idx];
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='settingsGroupTab';
+    btn.dataset.settingsGroup=String(idx);
+    btn.textContent=titles[idx];
+    btn.onclick=()=>activateSettingsGroup(idx);
+    tabs.appendChild(btn);
+  });
+  const savedRaw=localStorage.getItem('beinvtSettingsGroup');
+  const saved=savedRaw==null?NaN:Number(savedRaw);
+  const target=(Number.isFinite(saved)&&saved>=0&&saved<sections.length)?saved:0;
+  activateSettingsGroup(target);
+  pinObjectsSection();
+}
+
+function updateZoomSliderMax(maxZ){
+  const z=$('zoom');
+  if(!z) return;
+  const safeMax=Math.max(0.25,Number(maxZ)||1);
+  z.min='0.25';
+  z.max=safeMax.toFixed(2);
+  z.step='0.01';
+  if(!Number.isFinite(Number(z.value)) || Number(z.value)>safeMax) z.value=safeMax.toFixed(2);
+  z.title=`Zoom max is ${safeMax.toFixed(2)} so the slider has no dead area.`;
+}
+
+function effectiveStageZoom(requested,s,labelHost){
+  let z=Number(requested||1);
+  if(!isFinite(z)||z<=0) z=1;
+  syncViewportFit();
+  const hostW=Math.max(1,(labelHost&&labelHost.clientWidth)||window.innerWidth||900);
+  const hostH=Math.max(1,(labelHost&&labelHost.clientHeight)||window.innerHeight||500);
+  const pad=20;
+  let maxByW, maxByH, hardMax;
+  if(labelType==='WRAP'){
+    const metaW=265, gap=12;
+    maxByW=(hostW-metaW-gap-pad)/Math.max(1,s.w);
+    maxByH=(hostH-pad)/Math.max(1,s.h);
+    hardMax=1.75;
+  }else{
+    const metaH=92, gap=10;
+    maxByW=(hostW-pad)/Math.max(1,s.w);
+    maxByH=(hostH-metaH-gap-pad)/Math.max(1,s.h);
+    hardMax=1.28;
+  }
+  const maxZ=Math.max(0.25,Math.min(hardMax,maxByW,maxByH));
+  updateZoomSliderMax(maxZ);
+  const slider=$('zoom');
+  const sliderValue=slider?Number(slider.value):z;
+  return clamp(Number.isFinite(sliderValue)?sliderValue:z,0.25,maxZ);
+}
+
+function makeWrapTextInner(id,row,o){
+  const c=document.createElement('div');
+  c.className='wrapTextInner'+(id==='ROOTSTOCK'?' rootstockInner':'')+(['WO','CROP','INTERNAL','WARNING'].includes(id)?' leftText':'')+(['SCION_ROYALTY','ROOTSTOCK_ROYALTY','LOT','ADDRESS','WARNING'].includes(id)?' smallText':'');
+  c.style.fontSize=(o.fontSize||8)+'px';
+  c.style.justifyContent=alignH(o.alignH);
+  c.style.alignItems=alignV(o.alignV);
+  c.style.textAlign=(o.alignH==='left'?'left':o.alignH==='right'?'right':'center');
+  c.style.whiteSpace='normal';
+  c.style.wordBreak='break-word';
+  c.style.overflowWrap='anywhere';
+  c.style.maxWidth='100%';
+  c.style.maxHeight='100%';
+  c.style.lineHeight=(['SCION','ROOTSTOCK'].includes(id)?'.76':'.82');
+  if(id==='ROOTSTOCK') c.innerHTML=`<span class="wrapOn">on</span>${escapeHtml(wrapRootstockText(row))}`;
+  else c.textContent=wrapObjectText(id,row);
+  return c;
+}
+
+function fitOneWrapObject(id,range){
+  const obj=document.querySelector(`.obj[data-id="${id}"]`);
+  const inner=obj&&obj.querySelector('.wrapTextInner');
+  if(!obj||!inner) return;
+  inner.style.whiteSpace='normal';
+  inner.style.wordBreak='break-word';
+  inner.style.overflowWrap='anywhere';
+  inner.style.maxWidth='100%';
+  inner.style.maxHeight='100%';
+  let fs=range[0], min=range[1], best=min;
+  // Start at the largest size and shrink only until both width and height fit.
+  for(; fs>=min; fs-=0.1){
+    inner.style.fontSize=fs.toFixed(1)+'px';
+    // Force layout read.
+    const fits=inner.scrollWidth<=obj.clientWidth+1 && inner.scrollHeight<=obj.clientHeight+1;
+    if(fits){ best=fs; break; }
+  }
+  inner.style.fontSize=best.toFixed(1)+'px';
+  if(layout&&layout.objects&&layout.objects[id]) layout.objects[id].fontSize=parseFloat(inner.style.fontSize)||layout.objects[id].fontSize;
+}
+
+function autoFitWrapPreview(){
+  if(labelType!=='WRAP') return;
+  const ranges={
+    WO:[14,5.8], CROP:[11,5.5], INTERNAL:[10.5,5.5],
+    SCION:[24,4.0], ROOTSTOCK:[24,4.0],
+    SCION_ROYALTY:[4.8,2.2], ROOTSTOCK_ROYALTY:[4.8,2.2],
+    LOT:[4.0,2.0], ADDRESS:[4.0,2.0], WARNING:[3.6,1.8]
+  };
+  Object.entries(ranges).forEach(([id,range])=>fitOneWrapObject(id,range));
+}
+
+function scheduleWrapAutoFit(){
+  if(labelType!=='WRAP') return;
+  requestAnimationFrame(()=>{
+    autoFitWrapPreview();
+    requestAnimationFrame(()=>autoFitWrapPreview());
+  });
+}
+
+function syncViewportFit(){
+  const shell=document.querySelector('.beinvt-main-shell');
+  if(!shell) return;
+  const top=Math.max(0,Math.round(shell.getBoundingClientRect().top));
+  const h=Math.max(560,Math.round(window.innerHeight-top-8));
+  document.body.style.setProperty('--beinvt-top-offset', top+'px');
+  shell.style.height=h+'px';
+  shell.style.minHeight='0';
+  const stage=document.querySelector('.beinvt-stage-main,.stageWrap');
+  if(stage){ stage.style.height='100%'; stage.style.minHeight='0'; }
+}
+
+(function installV720RuntimeFixes(){
+  const previousRenderCanvas=renderCanvas;
+  renderCanvas=function(){
+    previousRenderCanvas();
+    pinObjectsSection();
+    scheduleWrapAutoFit();
+  };
+  const previousRenderObjectPanel=renderObjectPanel;
+  renderObjectPanel=function(){
+    pinObjectsSection();
+    previousRenderObjectPanel();
+    pinObjectsSection();
+  };
+  requestAnimationFrame(()=>{
+    ensureMainLayoutNoOverlap();
+    ensureSettingsGroups();
+    pinObjectsSection();
+    renderObjectPanel();
+    scheduleWrapAutoFit();
+    const z=$('zoom');
+    if(z) renderCanvas();
+  });
+})();
