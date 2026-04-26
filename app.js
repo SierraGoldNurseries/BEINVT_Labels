@@ -1,14 +1,14 @@
-const APP_VERSION = "8.6.39_print_size_orientation";
+const APP_VERSION = "8.6.40_print_size_fast_qr_safe";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
-  WRAP: { widthIn: 5, heightIn: 0.75 },
-  FIELD: { widthIn: 5, heightIn: 0.75 },
-  SHIP: { widthIn: 5, heightIn: 0.75 }
+  WRAP: { widthIn: 5, heightIn: 0.5 },
+  FIELD: { widthIn: 5, heightIn: 0.5 },
+  SHIP: { widthIn: 5, heightIn: 0.5 }
 };
 const BASE_LABEL_SIZES = JSON.parse(JSON.stringify(LABEL_SIZES));
 const PRINT_SIZE_CONFIG = {
-  storageKey: "beinvtPrintSizePrefs_v8639",
+  storageKey: "beinvtPrintSizePrefs_v8640",
   minWidthIn: 0.20,
   minHeightIn: 0.20,
   maxWidthIn: 12,
@@ -80,20 +80,36 @@ function formatPrintInches(v) {
   const n = Number(v || 0);
   return Number.isFinite(n) ? n.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1") : "";
 }
+function isQrSizeProtectedObject(id, type = labelType) {
+  if (type === "FIELD" && id === "WO_QR") return false;
+  return id === "QR" || id === "WO_QR" || id === "LOT_QR";
+}
 function scaleLayoutForPrintSizeChange(oldPx, newPx) {
   if (!layout || !layout.objects || !oldPx || !newPx || !oldPx.w || !oldPx.h || !newPx.w || !newPx.h) return;
   const sx = newPx.w / oldPx.w;
   const sy = newPx.h / oldPx.h;
   if (!Number.isFinite(sx) || !Number.isFinite(sy) || sx <= 0 || sy <= 0) return;
-  const fsScale = Math.sqrt(sx * sy);
-  Object.values(layout.objects).forEach(o => {
+
+  // Keep text normal and readable by scaling fonts with one uniform factor.
+  // Do not non-uniformly stretch QR codes; they must stay square to scan reliably.
+  const uniformScale = Math.sqrt(sx * sy);
+  Object.entries(layout.objects).forEach(([id, o]) => {
     if (!o) return;
     o.x = Math.round(Number(o.x || 0) * sx);
     o.y = Math.round(Number(o.y || 0) * sy);
-    o.w = Math.max(4, Math.round(Number(o.w || 4) * sx));
-    o.h = Math.max(4, Math.round(Number(o.h || 4) * sy));
+
+    if (isQrSizeProtectedObject(id, labelType)) {
+      const oldSize = Math.max(4, Math.min(Number(o.w || 34), Number(o.h || 34)));
+      const nextSize = Math.max(18, Math.round(oldSize * uniformScale));
+      o.w = nextSize;
+      o.h = nextSize;
+    } else {
+      o.w = Math.max(4, Math.round(Number(o.w || 4) * sx));
+      o.h = Math.max(4, Math.round(Number(o.h || 4) * sy));
+    }
+
     if (Number.isFinite(Number(o.fontSize)) && Number(o.fontSize) > 0) {
-      o.fontSize = Number(Math.max(1.5, Number(o.fontSize) * fsScale).toFixed(1));
+      o.fontSize = Number(Math.max(1.5, Number(o.fontSize) * uniformScale).toFixed(1));
     }
   });
   layout.safeMarginPx = Math.max(0, Math.round(Number(layout.safeMarginPx || 0) * Math.min(sx, sy)));
@@ -118,8 +134,12 @@ function setCurrentPrintSize(widthIn, heightIn, orientation, scaleLayout = true)
   if (scaleLayout) scaleLayoutForPrintSizeChange(oldPx, newPx);
   saveWorkingLayout();
   resetZoomToAutoMax();
-  renderAll();
-  autoFitAllTextSoon();
+
+  // Keep this change lightweight. Rebuilding the full table/left panel here made
+  // normal clicks feel delayed after resizing. Only the preview needs a refresh.
+  syncPrintSizeControls();
+  renderCanvas();
+  refreshDebugLayerLabelsSoon();
 }
 function syncPrintSizeControls() {
   const width = $("printWidthIn");
@@ -131,7 +151,7 @@ function syncPrintSizeControls() {
   if (width && document.activeElement !== width) width.value = formatPrintInches(s.widthIn);
   if (height && document.activeElement !== height) height.value = formatPrintInches(s.heightIn);
   if (orient) orient.value = s.orientation;
-  if (note) note.textContent = `Print page: ${formatPrintInches(s.widthIn)}in × ${formatPrintInches(s.heightIn)}in (${s.orientation}). Objects and fonts scale with size changes.`;
+  if (note) note.textContent = `Print page: ${formatPrintInches(s.widthIn)}in × ${formatPrintInches(s.heightIn)}in (${s.orientation}). Objects and fonts scale with size changes; QR codes stay square/readable.`;
 }
 function applyPrintSizeControls() {
   const width = Number(($("printWidthIn") && $("printWidthIn").value) || 0);
@@ -3641,9 +3661,17 @@ function renderQrInto(el, text) {
   const img = document.createElement("img");
   img.src = qrUrl(text);
   img.alt = "QR";
+  img.style.width = "100%";
+  img.style.height = "100%";
+  img.style.objectFit = "contain";
+  img.style.background = "#fff";
+  img.style.imageRendering = "pixelated";
   img.onerror = () => {
     el.innerHTML = "";
     const c = document.createElement("canvas");
+    c.style.width = "100%";
+    c.style.height = "100%";
+    c.style.objectFit = "contain";
     el.appendChild(c);
     if (window.BEINVT_QR_FALLBACK) window.BEINVT_QR_FALLBACK.draw(c, text);
   };
@@ -3732,10 +3760,20 @@ function alignV(v) {
 }
 
 function autoFitAllTextSoon() {
-  autoFitAllText();
-  requestAnimationFrame(autoFitAllText);
-  setTimeout(autoFitAllText, 80);
-  setTimeout(autoFitAllText, 220);
+  // Debounced/cheap auto-fit: v8.6.39 ran multiple immediate passes per render,
+  // which made clicks feel slow after changing print size. One animation-frame
+  // pass plus one settle pass is enough for the preview and print output.
+  if (window.beinvtAutoFitRaf) cancelAnimationFrame(window.beinvtAutoFitRaf);
+  if (window.beinvtAutoFitTimer) clearTimeout(window.beinvtAutoFitTimer);
+  window.beinvtAutoFitRaf = requestAnimationFrame(() => {
+    window.beinvtAutoFitRaf = 0;
+    autoFitAllText();
+    window.beinvtAutoFitTimer = setTimeout(() => {
+      window.beinvtAutoFitTimer = 0;
+      autoFitAllText();
+      syncControls();
+    }, 70);
+  });
 }
 function autoFitAllText() {
   if (!layout) return;
@@ -4124,7 +4162,7 @@ function renderPrintPage(row) {
     const top = isWrapLikeMode(labelType) && id === "LOGO" ? logoTopForRow(o, row) : o.y;
     const outer = `position:absolute;left:${o.x}px;top:${top}px;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
     if (isWrapLikeMode(labelType)) out += `<div style="${outer}">${printWrapObjectInner(id, row, o)}</div>`;
-    else if (id === "QR") out += `<div style="${outer}"><img src="${qrUrl(row.wo)}" style="width:100%;height:100%;image-rendering:pixelated"></div>`;
+    else if (id === "QR") out += `<div style="${outer}"><img src="${qrUrl(row.wo)}" style="width:100%;height:100%;object-fit:contain;background:#fff;image-rendering:pixelated"></div>`;
     else out += `<div style="${outer}">${printTextInner(id, row, o)}</div>`;
   }
   return out + "</div>";
@@ -4148,8 +4186,8 @@ function printWrapObjectInner(id, row, o) {
     const top = (boxH - boxW) / 2;
     return `<div style="position:absolute;left:${left}px;top:${top}px;width:${boxH}px;height:${boxW}px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${fs}px;line-height:1;text-transform:uppercase;white-space:nowrap;writing-mode:horizontal-tb;text-orientation:mixed;color:#000;transform-origin:center center;transform:rotate(-90deg);">ROW</div>`;
   }
-  if (id === "WO_QR") return `<img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated">`;
-  if (id === "LOT_QR") { const txt = wrapRightQrText(row); return txt ? `<img src="${qrUrl(txt)}" style="width:100%;height:100%;image-rendering:pixelated">` : ""; }
+  if (id === "WO_QR") return `<img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;object-fit:contain;background:#fff;image-rendering:pixelated">`;
+  if (id === "LOT_QR") { const txt = wrapRightQrText(row); return txt ? `<img src="${qrUrl(txt)}" style="width:100%;height:100%;object-fit:contain;background:#fff;image-rendering:pixelated">` : ""; }
   if (id === "LOGO") {
     const urls = logoUrlsForRow(row);
     if (urls.length > 1) {
