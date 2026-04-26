@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.24-field-stage-row-fit";
+const APP_VERSION = "8.6.25-field-row-sideways";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -34,6 +34,7 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - v8.6.22: wrap ties for olives/berries render scion-only center text; rootstock/on text is suppressed. Stage transform correction is disabled for stable table position.
   - v8.6.23: add Field Labels mode next to Finished Trees; Field uses Wrap layout with Row text instead of left WO QR and table filtered to Field Planting activities.
   - v8.6.24: stage is fixed beside the objects pane so the table cannot overlap it; Field Row marker uses a taller box with smaller upright portrait text.
+  - v8.6.25: Field left object is renamed Row; Row text prints as one sideways word instead of stacked R/O/W.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -59,7 +60,7 @@ const OUTER_CARD_SIZE_CONFIG = {
   applyTo: ["POT", "WRAP", "FIELD"]
 };
 const LAYER_DEBUG_CONFIG = {
-  enabled: true,
+  enabled: false,
   movable: true,
   rememberPosition: true,
   defaultLeft: 18,
@@ -705,7 +706,7 @@ function sizePx(type = labelType) {
     body.beinvt-stage-fixed.beinvt-label-pot #stageLabelHost{flex:0 0 360px!important;width:360px!important;min-width:360px!important;max-width:360px!important;height:100%!important}
     body.beinvt-stage-fixed.beinvt-label-wrap #stageDataWrap{width:100%!important;max-width:none!important;flex:0 0 clamp(390px,54vh,700px)!important}
     body.beinvt-stage-fixed.beinvt-label-wrap #stageLabelHost{width:100%!important;max-width:none!important;flex:1 1 auto!important}
-    .fieldRowText{font-size:12px!important;line-height:1!important;letter-spacing:0!important;padding:0!important;writing-mode:vertical-rl!important;text-orientation:upright!important;transform:none!important;white-space:nowrap!important;overflow:visible!important}
+    .fieldRowText{font-size:13px!important;line-height:1!important;letter-spacing:0!important;padding:0!important;writing-mode:horizontal-tb!important;text-orientation:mixed!important;transform:rotate(-90deg)!important;white-space:nowrap!important;overflow:visible!important}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v8624-stable-stage-field-row-css", "1");
@@ -736,7 +737,7 @@ function fallbackLayout(type) {
     gridPx: 4,
     snapPx: 5,
     objects: {
-      WO_QR: { x: 4, y: type === "FIELD" ? 2 : 7, w: 34, h: type === "FIELD" ? 44 : 34, rot: 0, fontSize: type === "FIELD" ? 12 : undefined, locked: false, visible: true },
+      WO_QR: { x: 4, y: type === "FIELD" ? 2 : 7, w: 34, h: type === "FIELD" ? 44 : 34, rot: 0, fontSize: type === "FIELD" ? 13 : undefined, locked: false, visible: true },
       WO: { x: 42, y: 2, w: 72, h: 13, rot: 0, fontSize: 13, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
       CROP: { x: 42, y: 16, w: 72, h: 11, rot: 0, fontSize: 9, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
       INTERNAL: { x: 42, y: 29, w: 72, h: 12, rot: 0, fontSize: 10, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
@@ -770,7 +771,7 @@ function normalizeLayout(src) {
     out.objects.WO_QR.y = 2;
     out.objects.WO_QR.w = 34;
     out.objects.WO_QR.h = 44;
-    out.objects.WO_QR.fontSize = 12;
+    out.objects.WO_QR.fontSize = 13;
     out.objects.WO_QR.rot = 0;
     out.objects.WO_QR.visible = true;
   }
@@ -2392,7 +2393,7 @@ function removeDuplicateRightMenuControls() {
 function objectDisplayName(id) {
   if (isWrapLikeMode(labelType)) {
     return {
-      WO_QR: "WO QR", WO: "WO", CROP: "Crop", INTERNAL: "Internal ID", SCION: "Scion", SCION_PATENT: "Scion Patent",
+      WO_QR: labelType === "FIELD" ? "Row" : "WO QR", WO: "WO", CROP: "Crop", INTERNAL: "Internal ID", SCION: "Scion", SCION_PATENT: "Scion Patent",
       ROOTSTOCK: "Rootstock", ROOTSTOCK_PATENT: "Rootstock Patent", LOT: "Lot", ADDRESS: "Address", LOT_QR: "Lot QR", LOGO: "SG Logo", WARNING: "Warning"
     }[id] || id;
   }
@@ -2744,12 +2745,16 @@ function makeFieldRowInner(holder, o) {
   inner.className = "wrapTextInner fieldRowText";
   inner.dataset.textId = "ROW";
   inner.textContent = "ROW";
-  const fs = Math.max(9, Math.min(12, Number((o && o.fontSize) || 12)));
+  const boxW = Math.max(1, Number((o && o.w) || 34));
+  const boxH = Math.max(1, Number((o && o.h) || 44));
+  const fs = Math.max(10, Math.min(13, Number((o && o.fontSize) || 13)));
   inner.style.position = "absolute";
-  inner.style.left = "0";
-  inner.style.top = "0";
-  inner.style.width = "100%";
-  inner.style.height = "100%";
+  // Make a normal horizontal ROW word, then rotate the whole word sideways.
+  // This prevents the previous stacked R / O / W portrait rendering.
+  inner.style.left = ((boxW - boxH) / 2) + "px";
+  inner.style.top = ((boxH - boxW) / 2) + "px";
+  inner.style.width = boxH + "px";
+  inner.style.height = boxW + "px";
   inner.style.display = "flex";
   inner.style.alignItems = "center";
   inner.style.justifyContent = "center";
@@ -2759,10 +2764,12 @@ function makeFieldRowInner(holder, o) {
   inner.style.fontSize = fs + "px";
   inner.style.lineHeight = "1";
   inner.style.textTransform = "uppercase";
-  inner.style.writingMode = "vertical-rl";
-  inner.style.textOrientation = "upright";
+  inner.style.whiteSpace = "nowrap";
+  inner.style.writingMode = "horizontal-tb";
+  inner.style.textOrientation = "mixed";
   inner.style.letterSpacing = "0";
-  inner.style.transform = "none";
+  inner.style.transformOrigin = "center center";
+  inner.style.transform = "rotate(-90deg)";
   inner.style.padding = "0";
   holder.appendChild(inner);
   return holder;
@@ -3218,7 +3225,14 @@ function printTextInner(id, row, o) {
   return `<div style="position:absolute;left:${left}px;top:${top}px;width:${w}px;height:${h}px;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:center;${wrap}text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize || 16}px;transform-origin:center center;transform:rotate(${o.rot || 0}deg);">${escapeHtml(labelText(id, row))}</div>`;
 }
 function printWrapObjectInner(id, row, o) {
-  if (id === "WO_QR" && isFieldMode()) return `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:12px;line-height:1;text-transform:uppercase;writing-mode:vertical-rl;text-orientation:upright;color:#000;">ROW</div>`;
+  if (id === "WO_QR" && isFieldMode()) {
+    const boxW = Math.max(1, Number((o && o.w) || 34));
+    const boxH = Math.max(1, Number((o && o.h) || 44));
+    const fs = Math.max(10, Math.min(13, Number((o && o.fontSize) || 13)));
+    const left = (boxW - boxH) / 2;
+    const top = (boxH - boxW) / 2;
+    return `<div style="position:absolute;left:${left}px;top:${top}px;width:${boxH}px;height:${boxW}px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${fs}px;line-height:1;text-transform:uppercase;white-space:nowrap;writing-mode:horizontal-tb;text-orientation:mixed;color:#000;transform-origin:center center;transform:rotate(-90deg);">ROW</div>`;
+  }
   if (id === "WO_QR") return `<img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated">`;
   if (id === "LOT_QR") { const txt = wrapRightQrText(row); return txt ? `<img src="${qrUrl(txt)}" style="width:100%;height:100%;image-rendering:pixelated">` : ""; }
   if (id === "LOGO") {
