@@ -1,4 +1,4 @@
-const APP_VERSION = "8.3.0-sort-dock-warning-spacing";
+const APP_VERSION = "8.4.0-tight-stage-gaps";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -134,8 +134,8 @@ function sizePx(type = labelType) {
     .beinvtDuplicateSettings{display:none!important}
     .beinvtSettingsPanel .beinvtCard{display:block!important}
 
-    .stageWrap{display:flex!important;flex-direction:column!important;height:calc(100vh - 86px)!important;min-height:0!important;overflow:hidden!important;padding:10px!important;gap:10px!important;background:radial-gradient(circle at center,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;min-width:0!important;max-width:100vw!important}
-    #canvasHost{width:100%!important;height:100%!important;min-height:0!important;display:flex!important;gap:12px!important;align-items:stretch!important;justify-content:stretch!important;overflow:hidden!important}
+    .stageWrap{display:flex!important;flex-direction:column!important;height:calc(100vh - 86px)!important;min-height:0!important;overflow:hidden!important;padding:4px!important;gap:4px!important;background:radial-gradient(circle at center,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;min-width:0!important;max-width:100vw!important}
+    #canvasHost{width:100%!important;height:100%!important;min-height:0!important;display:flex!important;gap:6px!important;align-items:stretch!important;justify-content:stretch!important;overflow:hidden!important}
     body.beinvt-label-pot #canvasHost{flex-direction:row!important}
     body.beinvt-label-wrap #canvasHost{flex-direction:column!important}
     #stageDataWrap{background:#0f1228;border:1px solid rgba(255,255,255,.16);border-radius:13px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 34px rgba(0,0,0,.22);min-width:0;min-height:0}
@@ -152,12 +152,12 @@ function sizePx(type = labelType) {
     #stageRowsTable button{border:1px solid rgba(255,255,255,.18);background:#080b1a;color:#fff;border-radius:8px;padding:5px 8px;font-weight:800;cursor:pointer}
 
     #stageLabelHost{min-width:0;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:8px;position:relative}
-    body.beinvt-label-pot #stageLabelHost{flex:0 0 min(370px,34%);height:100%;align-items:center;justify-content:center;padding:10px 6px}
-    body.beinvt-label-wrap #stageLabelHost{flex:1 1 auto;align-items:center;justify-content:center;padding:10px 6px 18px}
-    .stageStack{display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;max-width:100%;max-height:100%}
-    .labelPreviewRow{display:flex;align-items:center;justify-content:center;gap:16px;max-width:100%;max-height:100%;min-width:0;overflow:visible}
-    body.beinvt-label-pot .labelPreviewRow{flex-direction:column;gap:10px}
-    body.beinvt-label-wrap .labelPreviewRow{flex-direction:row;gap:16px}
+    body.beinvt-label-pot #stageLabelHost{flex:0 0 min(370px,34%);height:100%;align-items:center;justify-content:center;padding:4px 4px}
+    body.beinvt-label-wrap #stageLabelHost{flex:1 1 auto;align-items:flex-start;justify-content:center;padding:4px 6px 8px}
+    .stageStack{display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:flex-start;max-width:100%;max-height:100%}
+    .labelPreviewRow{display:flex;align-items:center;justify-content:center;gap:8px;max-width:100%;max-height:100%;min-width:0;overflow:visible}
+    body.beinvt-label-pot .labelPreviewRow{flex-direction:column;gap:6px}
+    body.beinvt-label-wrap .labelPreviewRow{flex-direction:row;gap:8px}
     .stageMeta{display:flex;gap:8px;align-items:stretch;justify-content:center;min-width:220px;max-width:340px;padding:8px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:#171a35;color:#e5e7eb;position:relative;z-index:20;box-shadow:0 10px 28px rgba(0,0,0,.22)}
     body.beinvt-label-pot .stageMeta{width:min(100%,320px);flex-direction:column}
     body.beinvt-label-wrap .stageMeta{width:205px;flex-direction:column;flex:0 0 205px}
@@ -690,18 +690,26 @@ function ensureLeftPanel() {
 
 function dockStageAwayFromLeftPanel() {
   const panel = findSettingsPanel();
-  const host = $("canvasHost");
-  const stage = document.querySelector(".stageWrap") || (host && host.parentElement);
+  const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
   if (!panel || !stage) return;
+
+  // Clear the old calculated margin first. The stage already sits beside the left menu in normal layout,
+  // so applying the menu's full screen X as margin creates the large blank gap.
+  stage.style.marginLeft = "0px";
+  stage.style.width = "";
+  stage.style.maxWidth = "";
+
   const pr = panel.getBoundingClientRect();
   const sr = stage.getBoundingClientRect();
-  const targetLeft = Math.ceil(pr.right + 12);
-  if (sr.left < targetLeft - 2) {
-    stage.style.marginLeft = targetLeft + "px";
-    stage.style.width = "calc(100vw - " + (targetLeft + 12) + "px)";
-    stage.style.maxWidth = "calc(100vw - " + (targetLeft + 12) + "px)";
+  const minGap = 6;
+  const needed = Math.ceil(pr.right + minGap - sr.left);
+
+  // Only add a tiny overlap correction when needed, never the full panel offset.
+  if (needed > 0 && needed < 80) {
+    stage.style.marginLeft = needed + "px";
   }
 }
+
 
 function nearestCleanupContainer(el) {
   if (!el) return null;
