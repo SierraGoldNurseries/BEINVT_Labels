@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.13-geneva-rsch-height-shift";
+const APP_VERSION = "8.6.14-debug-manual-table-width";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -8,6 +8,7 @@ const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=15
 const GENEVA_SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=260263&c=11150895&h=NMkHvroppy8Yi93204J1rZiq_7V-dJBmcFNuScfEc2hRzqB9";
 const GENEVA_LOGO_SHIFT_Y = -1;
 const OUTER_CARD_EXTRA_WIDTH = 0;
+const TABLE_CARD_WIDTH_EXTRA_BY_LABEL = { POT: 196, WRAP: 194 };
 const DEBUG_LAYER_LABELS_DEFAULT = false;
 
 /*
@@ -20,6 +21,8 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - Outer card keeps its current width but shifts right if it overlaps the left menu.
   - Page render height is trimmed by 5% through pageHeightScale.
   - Debug includes T = the actual top control card containing Pot Stakes / Wrap Ties / Zoom / print buttons.
+  - v8.6.14: C table card gains +196px for Pot Stakes and +194px for Wrap Ties.
+  - v8.6.14: debug W/H fields no longer refresh while typing, and A manual debug width is not capped.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -911,6 +914,8 @@ function outerCardSizeRuntimeConfig() {
   if (storedW !== null && storedW !== "") {
     cfg.widthMode = "manual";
     cfg.manualWidth = Number(storedW) || cfg.manualWidth;
+    // Debug/manual width must be literal. Do not cap it back to the fitTopMenu value.
+    cfg.capManualToAvailable = false;
   }
   if (storedH !== null && storedH !== "") {
     cfg.heightMode = "manual";
@@ -1052,13 +1057,19 @@ function outerCardLayoutMetrics(stage) {
 function outerCardAvailableWidth(stage) {
   return Math.max(300, outerCardLayoutMetrics(stage).availableWidth);
 }
+function tableCardExtraWidth() {
+  const override = window.BEINVT_TABLE_CARD_WIDTH_EXTRA_BY_LABEL && typeof window.BEINVT_TABLE_CARD_WIDTH_EXTRA_BY_LABEL === "object" ? window.BEINVT_TABLE_CARD_WIDTH_EXTRA_BY_LABEL : {};
+  const merged = Object.assign({}, TABLE_CARD_WIDTH_EXTRA_BY_LABEL, override);
+  return Math.max(0, Math.round(Number(merged[labelType] || 0)));
+}
 function outerCardTargetWidth(stage) {
   const cfg = outerCardSizeRuntimeConfig();
   const mode = String(cfg.widthMode || "fitTopMenu").toLowerCase();
   const extra = Number(cfg.extraWidth ?? OUTER_CARD_EXTRA_WIDTH ?? 0) || 0;
+  const tableExtra = tableCardExtraWidth();
   const available = outerCardAvailableWidth(stage);
   if (mode === "fittopmenu" || mode === "fitviewport" || mode === "fit" || mode === "available" || mode === "safe" || mode === "topbar") {
-    return Math.max(300, Math.round(available + extra));
+    return Math.max(300, Math.round(available + extra + tableExtra));
   }
   const requested = Math.max(300, Math.round(Number(cfg.manualWidth || cfg.width || cfg.fallbackWidth || 1600) + extra));
   return cfg.capManualToAvailable === false ? requested : Math.min(requested, available);
@@ -1213,6 +1224,7 @@ function outerCardDebugInfo() {
     leftCorrection: metrics.correction,
     rightLimit: metrics.rightLimit,
     availableWidth: metrics.availableWidth,
+    tableExtraWidth: tableCardExtraWidth(),
     targetWidth: outerCardTargetWidth(stage),
     targetHeight: outerCardTargetHeight(stage),
     inlineWidth: stage ? (stage.style.getPropertyValue("width") || "") : "",
@@ -1355,12 +1367,26 @@ function debugLayerSnapshot() {
 }
 function debugDimensionInputs(t) {
   const r = t.rect;
-  const w = t.key === "A" ? outerCardTargetWidth() : (r ? r.width : "");
-  const h = t.key === "A" ? outerCardTargetHeight() : (r ? r.height : "");
+  const manual = readDebugLayerManualSizes()[t.key];
+  const active = document.activeElement;
+  const activeW = active && active.matches && active.matches(`input[data-debug-dim-key="${CSS.escape(t.key)}"][data-dim="w"]`) ? active.value : null;
+  const activeH = active && active.matches && active.matches(`input[data-debug-dim-key="${CSS.escape(t.key)}"][data-dim="h"]`) ? active.value : null;
+  const storedOuterW = t.key === "A" ? localStorage.getItem("beinvtOuterCardDebugWidth_v8610") : null;
+  const storedOuterH = t.key === "A" ? localStorage.getItem("beinvtOuterCardDebugHeight_v8610") : null;
+  const w = activeW !== null ? activeW : (manual && manual.width ? manual.width : (t.key === "A" && storedOuterW ? Number(storedOuterW) : (t.key === "A" ? outerCardTargetWidth() : (r ? r.width : ""))));
+  const h = activeH !== null ? activeH : (manual && manual.height ? manual.height : (t.key === "A" && storedOuterH ? Number(storedOuterH) : (t.key === "A" ? outerCardTargetHeight() : (r ? r.height : ""))));
   if (t.key === "T") {
     return `<div class="dimControls"><input type="number" step="1" min="1" value="${escapeHtml(w)}" readonly title="Top menu width px"><input type="number" step="1" min="1" value="${escapeHtml(h)}" readonly title="Top menu height px"><span class="readonlyRef">ref</span></div>`;
   }
   return `<div class="dimControls"><input type="number" step="1" min="1" value="${escapeHtml(w)}" data-debug-dim-key="${escapeHtml(t.key)}" data-dim="w" title="Width px"><input type="number" step="1" min="1" value="${escapeHtml(h)}" data-debug-dim-key="${escapeHtml(t.key)}" data-dim="h" title="Height px"><button type="button" data-debug-apply-size="${escapeHtml(t.key)}">Set</button></div>`;
+}
+function isDebugDimensionInputActive() {
+  const active = document.activeElement;
+  return !!(active && active.matches && active.matches("input[data-debug-dim-key][data-dim]"));
+}
+function updateDebugLayerLabelsSoft() {
+  if (isDebugDimensionInputActive()) return;
+  updateDebugLayerLabels();
 }
 function updateDebugLayerLabels() {
   if (!document.body) return;
@@ -1406,7 +1432,7 @@ function updateDebugLayerLabels() {
     return `<div class="row" title="${escapeHtml(t.note)}"><div class="key" style="color:${escapeHtml(t.color)}">${escapeHtml(t.key)}</div><div class="name">${escapeHtml(t.name)}</div><div class="size">${escapeHtml(size)}</div>${debugDimensionInputs(t)}</div>`;
   }).join("");
   const ocInfo = outerCardDebugInfo();
-  panel.innerHTML = `<b>Layer Debug: ON</b> <span class="muted">drag this panel anywhere</span><div class="muted">T is the top control card containing Pot Stakes / Wrap Ties / Zoom / print buttons. Found: <code>${escapeHtml(ocInfo.topbarFound)}</code>. A target: <code>${escapeHtml(ocInfo.targetWidth)}x${escapeHtml(ocInfo.targetHeight)}</code>. Width mode: <code>${escapeHtml(ocInfo.mode)}</code>. Height mode: <code>${escapeHtml(ocInfo.heightMode)}</code>. T left/width/right/bottom: <code>${escapeHtml(ocInfo.topbarLeft)}/${escapeHtml(ocInfo.topbarWidth)}/${escapeHtml(ocInfo.topbarRight)}/${escapeHtml(ocInfo.topbarBottom)}</code>. A left/right/available/shift: <code>${escapeHtml(ocInfo.targetLeft)}/${escapeHtml(ocInfo.rightLimit)}/${escapeHtml(ocInfo.availableWidth)}/${escapeHtml(ocInfo.leftCorrection)}</code>. Inline: <code>${escapeHtml(ocInfo.inlineWidth)}</code>. Computed: <code>${escapeHtml(ocInfo.computedWidth)}</code>.</div><div class="topBtns"><button type="button" id="beinvtDebugOffBtn">Hide labels</button><button type="button" id="beinvtDebugRefreshBtn">Refresh</button><button type="button" id="beinvtDebugClearBtn">Clear manual sizes</button><button type="button" id="beinvtDebugCopyBtn">Copy sizes</button></div><div class="muted">Type W/H values and press <code>Set</code>. Manual sizes now persist for debug layers instead of snapping back. Clear manual sizes returns A to fitTopMenu/fitViewport. T is reference-only.</div>${rows}`;
+  panel.innerHTML = `<b>Layer Debug: ON</b> <span class="muted">drag this panel anywhere</span><div class="muted">T is the top control card containing Pot Stakes / Wrap Ties / Zoom / print buttons. Found: <code>${escapeHtml(ocInfo.topbarFound)}</code>. A target: <code>${escapeHtml(ocInfo.targetWidth)}x${escapeHtml(ocInfo.targetHeight)}</code>. C table extra: <code>${escapeHtml(ocInfo.tableExtraWidth)}</code>. Width mode: <code>${escapeHtml(ocInfo.mode)}</code>. Height mode: <code>${escapeHtml(ocInfo.heightMode)}</code>. T left/width/right/bottom: <code>${escapeHtml(ocInfo.topbarLeft)}/${escapeHtml(ocInfo.topbarWidth)}/${escapeHtml(ocInfo.topbarRight)}/${escapeHtml(ocInfo.topbarBottom)}</code>. A left/right/available/shift: <code>${escapeHtml(ocInfo.targetLeft)}/${escapeHtml(ocInfo.rightLimit)}/${escapeHtml(ocInfo.availableWidth)}/${escapeHtml(ocInfo.leftCorrection)}</code>. Inline: <code>${escapeHtml(ocInfo.inlineWidth)}</code>. Computed: <code>${escapeHtml(ocInfo.computedWidth)}</code>.</div><div class="topBtns"><button type="button" id="beinvtDebugOffBtn">Hide labels</button><button type="button" id="beinvtDebugRefreshBtn">Refresh</button><button type="button" id="beinvtDebugClearBtn">Clear manual sizes</button><button type="button" id="beinvtDebugCopyBtn">Copy sizes</button></div><div class="muted">Type W/H values and press <code>Set</code>. Manual sizes now persist for debug layers instead of snapping back. Clear manual sizes returns A to fitTopMenu/fitViewport. T is reference-only.</div>${rows}`;
   const offBtn = document.getElementById("beinvtDebugOffBtn");
   const refreshBtn = document.getElementById("beinvtDebugRefreshBtn");
   const clearBtn = document.getElementById("beinvtDebugClearBtn");
@@ -1486,7 +1512,7 @@ function setDebugLayerSize(key, width, height) {
   storeDebugLayerManualSize(key, w, h);
   if (key === "A") {
     const cfg = outerCardSizeRuntimeConfig();
-    window.BEINVT_OUTER_CARD_SIZE_CONFIG = Object.assign({}, cfg, { widthMode: "manual", heightMode: "manual", manualWidth: w, height: h });
+    window.BEINVT_OUTER_CARD_SIZE_CONFIG = Object.assign({}, cfg, { widthMode: "manual", heightMode: "manual", manualWidth: w, height: h, capManualToAvailable: false });
     localStorage.setItem("beinvtOuterCardDebugWidth_v8610", String(w));
     localStorage.setItem("beinvtOuterCardDebugHeight_v8610", String(h));
     forceOuterCardSize();
@@ -1528,9 +1554,9 @@ function copyDebugLayerSizes() {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).catch(() => {});
 }
 function installDebugLayerLabels() {
-  window.BEINVT_DEBUG_LAYERS = { update: updateDebugLayerLabels, snapshot: debugLayerSnapshot, setSize: setDebugLayerSize, widen: widenDebugLayer, clear: clearDebugWidthTests, copySizes: copyDebugLayerSizes, applyManualSizes: applyPersistentDebugLayerSizes, on: () => setDebugLayerLabels(true), off: () => setDebugLayerLabels(false), config: LAYER_DEBUG_CONFIG };
-  window.BEINVT_OUTER_CARD_SIZE = { apply: forceOuterCardSize, config: OUTER_CARD_SIZE_CONFIG, info: outerCardDebugInfo, setManualWidth: w => { window.BEINVT_OUTER_CARD_SIZE_CONFIG = Object.assign({}, outerCardSizeRuntimeConfig(), { widthMode: "manual", manualWidth: Number(w) || outerCardTargetWidth() }); localStorage.setItem("beinvtOuterCardDebugWidth_v8610", String(Number(w) || outerCardTargetWidth())); forceOuterCardSize(); updateDebugLayerLabels(); }, setManualSize: (w,h) => setDebugLayerSize("A", w, h) };
-  if (!window.beinvtLayerDebugInterval) window.beinvtLayerDebugInterval = window.setInterval(() => { forceOuterCardSize(); applyPersistentDebugLayerSizes(false); updateDebugLayerLabels(); }, 650);
+  window.BEINVT_DEBUG_LAYERS = { update: updateDebugLayerLabels, snapshot: debugLayerSnapshot, setSize: setDebugLayerSize, widen: widenDebugLayer, clear: clearDebugWidthTests, copySizes: copyDebugLayerSizes, applyManualSizes: applyPersistentDebugLayerSizes, on: () => setDebugLayerLabels(true), off: () => setDebugLayerLabels(false), config: LAYER_DEBUG_CONFIG, tableExtraByLabel: TABLE_CARD_WIDTH_EXTRA_BY_LABEL };
+  window.BEINVT_OUTER_CARD_SIZE = { apply: forceOuterCardSize, config: OUTER_CARD_SIZE_CONFIG, info: outerCardDebugInfo, setManualWidth: w => { window.BEINVT_OUTER_CARD_SIZE_CONFIG = Object.assign({}, outerCardSizeRuntimeConfig(), { widthMode: "manual", manualWidth: Number(w) || outerCardTargetWidth(), capManualToAvailable: false }); localStorage.setItem("beinvtOuterCardDebugWidth_v8610", String(Number(w) || outerCardTargetWidth())); forceOuterCardSize(); updateDebugLayerLabelsSoft(); }, setManualSize: (w,h) => setDebugLayerSize("A", w, h) };
+  if (!window.beinvtLayerDebugInterval) window.beinvtLayerDebugInterval = window.setInterval(() => { forceOuterCardSize(); applyPersistentDebugLayerSizes(false); updateDebugLayerLabelsSoft(); }, 650);
   if (!window.beinvtOuterCardForceBurst) {
     let n = 0;
     window.beinvtOuterCardForceBurst = window.setInterval(() => { forceOuterCardSize(); applyPersistentDebugLayerSizes(false); if (++n > 25) clearInterval(window.beinvtOuterCardForceBurst); }, 200);
