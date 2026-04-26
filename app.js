@@ -1,4 +1,4 @@
-const APP_VERSION = "7.2.0-objects-default-wrap-fit-zoom";
+const APP_VERSION = "7.3.0-zoom-objects-table-guides";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
@@ -2239,5 +2239,391 @@ function syncViewportFit(){
     scheduleWrapAutoFit();
     const z=$('zoom');
     if(z) renderCanvas();
+  });
+})();
+
+
+/* --------------------------------------------------------------------------
+   v7.3.0 final override layer
+   Fixes requested in latest notes:
+   - removes dead zoom-slider range by syncing slider max to the actual usable zoom
+   - centers Wrap Tie label preview lower in its preview area
+   - increases Wrap Tie render table height by about 25% from v7.2
+   - keeps Objects always visible at the top of the left menu
+   - adds Activity Code, Scion Patent, Rootstock Patent to Wrap Tie render table
+   - hides Center H/V/Both and compacts guide/snap controls into rows/two columns
+   -------------------------------------------------------------------------- */
+(function injectV730Css(){
+  const old=document.querySelector('style[data-beinvt-v730-css]');
+  if(old) old.remove();
+  const css = `
+    body{overflow:hidden!important}
+    .beinvt-main-shell{grid-template-columns:minmax(430px,510px) minmax(0,1fr)!important;gap:10px!important;padding:6px 10px 10px!important;height:calc(100vh - var(--beinvt-top-offset,96px))!important;min-height:0!important;overflow:hidden!important}
+    .beinvt-main-shell > aside.panel,.beinvt-left-settings-panel{height:100%!important;max-height:none!important;overflow:auto!important;min-width:0!important;width:100%!important;padding-bottom:10px!important}
+    .beinvt-main-shell > .stageWrap,.beinvt-stage-main{height:100%!important;min-height:0!important;overflow:hidden!important}
+    #canvasHost{height:100%!important;min-height:0!important;overflow:hidden!important;display:grid!important;gap:10px!important}
+    body.beinvt-label-pot #canvasHost{grid-template-columns:minmax(0,1fr) minmax(260px,345px)!important;grid-template-rows:1fr!important}
+    body.beinvt-label-wrap #canvasHost{grid-template-columns:1fr!important;grid-template-rows:minmax(0,2.5fr) minmax(172px,1fr)!important}
+    #stageDataWrap{height:100%!important;min-height:0!important;max-height:none!important;overflow:hidden!important}
+    body.beinvt-label-wrap #stageDataWrap{height:100%!important;min-height:0!important;max-height:none!important;overflow:hidden!important}
+    body.beinvt-label-wrap #stageLabelHost{height:100%!important;min-height:172px!important;align-items:center!important;justify-content:center!important;padding:14px 6px 6px!important;overflow:hidden!important}
+    body.beinvt-label-wrap #stageLabelHost .stageStack{justify-content:center!important;align-items:center!important;height:100%!important}
+    body.beinvt-label-wrap .labelPreviewRow{width:100%!important;max-width:100%!important;gap:10px!important;justify-content:center!important;align-items:center!important;overflow:hidden!important}
+    body.beinvt-label-wrap .labelPreviewRow .stageMeta{width:240px!important;min-width:220px!important;max-width:240px!important;align-self:center!important;flex:0 0 240px!important}
+    body.beinvt-label-pot #stageDataWrap,body.beinvt-label-pot #stageLabelHost{height:100%!important;min-height:0!important;max-height:none!important;overflow:hidden!important}
+    body.beinvt-label-pot .labelPreviewRow .stageMeta{width:100%!important;min-width:250px!important;max-width:320px!important;flex:0 0 auto!important}
+    .stageTableScroll{overflow-y:auto!important;overflow-x:hidden!important;min-height:0!important;height:100%!important}
+    #stageRowsTable,body.beinvt-label-pot #stageRowsTable,body.beinvt-label-wrap #stageRowsTable{width:100%!important;min-width:0!important;table-layout:fixed!important}
+    #stageRowsTable th,#stageRowsTable td{min-width:0!important;max-width:none!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;padding-left:7px!important;padding-right:7px!important}
+    body.beinvt-label-wrap #stageRowsTable th,body.beinvt-label-wrap #stageRowsTable td{font-size:11px!important;padding-left:5px!important;padding-right:5px!important}
+    .stageMeta .metaPill{min-height:34px!important;padding:8px 10px!important}
+
+    .beinvt-pinned-objects-section{display:block!important;visibility:visible!important;opacity:1!important;border:1px solid rgba(96,165,250,.35)!important;border-radius:12px!important;background:rgba(15,23,42,.82)!important;padding:10px!important;margin:0 0 10px 0!important;position:relative!important;z-index:80!important;max-height:270px!important;overflow:auto!important}
+    .beinvt-pinned-objects-section h2,.beinvt-pinned-objects-section h3,.beinvt-pinned-objects-section h4{margin:0 0 8px 0!important;color:#fff!important;font-size:15px!important;letter-spacing:.02em!important}
+    .beinvt-settings-compact .section[data-settings-group].beinvt-pinned-objects-section,.beinvt-settings-compact .beinvt-pinned-objects-section.beinvt-hidden-section{display:block!important;visibility:visible!important;opacity:1!important}
+    #objectPanel{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;width:100%!important;min-height:52px!important}
+    body.beinvt-label-wrap #objectPanel{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+    .objectBtn{display:flex!important;flex-direction:column!important;gap:4px!important;align-items:flex-start!important;justify-content:center!important;min-height:42px!important;white-space:normal!important;overflow:hidden!important;border-radius:10px!important}
+    .objectBtn span:first-child{display:block!important;width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;line-height:1.08!important}
+    .objectBtn .badge{max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;font-size:10px!important}
+
+    #centerH,#centerV,#centerBoth{display:none!important}
+    .beinvt-guide-toggles{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;margin:8px 0!important}
+    .beinvt-guide-toggles > *,.beinvt-guide-numbers > *{min-width:0!important}
+    .beinvt-guide-numbers{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin:8px 0!important}
+    .beinvt-control-card{border:1px solid rgba(255,255,255,.12)!important;border-radius:10px!important;background:rgba(255,255,255,.04)!important;padding:8px!important;display:flex!important;align-items:center!important;gap:7px!important;min-height:36px!important;overflow:hidden!important}
+    .beinvt-control-card input[type='number'],.beinvt-control-card input[type='text']{width:100%!important;min-width:0!important}
+    .settingsGroupTabs{display:flex!important;flex-wrap:wrap!important;gap:6px!important;margin:0 0 10px 0!important;padding:8px!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:12px!important;background:rgba(15,23,42,.95)!important;position:relative!important;top:auto!important;z-index:40!important}
+    .settingsGroupTab{border:1px solid rgba(255,255,255,.16)!important;border-radius:999px!important;background:rgba(255,255,255,.05)!important;color:#e5e7eb!important;padding:7px 10px!important;font-size:12px!important;font-weight:800!important;cursor:pointer!important;max-width:170px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+    .settingsGroupTab.active{border-color:#60a5fa!important;background:rgba(96,165,250,.22)!important;color:#fff!important}
+    .beinvt-settings-compact .section[data-settings-group].beinvt-hidden-section:not(.beinvt-pinned-objects-section){display:none!important}
+    .beinvt-settings-compact .section[data-settings-group]{margin-bottom:10px!important;position:relative!important;z-index:1!important}
+
+    .wrapTextInner,.wrapTextInner.rootstockInner{white-space:normal!important;word-break:break-word!important;overflow-wrap:anywhere!important;line-height:.74!important;min-width:0!important;max-width:100%!important;max-height:100%!important;padding:0 1px!important;box-sizing:border-box!important}
+    .wrapTextInner.smallText{line-height:.80!important}
+    .wrapTextInner.leftText{justify-content:flex-start!important;text-align:left!important}
+    .wrapTextInner .wrapOn{white-space:nowrap!important;display:inline!important;font-size:.62em!important;margin-right:.16em!important;text-transform:none!important}
+    input#zoom{max-width:210px!important;min-width:150px!important;accent-color:#5b7cfa!important}
+    @media(max-width:1180px){.beinvt-main-shell{grid-template-columns:1fr!important;height:auto!important;min-height:0!important;overflow:auto!important}.beinvt-main-shell > aside.panel,.beinvt-left-settings-panel{max-height:380px!important}.beinvt-main-shell > .stageWrap,.beinvt-stage-main{height:calc(100vh - 430px)!important;min-height:560px!important}body.beinvt-label-wrap #canvasHost{grid-template-rows:minmax(300px,2.5fr) minmax(170px,1fr)!important}}
+  `;
+  const tag=document.createElement('style');
+  tag.setAttribute('data-beinvt-v730-css','1');
+  tag.textContent=css;
+  document.head.appendChild(tag);
+})();
+
+function panelHost(){
+  return document.querySelector('.beinvt-left-settings-panel') || document.querySelector('aside.panel') || document.querySelector('.panel.sidebar') || document.querySelector('.settingsPanel');
+}
+function hasAnyId(sec,ids){
+  return !!(sec && ids.some(id=>sec.querySelector('#'+id)));
+}
+function isLegacyDataSection(sec){
+  return !!(sec && (sec.querySelector('#rowsBody') || sec.querySelector('#stageRowsTable') || sec.closest('#canvasHost')));
+}
+function hideLegacyDataSections(){
+  document.querySelectorAll('.section').forEach(sec=>{
+    if(isLegacyDataSection(sec)){
+      sec.classList.add('beinvt-legacy-data-section');
+      sec.style.display='none';
+    }
+  });
+}
+function fieldForControl(id){
+  const el=$(id);
+  if(!el) return null;
+  return el.closest('label') || el.closest('.field') || el.closest('.control') || el.closest('.formRow') || el.closest('.row') || el.parentElement;
+}
+function makeControlCard(node){
+  if(!node || node.classList.contains('beinvt-control-card')) return node;
+  node.classList.add('beinvt-control-card');
+  return node;
+}
+function ensureGuideControlLayout(){
+  const panel=panelHost();
+  if(!panel) return;
+  let guideSec=[...panel.querySelectorAll('.section')].find(sec=>hasAnyId(sec,['safeToggle','gridToggle','snapToggle','snapGridToggle','gridPx','snapPx','safeMargin']));
+  if(!guideSec){
+    guideSec=document.createElement('div');
+    guideSec.className='section';
+    guideSec.innerHTML='<h3>Guides & Snap</h3>';
+    panel.appendChild(guideSec);
+  }
+  let h=guideSec.querySelector('h1,h2,h3,h4,.sectionTitle,.title');
+  if(!h){ h=document.createElement('h3'); guideSec.insertBefore(h,guideSec.firstChild); }
+  h.textContent='Guides & Snap';
+  let toggles=guideSec.querySelector('#beinvtGuideToggles');
+  if(!toggles){
+    toggles=document.createElement('div');
+    toggles.id='beinvtGuideToggles';
+    toggles.className='beinvt-guide-toggles';
+    h.insertAdjacentElement('afterend',toggles);
+  }
+  ['gridToggle','snapToggle','snapGridToggle'].forEach(id=>{
+    const field=fieldForControl(id);
+    if(field) toggles.appendChild(makeControlCard(field));
+  });
+  let nums=guideSec.querySelector('#beinvtGuideNumbers');
+  if(!nums){
+    nums=document.createElement('div');
+    nums.id='beinvtGuideNumbers';
+    nums.className='beinvt-guide-numbers';
+    toggles.insertAdjacentElement('afterend',nums);
+  }
+  ['gridPx','snapPx'].forEach(id=>{
+    const field=fieldForControl(id);
+    if(field) nums.appendChild(makeControlCard(field));
+  });
+  ['centerH','centerV','centerBoth'].forEach(id=>{ const el=$(id); if(el) el.style.display='none'; });
+}
+function settingsSectionTitle(sec,idx){
+  if(!sec) return `Settings ${idx+1}`;
+  if(sec.classList.contains('beinvt-pinned-objects-section') || hasAnyId(sec,['objectPanel','selectedName'])) return 'Objects';
+  if(hasAnyId(sec,['x','y','w','h','rot','fontSize'])) return 'Position & Size';
+  if(hasAnyId(sec,['safeToggle','gridToggle','gridPx','safeMargin','snapToggle','snapPx','snapGridToggle'])) return 'Guides & Snap';
+  if(hasAnyId(sec,['queueList','addCurrent','clearQueue','printQueue'])) return 'Queue & Print';
+  if(hasAnyId(sec,['presetSelect','savePreset','loadPreset','deletePreset','layoutJson','exportLayout','importLayout','downloadLayout','resetLayout'])) return 'Presets & Layout';
+  if(hasAnyId(sec,['printCalibration','saveCalibration','measuredW','measuredH','calStatus'])) return 'Calibration';
+  if(hasAnyId(sec,['testMode','printLabel'])) return 'Actions';
+  const heading=sec.querySelector('h1,h2,h3,h4,.sectionTitle,.title');
+  const raw=(heading&&heading.textContent)||sec.getAttribute('aria-label')||'';
+  const cleaned=String(raw||'').trim().replace(/settings\s*\d+/ig,'').replace(/\s+/g,' ');
+  const fallbacks=['General','Position & Size','Guides & Snap','Presets & Layout','Queue & Print','Calibration','Actions','Advanced'];
+  return cleaned ? cleaned.slice(0,32) : (fallbacks[idx] || 'More Options');
+}
+function activateSettingsGroup(idx){
+  const tabs=document.querySelectorAll('.settingsGroupTab[data-settings-group]');
+  const secs=document.querySelectorAll('.section[data-settings-group]');
+  tabs.forEach(t=>t.classList.toggle('active',t.dataset.settingsGroup===String(idx)));
+  secs.forEach(sec=>{
+    if(sec.classList.contains('beinvt-pinned-objects-section')){
+      sec.classList.remove('beinvt-hidden-section');
+      sec.style.display='block';
+      return;
+    }
+    sec.classList.toggle('beinvt-hidden-section',sec.dataset.settingsGroup!==String(idx));
+  });
+  localStorage.setItem('beinvtSettingsGroup',String(idx));
+}
+function pinObjectsSection(){
+  const panel=panelHost();
+  if(!panel) return;
+  let objPanel=document.getElementById('objectPanel');
+  let objSection=objPanel && objPanel.closest('.section');
+  if(!objSection){
+    objSection=document.createElement('div');
+    objSection.className='section beinvt-created-objects-section';
+    objSection.innerHTML='<h3>Objects</h3><div id="objectPanel"></div>';
+    objPanel=objSection.querySelector('#objectPanel');
+  }
+  objSection.classList.add('beinvt-pinned-objects-section');
+  objSection.classList.remove('beinvt-hidden-section');
+  objSection.removeAttribute('data-settings-group');
+  objSection.style.display='block';
+  objSection.style.visibility='visible';
+  objSection.style.opacity='1';
+  let heading=objSection.querySelector('h1,h2,h3,h4,.sectionTitle,.title');
+  if(!heading){
+    heading=document.createElement('h3');
+    objSection.insertBefore(heading,objSection.firstChild);
+  }
+  heading.textContent='Objects';
+  if(objSection.parentElement!==panel || panel.firstElementChild!==objSection){
+    panel.insertBefore(objSection,panel.firstElementChild);
+  }
+}
+function ensureSettingsGroups(){
+  hideLegacyDataSections();
+  const panel=panelHost();
+  if(!panel) return;
+  pinObjectsSection();
+  ensureGuideControlLayout();
+  let sections=[];
+  try{ sections=[...panel.querySelectorAll(':scope > .section')]; }
+  catch(e){ sections=[...panel.querySelectorAll('.section')].filter(sec=>sec.parentElement===panel); }
+  const objSection=panel.querySelector('.beinvt-pinned-objects-section');
+  sections=sections.filter(sec=>sec!==objSection && !isLegacyDataSection(sec) && sec.style.display!=='none' && !sec.classList.contains('beinvt-legacy-data-section') && !sec.querySelector('#stageRowsTable') && !sec.closest('#canvasHost'));
+  panel.classList.add('beinvt-settings-compact');
+  let tabs=panel.querySelector('#settingsGroupTabs');
+  if(!tabs){
+    tabs=document.createElement('div');
+    tabs.id='settingsGroupTabs';
+    tabs.className='settingsGroupTabs';
+  }
+  if(objSection && tabs.previousElementSibling!==objSection){
+    panel.insertBefore(tabs,objSection.nextSibling);
+  }else if(!objSection && panel.firstElementChild!==tabs){
+    panel.insertBefore(tabs,panel.firstChild);
+  }
+  tabs.innerHTML='';
+  sections.forEach((sec,idx)=>{
+    sec.dataset.settingsGroup=String(idx);
+    const title=settingsSectionTitle(sec,idx);
+    sec.dataset.settingsTitle=title;
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='settingsGroupTab';
+    btn.dataset.settingsGroup=String(idx);
+    btn.textContent=title;
+    btn.onclick=()=>activateSettingsGroup(idx);
+    tabs.appendChild(btn);
+  });
+  const saved=Number(localStorage.getItem('beinvtSettingsGroup')||0);
+  const target=(Number.isFinite(saved)&&saved>=0&&saved<sections.length)?saved:0;
+  if(sections.length) activateSettingsGroup(target);
+  pinObjectsSection();
+}
+
+function updateZoomSliderMax(maxZ){
+  const z=$('zoom');
+  if(!z) return;
+  const safeMax=Math.max(0.35,Number(maxZ)||1);
+  const current=Number(z.value);
+  z.min='0.35';
+  z.max=safeMax.toFixed(2);
+  z.step='0.01';
+  if(!Number.isFinite(current) || current>safeMax) z.value=safeMax.toFixed(2);
+  if(Number(z.value)<0.35) z.value='0.35';
+  z.title=`Usable zoom range: 0.35 to ${safeMax.toFixed(2)}`;
+}
+function effectiveStageZoom(requested,s,labelHost){
+  let z=Number(requested||1);
+  if(!isFinite(z)||z<=0) z=1;
+  syncViewportFit();
+  const hostW=Math.max(1,(labelHost&&labelHost.clientWidth)||window.innerWidth||900);
+  const hostH=Math.max(1,(labelHost&&labelHost.clientHeight)||window.innerHeight||500);
+  let maxByW, maxByH, hardMax;
+  if(labelType==='WRAP'){
+    const metaW=245, gap=10, pad=16;
+    maxByW=(hostW-metaW-gap-pad)/Math.max(1,s.w);
+    maxByH=(hostH-20)/Math.max(1,s.h);
+    hardMax=2.35;
+  }else{
+    const metaH=92, gap=10, pad=18;
+    maxByW=(hostW-pad)/Math.max(1,s.w);
+    maxByH=(hostH-metaH-gap-pad)/Math.max(1,s.h);
+    hardMax=1.45;
+  }
+  const maxZ=Math.max(0.35,Math.min(hardMax,maxByW,maxByH));
+  updateZoomSliderMax(maxZ);
+  const slider=$('zoom');
+  const sliderValue=slider?Number(slider.value):z;
+  return clamp(Number.isFinite(sliderValue)?sliderValue:z,0.35,maxZ);
+}
+function normalizeZoomSliderNow(){
+  const z=$('zoom');
+  if(!z) return;
+  const s=sizePx();
+  const host=$('stageLabelHost') || document.body;
+  effectiveStageZoom(Number(z.value)||1,s,host);
+}
+
+function cellText(v){ return escapeHtml(capClean(v)); }
+function blockedPotActivity(act){
+  return /pre[-\s]*ship\s*sorting|shipping\s*request|propagation\s*material\s*processing/i.test(String(act||''));
+}
+function buildRowHtml(r){
+  if(labelType==='POT'){
+    return `<td>${cellText(r.wo)}</td><td>${cellText(r.act)}</td><td>${cellText(derivedRootstock(r)||displayPotItem(r)||'')}</td><td>${cellText(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
+  }
+  return `<td>${cellText(r.wo)}</td><td>${cellText(r.act)}</td><td>${cellText(r.crop)}</td><td>${cellText(wrapScionText(r))}</td><td>${cellText(wrapRootstockText(r))}</td><td>${cellText(r.scionPatent)}</td><td>${cellText(r.rootstockPatent)}</td><td>${cellText(r.internalId)}</td><td>${cellText(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
+}
+function renderRows(){
+  ensureStageShell();
+  const q=((($('stageSearch')&&$('stageSearch').value)||($('search')&&$('search').value)||'')+'').toLowerCase();
+  if($('search') && $('stageSearch') && $('search').value!==$('stageSearch').value) $('search').value=$('stageSearch').value;
+  filteredRows=rows.filter(r=>{
+    if(labelType==='POT'){
+      if(cleanDisplay(r.scion)) return false;
+      if(blockedPotActivity(r.act)) return false;
+    }
+    return Object.values(r).join(' ').toLowerCase().includes(q);
+  });
+  if(currentRowIndex>=filteredRows.length) currentRowIndex=0;
+  const headerHtml=labelType==='POT'
+    ? "<th style='width:16%'>WO</th><th style='width:26%'>Activity</th><th style='width:30%'>Item / Rootstock</th><th style='width:14%'>Color</th><th style='width:9%'>Labels</th><th style='width:5%'></th>"
+    : "<th style='width:9%'>WO</th><th style='width:12%'>Activity</th><th style='width:9%'>Crop</th><th style='width:14%'>Scion</th><th style='width:14%'>Rootstock</th><th style='width:10%'>Scion Patent</th><th style='width:10%'>Rootstock Patent</th><th style='width:8%'>Internal ID</th><th style='width:6%'>Color</th><th style='width:5%'>Labels</th><th style='width:3%'></th>";
+  const stageHead=$('stageRowsHead');
+  if(stageHead) stageHead.innerHTML=headerHtml;
+  const oldHead=document.querySelector('aside.panel .table thead tr');
+  if(oldHead) oldHead.innerHTML=headerHtml;
+  renderRowBody($('stageRowsBody'));
+  renderRowBody($('rowsBody'));
+}
+
+function fitOneWrapObject(id,range){
+  const obj=document.querySelector(`.obj[data-id="${id}"]`);
+  const inner=obj&&obj.querySelector('.wrapTextInner');
+  if(!obj||!inner) return;
+  inner.style.whiteSpace='normal';
+  inner.style.wordBreak='break-word';
+  inner.style.overflowWrap='anywhere';
+  inner.style.maxWidth='100%';
+  inner.style.maxHeight='100%';
+  inner.style.boxSizing='border-box';
+  let fs=range[0], min=range[1], best=min;
+  for(; fs>=min; fs-=0.1){
+    inner.style.fontSize=fs.toFixed(1)+'px';
+    const fits=inner.scrollWidth<=obj.clientWidth+1 && inner.scrollHeight<=obj.clientHeight+1;
+    if(fits){ best=fs; break; }
+  }
+  inner.style.fontSize=best.toFixed(1)+'px';
+  if(layout&&layout.objects&&layout.objects[id]) layout.objects[id].fontSize=parseFloat(inner.style.fontSize)||layout.objects[id].fontSize;
+}
+function autoFitWrapPreview(){
+  if(labelType!=='WRAP') return;
+  const ranges={
+    WO:[14,5.8], CROP:[11,5.5], INTERNAL:[10.5,5.5],
+    SCION:[25,4.0], ROOTSTOCK:[25,4.0],
+    SCION_ROYALTY:[4.8,2.1], ROOTSTOCK_ROYALTY:[4.8,2.1],
+    LOT:[4.2,2.0], ADDRESS:[4.2,2.0], WARNING:[3.6,1.7]
+  };
+  Object.entries(ranges).forEach(([id,range])=>fitOneWrapObject(id,range));
+}
+function scheduleWrapAutoFit(){
+  if(labelType!=='WRAP') return;
+  requestAnimationFrame(()=>{
+    autoFitWrapPreview();
+    requestAnimationFrame(()=>{
+      autoFitWrapPreview();
+      setTimeout(autoFitWrapPreview,80);
+      setTimeout(autoFitWrapPreview,200);
+    });
+  });
+}
+
+(function installV730RuntimeFixes(){
+  const prevRenderCanvas=renderCanvas;
+  renderCanvas=function(){
+    prevRenderCanvas();
+    pinObjectsSection();
+    ensureGuideControlLayout();
+    normalizeZoomSliderNow();
+    scheduleWrapAutoFit();
+  };
+  const prevRenderObjectPanel=renderObjectPanel;
+  renderObjectPanel=function(){
+    pinObjectsSection();
+    prevRenderObjectPanel();
+    pinObjectsSection();
+  };
+  const prevRenderAll=renderAll;
+  renderAll=function(){
+    prevRenderAll();
+    pinObjectsSection();
+    ensureSettingsGroups();
+    renderObjectPanel();
+    normalizeZoomSliderNow();
+    scheduleWrapAutoFit();
+  };
+  window.addEventListener('resize',()=>{ syncViewportFit(); normalizeZoomSliderNow(); renderCanvas(); });
+  requestAnimationFrame(()=>{
+    syncViewportFit();
+    pinObjectsSection();
+    ensureSettingsGroups();
+    renderObjectPanel();
+    renderRows();
+    normalizeZoomSliderNow();
+    scheduleWrapAutoFit();
   });
 })();
