@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.28-row-left-align-no-negative-x";
+const APP_VERSION = "8.6.29-meta-below-wrap-config";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -8,6 +8,25 @@ const LABEL_SIZES = {
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
 const GENEVA_SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=260263&c=11150895&h=NMkHvroppy8Yi93204J1rZiq_7V-dJBmcFNuScfEc2hRzqB9";
 const GENEVA_LOGO_SHIFT_Y = -1;
+
+// Easy adjustment config for Finished Trees + Field Labels.
+// Change these values at the top when you want to move/resize the SG logo
+// or adjust the Label Color / Qty row below the label preview.
+const WRAP_LIKE_PREVIEW_CONFIG = {
+  logoX: 390,
+  logoY: 4,
+  logoWidth: 30,
+  logoHeight: 50,
+  fieldRowX: 0,
+  fieldRowTextAlign: "left",
+  metaBelowLabel: true,
+  metaScaleWithZoom: true,
+  metaMinScale: 0.72,
+  metaMaxScale: 1.35,
+  metaGapPx: 6,
+  metaBelowHeightPx: 44
+};
+
 const OUTER_CARD_EXTRA_WIDTH = 0;
 const TABLE_CARD_WIDTH_EXTRA_BY_LABEL = { POT: 196, WRAP: 194, FIELD: 194 }; // reference: target missing width; actual layout now fills to top menu right edge
 const DEBUG_LAYER_LABELS_DEFAULT = false;
@@ -38,6 +57,7 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - v8.6.26: Field Row default X is -2; Finished Trees/Field SG Logo height is 50; left pane height is synced to the right stage bottom.
   - v8.6.27: Finished Trees/Field SG Logo defaults to x=390 and width=30; Field Row object can use negative X values.
   - v8.6.28: Field Row no longer allows negative X; Row text is left-aligned inside the Row object instead.
+  - v8.6.29: Finished Trees/Field Labels show Label Color + Qty below the label and scale that meta row with zoom; top config controls logo/meta defaults.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -717,6 +737,50 @@ function sizePx(type = labelType) {
   document.head.appendChild(tag);
 })();
 
+(function injectMetaBelowFinishedFieldV8629Css(){
+  const css = `
+    /* v8.6.29: Label Color / Qty sit below Finished Trees + Field Labels and scale with zoom. */
+    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow{
+      flex-direction:column!important;
+      gap:var(--beinvt-wrap-meta-gap,6px)!important;
+      align-items:center!important;
+      justify-content:center!important;
+      max-width:100%!important;
+      overflow:visible!important;
+    }
+    body.beinvt-label-wrap .stageMeta.stageMetaBelowLabel{
+      width:auto!important;
+      min-width:0!important;
+      max-width:none!important;
+      flex:0 0 auto!important;
+      flex-direction:row!important;
+      align-items:stretch!important;
+      justify-content:center!important;
+      gap:6px!important;
+      padding:5px!important;
+      border-radius:12px!important;
+      transform-origin:top center!important;
+      will-change:transform!important;
+    }
+    body.beinvt-label-wrap .stageMeta.stageMetaBelowLabel .metaPill{
+      flex:1 1 0!important;
+      min-width:0!important;
+      justify-content:space-between!important;
+      padding:5px 7px!important;
+      font-size:11px!important;
+      line-height:1.05!important;
+      border-radius:9px!important;
+    }
+    body.beinvt-label-wrap .stageMeta.stageMetaBelowLabel b{
+      font-size:12px!important;
+    }
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-v8629-meta-below-finished-field-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
 function fallbackLayout(type) {
   if (type === "POT") {
     return {
@@ -740,7 +804,7 @@ function fallbackLayout(type) {
     gridPx: 4,
     snapPx: 5,
     objects: {
-      WO_QR: { x: type === "FIELD" ? 0 : 4, y: type === "FIELD" ? 2 : 7, w: 34, h: type === "FIELD" ? 44 : 34, rot: 0, fontSize: type === "FIELD" ? 13 : undefined, locked: false, visible: true },
+      WO_QR: { x: type === "FIELD" ? WRAP_LIKE_PREVIEW_CONFIG.fieldRowX : 4, y: type === "FIELD" ? 2 : 7, w: 34, h: type === "FIELD" ? 44 : 34, rot: 0, fontSize: type === "FIELD" ? 13 : undefined, locked: false, visible: true },
       WO: { x: 42, y: 2, w: 72, h: 13, rot: 0, fontSize: 13, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
       CROP: { x: 42, y: 16, w: 72, h: 11, rot: 0, fontSize: 9, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
       INTERNAL: { x: 42, y: 29, w: 72, h: 12, rot: 0, fontSize: 10, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
@@ -751,7 +815,7 @@ function fallbackLayout(type) {
       LOT: { x: 119, y: 37, w: 234, h: 6, rot: 0, fontSize: 5, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       ADDRESS: { x: 119, y: 43, w: 234, h: 5, rot: 0, fontSize: 4.6, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       LOT_QR: { x: 359, y: 7, w: 34, h: 34, rot: 0, locked: false, visible: true },
-      LOGO: { x: 390, y: 4, w: 30, h: 50, rot: 0, locked: false, visible: true },
+      LOGO: { x: WRAP_LIKE_PREVIEW_CONFIG.logoX, y: WRAP_LIKE_PREVIEW_CONFIG.logoY, w: WRAP_LIKE_PREVIEW_CONFIG.logoWidth, h: WRAP_LIKE_PREVIEW_CONFIG.logoHeight, rot: 0, locked: false, visible: true },
       WARNING: { x: 420, y: 2, w: 58, h: 44, rot: 0, fontSize: 3.2, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" }
     }
   };
@@ -770,7 +834,7 @@ function normalizeLayout(src) {
     out.objects = clone(base.objects);
   }
   if (type === "FIELD" && out.objects && out.objects.WO_QR) {
-    out.objects.WO_QR.x = 0;
+    out.objects.WO_QR.x = WRAP_LIKE_PREVIEW_CONFIG.fieldRowX;
     out.objects.WO_QR.y = 2;
     out.objects.WO_QR.w = 34;
     out.objects.WO_QR.h = 44;
@@ -779,9 +843,10 @@ function normalizeLayout(src) {
     out.objects.WO_QR.visible = true;
   }
   if (isWrapLikeMode(type) && out.objects && out.objects.LOGO) {
-    out.objects.LOGO.x = 390;
-    out.objects.LOGO.w = 30;
-    out.objects.LOGO.h = 50;
+    out.objects.LOGO.x = WRAP_LIKE_PREVIEW_CONFIG.logoX;
+    out.objects.LOGO.y = WRAP_LIKE_PREVIEW_CONFIG.logoY;
+    out.objects.LOGO.w = WRAP_LIKE_PREVIEW_CONFIG.logoWidth;
+    out.objects.LOGO.h = WRAP_LIKE_PREVIEW_CONFIG.logoHeight;
   }
   return out;
 }
@@ -2505,10 +2570,12 @@ function applyZoomSliderCap(labelHost) {
   const host = labelHost || $("stageLabelHost");
   const hostW = Math.max(1, (host && host.clientWidth) || window.innerWidth || 900);
   const hostH = Math.max(1, (host && host.clientHeight) || window.innerHeight || 500);
-  const metaW = isWrapLikeMode(labelType) ? 200 : 0;
-  const metaH = labelType === "POT" ? 112 : 0;
+  const cfg = WRAP_LIKE_PREVIEW_CONFIG;
+  const metaBelow = isWrapLikeMode(labelType) && cfg.metaBelowLabel !== false;
+  const metaW = isWrapLikeMode(labelType) && !metaBelow ? 200 : 0;
+  const metaH = labelType === "POT" ? 112 : (metaBelow ? Math.max(0, Number(cfg.metaBelowHeightPx || 44)) : 0);
   const availableW = isWrapLikeMode(labelType) ? hostW - metaW - 22 : hostW - 12;
-  const availableH = labelType === "POT" ? hostH - metaH - 16 : hostH - 12;
+  const availableH = labelType === "POT" ? hostH - metaH - 16 : hostH - metaH - 12;
   const maxByW = availableW / Math.max(1, s.w);
   const maxByH = availableH / Math.max(1, s.h);
   const hardMax = isWrapLikeMode(labelType) ? 5.0 : 2.15;
@@ -2661,6 +2728,22 @@ function applyPotAutoStack() {
   }
   clampAllObjects();
 }
+function applyWrapLikeMetaPreviewLayout(meta, previewRow, zoom, s) {
+  if (!meta || !previewRow || !isWrapLikeMode(labelType)) return;
+  const cfg = WRAP_LIKE_PREVIEW_CONFIG;
+  if (cfg.metaBelowLabel === false) return;
+  const rawScale = cfg.metaScaleWithZoom === false ? 1 : Number(zoom || 1);
+  const scale = clamp(rawScale, Number(cfg.metaMinScale || 0.72), Number(cfg.metaMaxScale || 1.35));
+  const visualW = Math.max(160, Math.ceil(Number(s && s.w || 480) * Number(zoom || 1)));
+  const layoutW = Math.max(160, Math.ceil(visualW / Math.max(0.01, scale)));
+  previewRow.style.setProperty("--beinvt-wrap-meta-gap", Math.max(0, Number(cfg.metaGapPx || 6)) + "px");
+  meta.classList.add("stageMetaBelowLabel");
+  meta.style.setProperty("width", layoutW + "px", "important");
+  meta.style.setProperty("max-width", layoutW + "px", "important");
+  meta.style.setProperty("transform", "scale(" + scale.toFixed(3) + ")", "important");
+  meta.style.setProperty("transform-origin", "top center", "important");
+}
+
 function renderCanvas() {
   const labelHost = ensureStageShell();
   if (!labelHost || !layout) return;
@@ -2708,8 +2791,14 @@ function renderCanvas() {
     canvas.appendChild(obj);
     attachObjectEvents(obj);
   }
-  previewRow.appendChild(meta);
-  previewRow.appendChild(frame);
+  if (isWrapLikeMode(labelType) && WRAP_LIKE_PREVIEW_CONFIG.metaBelowLabel !== false) {
+    applyWrapLikeMetaPreviewLayout(meta, previewRow, zoom, s);
+    previewRow.appendChild(frame);
+    previewRow.appendChild(meta);
+  } else {
+    previewRow.appendChild(meta);
+    previewRow.appendChild(frame);
+  }
   stack.appendChild(previewRow);
   labelHost.appendChild(stack);
   autoFitAllTextSoon();
@@ -2790,7 +2879,7 @@ function makeFieldRowInner(holder, o) {
   // places it to the left visually while keeping ROW as one sideways word.
   inner.style.alignItems = "flex-start";
   inner.style.justifyContent = "center";
-  inner.style.textAlign = "left";
+  inner.style.textAlign = WRAP_LIKE_PREVIEW_CONFIG.fieldRowTextAlign || "left";
   inner.style.fontFamily = "Times New Roman, Georgia, serif";
   inner.style.fontWeight = "900";
   inner.style.fontSize = fs + "px";
