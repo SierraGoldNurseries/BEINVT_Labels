@@ -2918,3 +2918,196 @@ function v740RefreshLeftPanel(){
     scheduleWrapAutoFit();
   });
 })();
+
+
+/* --------------------------------------------------------------------------
+   v7.5.0 final override layer
+   Fixes:
+   - The Objects card is forced to be the single active #objectPanel and remains
+     pinned/visible after hard refresh and after settings grouping runs.
+   - Pot stake item text no longer breaks words into partial letters. It wraps
+     only on full-word boundaries and shrinks to fit instead of splitting words.
+   -------------------------------------------------------------------------- */
+(function injectV750Css(){
+  const old=document.querySelector('style[data-beinvt-v750-css]');
+  if(old) old.remove();
+  const css = `
+    .beinvt-pinned-objects-section{
+      display:block!important;visibility:visible!important;opacity:1!important;
+      min-height:158px!important;max-height:280px!important;overflow:auto!important;
+      border:1px solid rgba(96,165,250,.55)!important;border-radius:12px!important;
+      background:rgba(15,23,42,.96)!important;padding:9px!important;margin:0 0 8px 0!important;
+      position:relative!important;z-index:999!important;box-sizing:border-box!important;
+    }
+    body.beinvt-label-wrap .beinvt-pinned-objects-section{min-height:212px!important;max-height:320px!important}
+    .beinvt-pinned-objects-section h1,.beinvt-pinned-objects-section h2,.beinvt-pinned-objects-section h3,.beinvt-pinned-objects-section h4,.beinvt-pinned-objects-section .sectionTitle,.beinvt-pinned-objects-section .title{
+      display:block!important;margin:0 0 8px 0!important;color:#fff!important;font-size:15px!important;line-height:1.1!important;font-weight:900!important;
+    }
+    .beinvt-pinned-objects-section #objectPanel{
+      display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important;
+      width:100%!important;min-height:104px!important;max-height:none!important;overflow:visible!important;
+    }
+    body.beinvt-label-wrap .beinvt-pinned-objects-section #objectPanel{
+      grid-template-columns:repeat(3,minmax(0,1fr))!important;min-height:162px!important;
+    }
+    .beinvt-pinned-objects-section .objectBtn{
+      display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;
+      min-height:39px!important;padding:6px 7px!important;border-radius:9px!important;white-space:normal!important;
+      overflow:hidden!important;font-size:11px!important;line-height:1.05!important;
+    }
+    .beinvt-pinned-objects-section .objectBtn span:first-child{display:block!important;width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;color:#fff!important;line-height:1.08!important}
+    .beinvt-pinned-objects-section .objectBtn .badge{font-size:8px!important;line-height:1!important;opacity:.75!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    [data-beinvt-legacy-object-panel="1"]{display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important}
+
+    body.beinvt-label-pot .obj[data-id="ITEM"] .inner,
+    body.beinvt-label-pot .inner[data-text-id="ITEM"]{
+      white-space:normal!important;
+      word-break:normal!important;
+      overflow-wrap:normal!important;
+      hyphens:none!important;
+      line-break:auto!important;
+    }
+  `;
+  const tag=document.createElement('style');
+  tag.setAttribute('data-beinvt-v750-css','1');
+  tag.textContent=css;
+  document.head.appendChild(tag);
+})();
+
+function v750PanelHost(){
+  return document.querySelector('.beinvt-left-settings-panel') || document.querySelector('aside.panel') || document.querySelector('.panel.sidebar') || document.querySelector('.settingsPanel');
+}
+function v750EnsureHeading(sec,title){
+  if(!sec) return null;
+  let h=sec.querySelector('h1,h2,h3,h4,.sectionTitle,.title');
+  if(!h){ h=document.createElement('h3'); sec.insertBefore(h,sec.firstChild); }
+  h.textContent=title;
+  h.style.display='block';
+  return h;
+}
+function v750EnsurePinnedObjects(){
+  const panel=v750PanelHost();
+  if(!panel) return null;
+
+  let objSection=panel.querySelector('.beinvt-pinned-objects-section');
+  if(!objSection){
+    objSection=document.createElement('div');
+    objSection.className='section beinvt-pinned-objects-section beinvt-created-objects-section';
+    objSection.innerHTML='<h3>Objects</h3><div id="objectPanel"></div>';
+  }
+
+  let objPanel=objSection.querySelector('#objectPanel');
+  const allPanels=[...document.querySelectorAll('#objectPanel')];
+  const movable=allPanels.find(p=>p!==objPanel && !p.closest('.beinvt-pinned-objects-section'));
+  if(!objPanel && movable) objPanel=movable;
+  if(!objPanel){
+    objPanel=document.createElement('div');
+    objPanel.id='objectPanel';
+  }
+
+  // Make the pinned panel the only element with id="objectPanel" so renderObjectPanel
+  // cannot accidentally fill a hidden legacy panel after a hard refresh.
+  [...document.querySelectorAll('#objectPanel')].forEach(p=>{
+    if(p!==objPanel){
+      p.removeAttribute('id');
+      p.dataset.beinvtLegacyObjectPanel='1';
+      p.innerHTML='';
+    }
+  });
+  objPanel.id='objectPanel';
+  objPanel.removeAttribute('data-beinvt-legacy-object-panel');
+
+  objSection.classList.add('section','beinvt-pinned-objects-section');
+  objSection.classList.remove('beinvt-hidden-section');
+  objSection.removeAttribute('data-settings-group');
+  objSection.style.display='block';
+  objSection.style.visibility='visible';
+  objSection.style.opacity='1';
+  objSection.style.minHeight=labelType==='WRAP'?'212px':'158px';
+  objSection.style.overflow='auto';
+  v750EnsureHeading(objSection,'Objects');
+  if(objPanel.parentElement!==objSection) objSection.appendChild(objPanel);
+
+  if(objSection.parentElement!==panel){
+    panel.insertBefore(objSection,panel.firstChild);
+  }else if(panel.firstElementChild!==objSection){
+    panel.insertBefore(objSection,panel.firstChild);
+  }
+  return objPanel;
+}
+
+function v750RenderObjectPanel(){
+  const h=v750EnsurePinnedObjects();
+  if(!h || !layout || !layout.objects) return;
+  if(!layout.objects[selectedId]) selectedId=defaultSelectedId(labelType);
+  h.innerHTML='';
+  for(const id of objectOrder()){
+    const o=layout.objects[id];
+    if(!o) continue;
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='objectBtn'+(selectedId===id?' active':'');
+    b.innerHTML=`<span>${escapeHtml(objectDisplayName(id))}</span><span class="badge">${o.locked?'LOCKED':'UNLOCKED'}</span>`;
+    b.onclick=()=>selectObject(id);
+    h.appendChild(b);
+  }
+}
+
+function v750ApplyPotFullWordWrap(){
+  if(labelType!=='POT') return;
+  document.querySelectorAll('.obj[data-id="ITEM"] .inner,.inner[data-text-id="ITEM"]').forEach(c=>{
+    c.style.whiteSpace='normal';
+    c.style.wordBreak='normal';
+    c.style.overflowWrap='normal';
+    c.style.hyphens='none';
+    c.style.lineBreak='auto';
+  });
+}
+
+(function installV750RuntimeFixes(){
+  pinObjectsSection=v750EnsurePinnedObjects;
+  renderObjectPanel=v750RenderObjectPanel;
+
+  const prevAutoFitTextObjects=autoFitTextObjects;
+  autoFitTextObjects=function(){
+    v750ApplyPotFullWordWrap();
+    prevAutoFitTextObjects();
+    v750ApplyPotFullWordWrap();
+  };
+
+  const prevPrintTextInner=printTextInner;
+  printTextInner=function(id,row,o){
+    if(id!=="ITEM") return prevPrintTextInner(id,row,o);
+    const r=((Number(o.rot||0)%360)+360)%360, swap=(r===90||r===270);
+    const left=swap?((o.w-o.h)/2):0, top=swap?((o.h-o.w)/2):0, w=swap?o.h:o.w, h=swap?o.w:o.h;
+    const white="white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none;line-height:.88;padding:0;";
+    return `<div style="position:absolute;left:${left}px;top:${top}px;width:${w}px;height:${h}px;display:flex;align-items:center;justify-content:center;overflow:hidden;text-align:center;${white}text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize||16}px;transform-origin:center center;transform:rotate(${o.rot||0}deg);">${escapeHtml(labelText(id,row))}</div>`;
+  };
+
+  const prevRenderCanvas=renderCanvas;
+  renderCanvas=function(){
+    prevRenderCanvas();
+    v750EnsurePinnedObjects();
+    v750RenderObjectPanel();
+    v750ApplyPotFullWordWrap();
+  };
+
+  const prevRenderAll=renderAll;
+  renderAll=function(){
+    prevRenderAll();
+    v750EnsurePinnedObjects();
+    v750RenderObjectPanel();
+    v750ApplyPotFullWordWrap();
+  };
+
+  requestAnimationFrame(()=>{
+    v750EnsurePinnedObjects();
+    v750RenderObjectPanel();
+    v750ApplyPotFullWordWrap();
+  });
+  setTimeout(()=>{
+    v750EnsurePinnedObjects();
+    v750RenderObjectPanel();
+    v750ApplyPotFullWordWrap();
+  },250);
+})();
