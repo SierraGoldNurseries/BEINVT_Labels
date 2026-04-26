@@ -1,0 +1,50 @@
+name: Update label CSV
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "5,18,35,50 * * * *"
+      timezone: "America/Los_Angeles"
+
+permissions:
+  contents: write
+
+jobs:
+  update-label-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print trigger info
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Schedule: ${{ github.event.schedule }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "LA time: $(TZ=America/Los_Angeles date)"
+          echo "UTC time: $(date -u)"
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Download NetSuite CSV
+        run: |
+          mkdir -p data
+          curl -L --fail --retry 3 --retry-delay 5 \
+            "https://11150895.app.netsuite.com/core/media/media.nl?id=153927&c=11150895&h=4FmNLpI0h4WxdsSTfd7WBBneTX9PXXjuYH5uGi9mK5ZjXntV&_xt=.csv" \
+            -o data/labels.csv
+
+          echo "Downloaded CSV:"
+          ls -lh data/labels.csv
+          head -n 5 data/labels.csv || true
+
+      - name: Commit updated CSV
+        run: |
+          if git diff --quiet data/labels.csv; then
+            echo "No CSV changes."
+            exit 0
+          fi
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add data/labels.csv
+          git commit -m "Update label CSV"
+          git push
