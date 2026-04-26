@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.25-field-row-sideways";
+const APP_VERSION = "8.6.26-row-x-logo-height-panel-match";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -35,6 +35,7 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - v8.6.23: add Field Labels mode next to Finished Trees; Field uses Wrap layout with Row text instead of left WO QR and table filtered to Field Planting activities.
   - v8.6.24: stage is fixed beside the objects pane so the table cannot overlap it; Field Row marker uses a taller box with smaller upright portrait text.
   - v8.6.25: Field left object is renamed Row; Row text prints as one sideways word instead of stacked R/O/W.
+  - v8.6.26: Field Row default X is -2; Finished Trees/Field SG Logo height is 50; left pane height is synced to the right stage bottom.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -60,7 +61,7 @@ const OUTER_CARD_SIZE_CONFIG = {
   applyTo: ["POT", "WRAP", "FIELD"]
 };
 const LAYER_DEBUG_CONFIG = {
-  enabled: true,
+  enabled: false,
   movable: true,
   rememberPosition: true,
   defaultLeft: 18,
@@ -203,7 +204,7 @@ function sizePx(type = labelType) {
     .modeTab.active{border-color:#7da2ff;background:rgba(96,165,250,.22);color:#fff}
     #zoom{accent-color:#7c6cff}
 
-    aside.panel,.panel.sidebar,.settingsPanel{height:1177px!important;min-height:0!important;max-height:1177px!important;overflow:auto!important;background:#121429!important;border-right:1px solid rgba(255,255,255,.14)!important;width:730px!important;min-width:730px!important;max-width:730px!important;flex:0 0 730px!important}
+    aside.panel,.panel.sidebar,.settingsPanel{height:var(--beinvt-left-pane-height,1177px)!important;min-height:0!important;max-height:var(--beinvt-left-pane-height,1177px)!important;overflow:auto!important;background:#121429!important;border-right:1px solid rgba(255,255,255,.14)!important;width:730px!important;min-width:730px!important;max-width:730px!important;flex:0 0 730px!important}
     .beinvtSettingsPanel{display:flex;flex-direction:column;gap:8px;padding:8px 10px 12px;min-height:100%}
     .beinvtCard{border:1px solid rgba(255,255,255,.14);background:#14162d;border-radius:13px;overflow:hidden;flex:0 0 auto;box-shadow:0 8px 24px rgba(0,0,0,.15)}
     .beinvtCardHeader{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.12);font-weight:900;color:#fff;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -453,9 +454,9 @@ function sizePx(type = labelType) {
       max-width:730px!important;
       flex:0 0 730px!important;
       flex-basis:730px!important;
-      height:1177px!important;
-      min-height:1177px!important;
-      max-height:1177px!important;
+      height:var(--beinvt-left-pane-height,1177px)!important;
+      min-height:var(--beinvt-left-pane-height,1177px)!important;
+      max-height:var(--beinvt-left-pane-height,1177px)!important;
       overflow:auto!important;
     }
     body.beinvt-label-pot .stageWrap,body.beinvt-label-wrap .stageWrap{
@@ -737,7 +738,7 @@ function fallbackLayout(type) {
     gridPx: 4,
     snapPx: 5,
     objects: {
-      WO_QR: { x: 4, y: type === "FIELD" ? 2 : 7, w: 34, h: type === "FIELD" ? 44 : 34, rot: 0, fontSize: type === "FIELD" ? 13 : undefined, locked: false, visible: true },
+      WO_QR: { x: type === "FIELD" ? -2 : 4, y: type === "FIELD" ? 2 : 7, w: 34, h: type === "FIELD" ? 44 : 34, rot: 0, fontSize: type === "FIELD" ? 13 : undefined, locked: false, visible: true },
       WO: { x: 42, y: 2, w: 72, h: 13, rot: 0, fontSize: 13, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
       CROP: { x: 42, y: 16, w: 72, h: 11, rot: 0, fontSize: 9, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
       INTERNAL: { x: 42, y: 29, w: 72, h: 12, rot: 0, fontSize: 10, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
@@ -748,7 +749,7 @@ function fallbackLayout(type) {
       LOT: { x: 119, y: 37, w: 234, h: 6, rot: 0, fontSize: 5, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       ADDRESS: { x: 119, y: 43, w: 234, h: 5, rot: 0, fontSize: 4.6, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       LOT_QR: { x: 359, y: 7, w: 34, h: 34, rot: 0, locked: false, visible: true },
-      LOGO: { x: 399, y: 4, w: 18, h: 40, rot: 0, locked: false, visible: true },
+      LOGO: { x: 399, y: 4, w: 18, h: 50, rot: 0, locked: false, visible: true },
       WARNING: { x: 420, y: 2, w: 58, h: 44, rot: 0, fontSize: 3.2, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" }
     }
   };
@@ -767,13 +768,16 @@ function normalizeLayout(src) {
     out.objects = clone(base.objects);
   }
   if (type === "FIELD" && out.objects && out.objects.WO_QR) {
-    out.objects.WO_QR.x = 4;
+    out.objects.WO_QR.x = -2;
     out.objects.WO_QR.y = 2;
     out.objects.WO_QR.w = 34;
     out.objects.WO_QR.h = 44;
     out.objects.WO_QR.fontSize = 13;
     out.objects.WO_QR.rot = 0;
     out.objects.WO_QR.visible = true;
+  }
+  if (isWrapLikeMode(type) && out.objects && out.objects.LOGO) {
+    out.objects.LOGO.h = 50;
   }
   return out;
 }
@@ -1240,6 +1244,25 @@ function normalStageFixedBounds() {
   const height = Math.max(260, Math.floor(vh - topY - 4));
   return { left, top: topY, width, height };
 }
+function syncLeftPanelHeightToStageBottom(bounds) {
+  const panel = getObjectsPanePanel() || findSettingsPanel();
+  if (!panel || !bounds) return;
+  const pr = panel.getBoundingClientRect();
+  const panelTop = Number.isFinite(pr && pr.top) ? pr.top : bounds.top;
+  const targetBottom = Math.round(bounds.top + bounds.height);
+  const panelHeight = Math.max(260, Math.round(targetBottom - panelTop));
+  document.documentElement.style.setProperty("--beinvt-left-pane-height", panelHeight + "px");
+  panel.style.setProperty("height", panelHeight + "px", "important");
+  panel.style.setProperty("min-height", panelHeight + "px", "important");
+  panel.style.setProperty("max-height", panelHeight + "px", "important");
+  panel.style.setProperty("overflow", "auto", "important");
+}
+function clearSyncedLeftPanelHeight() {
+  const panel = getObjectsPanePanel() || findSettingsPanel();
+  document.documentElement.style.removeProperty("--beinvt-left-pane-height");
+  if (!panel) return;
+  ["height", "min-height", "max-height"].forEach(prop => panel.style.removeProperty(prop));
+}
 function clearNormalStageFixedLayout(stage) {
   const el = stage || document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
   if (document.body) document.body.classList.remove("beinvt-stage-fixed");
@@ -1254,6 +1277,7 @@ function applyNormalStageFixedLayout() {
   const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
   if (!stage || leftPaneHidden) return;
   const b = normalStageFixedBounds();
+  syncLeftPanelHeightToStageBottom(b);
   if (document.body) document.body.classList.add("beinvt-stage-fixed");
   document.documentElement.style.setProperty("--beinvt-stage-fixed-left", b.left + "px");
   document.documentElement.style.setProperty("--beinvt-stage-fixed-top", b.top + "px");
@@ -1782,6 +1806,7 @@ function forceOuterCardSize() {
   if (!stage) return;
   if (leftPaneHidden) {
     if (document.body) document.body.classList.remove("beinvt-left-pane-hidden");
+    clearSyncedLeftPanelHeight();
     clearNormalStageFixedLayout(stage);
     applyHiddenObjectsStageLayout();
     return;
