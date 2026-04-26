@@ -1,5 +1,5 @@
-const APP_VERSION = "8.6.43_qr_clearance_full_width";
-const WRAP_QR_BALANCE_VERSION = "8.6.43";
+const APP_VERSION = "8.6.44_gui_db_import_modal";
+const WRAP_QR_BALANCE_VERSION = "8.6.44";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -1621,13 +1621,26 @@ function shippingTrayTypeFromName(name) {
   // The value after the 3rd pipe is the 4th segment.
   return cleanDisplay(parts[3]);
 }
+function controlledSalesFormat(value) {
+  const raw = cleanDisplay(value).replace(/\s+/g, " ").trim();
+  const compact = raw.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  const map = {
+    cn: "CN",
+    qs: "QS",
+    liner: "Liner",
+    liners: "Liner",
+    bud: "Bud",
+    buds: "Bud"
+  };
+  return map[compact] || "";
+}
 function shippingSalesFormatFromName(name) {
-  // Sales format is the value after the last pipe. This is also the suffix used
-  // to limit Shipping Labels to CN / QS / Liner / Bud rows.
-  return shippingNameSuffix(name);
+  // Sales Format is controlled to fixed list values only: CN, QS, Liner, Bud.
+  // The source value is the segment after the last pipe in the item name.
+  return controlledSalesFormat(shippingNameSuffix(name));
 }
 function isShippingNameIncluded(name) {
-  return /^(CN|QS|Liner|Bud)$/i.test(shippingSalesFormatFromName(name));
+  return !!shippingSalesFormatFromName(name);
 }
 function baseRowsForMode(type = labelType) {
   return isShippingMode(type) ? itemRows : labelRows;
@@ -4408,6 +4421,623 @@ function initEvents() {
   });
   window.addEventListener("resize", () => { if (leftPaneHidden) applyHiddenObjectsStageLayout(); else applyNormalStageFixedLayout(); applyZoomSliderCap($("stageLabelHost")); renderCanvas(); });
 }
+
+/* v8.6.44 GUI / DB / Import Printing improvements */
+(function installGuiDbImportImprovementsV8644(){
+  const MODE_STYLE_ID = "beinvt-v8644-gui-db-import-css";
+  const PRESET_NOTES_PLACEHOLDER = "Used for Zebra printer, production layout, 1-inch wrap ties, etc.";
+
+  function injectGuiDbCssV8644() {
+    if (document.getElementById(MODE_STYLE_ID)) return;
+    const css = `
+      .modeTab[data-mode="POT"]{border-color:rgba(34,197,94,.55)!important;background:rgba(34,197,94,.18)!important;color:#dcfce7!important}
+      .modeTab[data-mode="WRAP"]{border-color:rgba(59,130,246,.58)!important;background:rgba(59,130,246,.18)!important;color:#dbeafe!important}
+      .modeTab[data-mode="FIELD"]{border-color:rgba(146,64,14,.60)!important;background:rgba(146,64,14,.20)!important;color:#fed7aa!important}
+      .modeTab[data-mode="SHIP"]{border-color:rgba(168,85,247,.62)!important;background:rgba(168,85,247,.20)!important;color:#ede9fe!important}
+      .modeTab[data-mode="POT"].active{background:#16a34a!important;border-color:#86efac!important;color:#fff!important;box-shadow:0 0 0 2px rgba(34,197,94,.24)!important}
+      .modeTab[data-mode="WRAP"].active{background:#2563eb!important;border-color:#93c5fd!important;color:#fff!important;box-shadow:0 0 0 2px rgba(59,130,246,.24)!important}
+      .modeTab[data-mode="FIELD"].active{background:#92400e!important;border-color:#fdba74!important;color:#fff!important;box-shadow:0 0 0 2px rgba(146,64,14,.24)!important}
+      .modeTab[data-mode="SHIP"].active{background:#7e22ce!important;border-color:#d8b4fe!important;color:#fff!important;box-shadow:0 0 0 2px rgba(168,85,247,.24)!important}
+      body.beinvt-light-theme .modeTab[data-mode="POT"]{background:#dcfce7!important;color:#14532d!important;border-color:#16a34a!important}
+      body.beinvt-light-theme .modeTab[data-mode="WRAP"]{background:#dbeafe!important;color:#1e3a8a!important;border-color:#2563eb!important}
+      body.beinvt-light-theme .modeTab[data-mode="FIELD"]{background:#ffedd5!important;color:#7c2d12!important;border-color:#92400e!important}
+      body.beinvt-light-theme .modeTab[data-mode="SHIP"]{background:#f3e8ff!important;color:#581c87!important;border-color:#7e22ce!important}
+      #stageRowsTable tr.active td{background:#2563eb!important;color:#fff!important;border-bottom-color:#1d4ed8!important;font-weight:900!important}
+      #stageRowsTable tr.active:hover td{background:#1d4ed8!important;color:#fff!important}
+      body.beinvt-light-theme #stageRowsTable tr.active td{background:#2563eb!important;color:#fff!important;border-bottom-color:#1e40af!important}
+      .beinvtZoomPercent{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:48px!important;margin-left:6px!important;padding:5px 8px!important;border-radius:999px!important;border:1px solid rgba(255,255,255,.22)!important;background:#0d1022!important;color:#fff!important;font-weight:950!important;font-size:12px!important}
+      body.beinvt-light-theme .beinvtZoomPercent{background:#eef2ff!important;color:#111827!important;border-color:rgba(15,23,42,.22)!important}
+      .objectBtn .objectBtnTop{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:6px!important;width:100%!important}
+      .objectBtn .objectIcons{display:inline-flex!important;gap:4px!important;align-items:center!important;font-size:13px!important;line-height:1!important}
+      .objectBtn .objectName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .operatorHint{font-size:10px!important;color:#aeb7d5!important;font-weight:800!important;margin-top:3px!important}
+      .queueToolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+      .queueColorGroup{border:1px solid rgba(255,255,255,.14);border-radius:12px;margin:8px 0;padding:8px;background:rgba(255,255,255,.035)}
+      .queueColorGroupTitle{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:950;color:#fff;margin-bottom:6px}
+      .queueItem{cursor:grab}
+      .queueItem.dragging{opacity:.45;cursor:grabbing}
+      .queueItem .dragHandle{font-size:16px;opacity:.75;margin-right:8px;cursor:grab}
+      .queueItem .queueMain{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
+      .queueItem .queueText{min-width:0;overflow:hidden;text-overflow:ellipsis}
+      .queueItem .queueActions{display:flex;gap:6px;align-items:center}
+      .presetMetaGrid{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-top:8px}
+      .presetMetaGrid textarea{width:100%;min-height:54px;resize:vertical;border:1px solid rgba(255,255,255,.14);background:#080b1a;color:#fff;border-radius:8px;padding:7px 8px;font-size:12px}
+      .presetLockLabel{display:flex!important;align-items:center;gap:6px;white-space:nowrap;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;color:#e5e7eb;background:#0d1022;font-weight:900;font-size:12px}
+      body.beinvt-light-theme .presetMetaGrid textarea,body.beinvt-light-theme .presetLockLabel{background:#fff!important;color:#111827!important;border-color:rgba(15,23,42,.18)!important}
+      .importPrintOverlay{position:fixed;inset:0;z-index:1000000;display:none;align-items:center;justify-content:center;background:rgba(2,6,23,.62);backdrop-filter:blur(8px);padding:18px}
+      .importPrintOverlay.open{display:flex}
+      .importPrintModal{width:min(980px,96vw);max-height:92vh;overflow:auto;border:1px solid rgba(255,255,255,.18);border-radius:22px;background:linear-gradient(180deg,#151a35,#0b1024);color:#fff;box-shadow:0 24px 80px rgba(0,0,0,.58)}
+      .importPrintHeader{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.12);background:rgba(15,20,42,.96);backdrop-filter:blur(10px)}
+      .importPrintHeader h2{margin:0;font-size:20px;line-height:1.1}
+      .importPrintHeader p{margin:4px 0 0;color:#aeb7d5;font-size:12px}
+      .importPrintBody{padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+      .importPrintCard{border:1px solid rgba(255,255,255,.14);border-radius:16px;background:rgba(255,255,255,.04);padding:14px}
+      .importPrintCard h3{margin:0 0 10px;font-size:14px}
+      .importGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+      .importField label{display:block;font-size:11px;font-weight:900;color:#aeb7d5;margin:0 0 4px}
+      .importField input,.importField select,.importField textarea{width:100%;border:1px solid rgba(255,255,255,.16);background:#070b1d;color:#fff;border-radius:10px;padding:9px 10px;font-size:13px}
+      .importField textarea{min-height:160px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+      .importPrintFooter{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 20px;border-top:1px solid rgba(255,255,255,.12);background:rgba(7,11,29,.86)}
+      .importPrintFooter .buttonRow{justify-content:flex-end}
+      .importPrimary{background:#2563eb!important;border-color:#93c5fd!important;color:#fff!important}
+      .importClose{background:#111827!important}
+      .importSample{min-height:96px;border:1px dashed rgba(255,255,255,.2);border-radius:12px;padding:10px;background:rgba(255,255,255,.03);font-size:12px;line-height:1.45;color:#e5e7eb}
+      body.beinvt-light-theme .importPrintModal{background:#ffffff;color:#111827;border-color:rgba(15,23,42,.18)}
+      body.beinvt-light-theme .importPrintHeader,body.beinvt-light-theme .importPrintFooter{background:rgba(255,255,255,.94);border-color:rgba(15,23,42,.14)}
+      body.beinvt-light-theme .importPrintCard{background:#f8fafc;border-color:rgba(15,23,42,.12)}
+      body.beinvt-light-theme .importField input,body.beinvt-light-theme .importField select,body.beinvt-light-theme .importField textarea{background:#fff;color:#111827;border-color:rgba(15,23,42,.18)}
+      body.beinvt-light-theme .importSample{background:#f8fafc;color:#111827;border-color:rgba(15,23,42,.18)}
+      @media(max-width:900px){.importPrintBody{grid-template-columns:1fr}.importGrid{grid-template-columns:1fr}}
+    `;
+    const tag = document.createElement("style");
+    tag.id = MODE_STYLE_ID;
+    tag.textContent = css;
+    document.head.appendChild(tag);
+  }
+
+  function ensureZoomPercentV8644() {
+    const zoom = $("zoom");
+    if (!zoom || $("zoomPercent")) return;
+    const span = document.createElement("span");
+    span.id = "zoomPercent";
+    span.className = "beinvtZoomPercent";
+    span.textContent = "100%";
+    zoom.insertAdjacentElement("afterend", span);
+  }
+  function updateZoomPercentV8644(value) {
+    const zoom = $("zoom");
+    const span = $("zoomPercent");
+    const v = Number(value ?? (zoom && zoom.value) ?? 1);
+    if (span) span.textContent = Math.round((Number.isFinite(v) ? v : 1) * 100) + "%";
+  }
+
+  function presetNotesFor(name) {
+    const p = name && presets && presets[name];
+    return cleanDisplay(p && (p.__presetNotes || p.presetNotes || ""));
+  }
+  function presetLockedFor(name) {
+    const p = name && presets && presets[name];
+    return !!(p && (p.__presetLocked || p.presetLocked));
+  }
+  function ensurePresetMetaControlsV8644() {
+    const select = $("presetSelect");
+    if (!select || $("presetNotes")) return;
+    const wrap = document.createElement("div");
+    wrap.className = "presetMetaGrid";
+    wrap.innerHTML = `
+      <div class="field"><label for="presetNotes">Preset Notes</label><textarea id="presetNotes" placeholder="${escapeHtml(PRESET_NOTES_PLACEHOLDER)}"></textarea></div>
+      <label class="presetLockLabel"><input id="presetLocked" type="checkbox"> 🔒 Protect</label>
+    `;
+    const metaBox = $("labelSizePresetBox");
+    if (metaBox) metaBox.insertAdjacentElement("afterend", wrap);
+    else select.closest(".field").insertAdjacentElement("afterend", wrap);
+    select.onchange = () => syncPresetMetaControlsV8644();
+  }
+  function syncPresetMetaControlsV8644() {
+    const name = $("presetSelect") && $("presetSelect").value;
+    if ($("presetNotes")) $("presetNotes").value = presetNotesFor(name);
+    if ($("presetLocked")) $("presetLocked").checked = presetLockedFor(name);
+  }
+
+  function ensureQueueControlsV8644() {
+    const qList = $("queueList");
+    if (!qList || $("queueGroupColorToggle")) return;
+    const toolbar = document.createElement("div");
+    toolbar.className = "queueToolbar";
+    toolbar.innerHTML = `<label class="checkItem"><input id="queueGroupColorToggle" type="checkbox"> Group by label color</label><span class="smallNote">Drag queue rows to change print order.</span>`;
+    qList.parentElement.insertBefore(toolbar, qList);
+    const chk = $("queueGroupColorToggle");
+    if (chk) {
+      chk.checked = readJson("beinvtQueueGroupByColor_v8644", false) === true;
+      chk.onchange = () => {
+        localStorage.setItem("beinvtQueueGroupByColor_v8644", JSON.stringify(!!chk.checked));
+        renderQueue();
+      };
+    }
+  }
+
+  function modeColorNameV8644(type = labelType) {
+    if (type === "POT") return "Pot Stake";
+    if (type === "WRAP") return "Finished Tree";
+    if (type === "FIELD") return "Field Label";
+    if (type === "SHIP") return "Shipping Label";
+    return type;
+  }
+
+  function objectDisplayNameV8644(id) {
+    const mapWrap = {
+      WO_QR: labelType === "FIELD" ? "Row Marker" : (labelType === "SHIP" ? "Resize Internal ID QR" : "Resize WO QR"),
+      WO: "Move Work Order Text",
+      CROP: "Move Crop Text",
+      INTERNAL: "Move Internal ID Text",
+      SCION: "Move Scion Text",
+      SCION_PATENT: "Move Scion Patent Text",
+      ROOTSTOCK: "Move Rootstock Text",
+      ROOTSTOCK_PATENT: "Move Rootstock Patent Text",
+      LOT: "Move Block / Lot Text",
+      ADDRESS: "Move Nursery Address",
+      LOT_QR: "Resize Lot QR",
+      LOGO: "Logo Position",
+      WARNING: "Warning Text"
+    };
+    const mapPot = {
+      WO: "Move Work Order Text",
+      QR: "Resize WO QR",
+      ITEM: "Move Label Text",
+      WEEK: "Move Week Text"
+    };
+    return (isWrapLikeMode(labelType) ? mapWrap : mapPot)[id] || id;
+  }
+
+  const originalObjectDisplayNameV8644 = objectDisplayName;
+  objectDisplayName = function(id) {
+    return objectDisplayNameV8644(id) || originalObjectDisplayNameV8644(id);
+  };
+
+  const originalRenderObjectPanelV8644 = renderObjectPanel;
+  renderObjectPanel = function() {
+    const panel = $("objectPanel");
+    if (!panel || !layout || !layout.objects) return originalRenderObjectPanelV8644();
+    if (!layout.objects[selectedId]) selectedId = defaultSelectedId(labelType);
+    panel.innerHTML = "";
+    if ($("objectsModeNote")) $("objectsModeNote").textContent = modeColorNameV8644(labelType);
+    for (const id of objectOrder()) {
+      const o = layout.objects[id];
+      if (!o) continue;
+      const visible = o.visible !== false;
+      const locked = !!o.locked;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "objectBtn" + (selectedId === id ? " active" : "") + (!visible ? " hiddenObj" : "");
+      btn.innerHTML = `<span class="objectBtnTop"><span class="objectName">${escapeHtml(objectDisplayName(id))}</span><span class="objectIcons" title="${visible ? "Visible" : "Hidden"} / ${locked ? "Locked" : "Unlocked"}"><span>${visible ? "👁️" : "🙈"}</span><span>${locked ? "🔒" : "🔓"}</span></span></span><span class="operatorHint">${visible ? "Visible" : "Hidden"} • ${locked ? "Locked" : "Unlocked"}</span>`;
+      btn.onclick = () => selectObject(id, true);
+      panel.appendChild(btn);
+    }
+  };
+
+  const originalRenderPresetListV8644 = renderPresetList;
+  renderPresetList = function() {
+    const select = $("presetSelect");
+    if (!select) return originalRenderPresetListV8644();
+    const names = Object.keys(presets || {}).sort();
+    select.innerHTML = '<option value="">Select saved preset...</option>' + names.map(n => `<option value="${escapeHtml(n)}">${presetLockedFor(n) ? "🔒 " : ""}${escapeHtml(n)}</option>`).join("");
+    syncPresetMetaControlsV8644();
+  };
+
+  savePreset = function() {
+    const defaultName = (layout && layout.name) || `${labelType} Custom`;
+    const name = prompt("Preset name:", defaultName);
+    if (!name) return;
+    const existing = presets[name];
+    if (existing && (existing.__presetLocked || existing.presetLocked)) {
+      alert(`Preset "${name}" is protected. Unprotect it before overwriting.`);
+      return;
+    }
+    layout.name = name;
+    layout.__presetNotes = $("presetNotes") ? $("presetNotes").value : cleanDisplay(layout.__presetNotes);
+    layout.__presetLocked = $("presetLocked") ? $("presetLocked").checked : !!layout.__presetLocked;
+    presets[name] = clone(layout);
+    localStorage.setItem("beinvtLayoutPresets", JSON.stringify(presets));
+    renderPresetList();
+  };
+  loadPreset = function() {
+    const name = $("presetSelect") && $("presetSelect").value;
+    if (name && presets[name]) {
+      setLayout(presets[name]);
+      setTimeout(syncPresetMetaControlsV8644, 0);
+    }
+  };
+  deletePreset = function() {
+    const name = $("presetSelect") && $("presetSelect").value;
+    if (!name) return;
+    if (presetLockedFor(name)) {
+      alert(`Preset "${name}" is protected and was not deleted.`);
+      return;
+    }
+    if (confirm(`Delete preset "${name}"?`)) {
+      delete presets[name];
+      localStorage.setItem("beinvtLayoutPresets", JSON.stringify(presets));
+      renderPresetList();
+    }
+  };
+
+  const originalRenderQueueV8644 = renderQueue;
+  renderQueue = function() {
+    const holder = $("queueList");
+    if (!holder) return originalRenderQueueV8644();
+    ensureQueueControlsV8644();
+    holder.innerHTML = "";
+    if (!queue.length) { holder.innerHTML = '<div class="small">Queue is empty.</div>'; return; }
+    const groupByColor = $("queueGroupColorToggle") && $("queueGroupColorToggle").checked;
+    const groups = {};
+    const order = [];
+    queue.forEach(item => {
+      const color = capClean(item.row && item.row.labelColor) || "NO COLOR";
+      if (!groups[color]) { groups[color] = []; order.push(color); }
+      groups[color].push(item);
+    });
+    const renderItem = (item) => {
+      const d = document.createElement("div");
+      d.className = "queueItem";
+      d.draggable = true;
+      d.dataset.queueId = item.id;
+      const title = capClean((item.row && (item.row.wo || item.row.internalId || item.row.rootstock || item.row.scion || item.row.crop)) || "Manual Label");
+      const subtitle = capClean(item.row && (item.row.scion || item.row.rootstock || item.row.crop || item.row.name));
+      const color = capClean(item.row && item.row.labelColor) || "NO COLOR";
+      d.innerHTML = `<div class="queueMain"><span class="dragHandle">☰</span><div class="queueText"><b>${escapeHtml(title)}</b><div class="small">${escapeHtml(subtitle)}</div><div class="small">${escapeHtml(color)} • Qty ${escapeHtml(item.qty || displayLabelsNeeded(item.row))}</div></div></div><div class="queueActions"><input type="number" min="1" value="${escapeHtml(item.qty)}"><button type="button" class="danger">x</button></div>`;
+      d.querySelector("input").onchange = ev => { item.qty = Math.max(1, parseInt(ev.target.value || "1", 10) || 1); saveQueue(); };
+      d.querySelector("button").onclick = () => { queue = queue.filter(x => x.id !== item.id); saveQueue(); renderQueue(); };
+      d.addEventListener("dragstart", ev => { d.classList.add("dragging"); ev.dataTransfer.setData("text/plain", item.id); ev.dataTransfer.effectAllowed = "move"; });
+      d.addEventListener("dragend", () => d.classList.remove("dragging"));
+      d.addEventListener("dragover", ev => { ev.preventDefault(); ev.dataTransfer.dropEffect = "move"; });
+      d.addEventListener("drop", ev => {
+        ev.preventDefault();
+        const draggedId = ev.dataTransfer.getData("text/plain");
+        if (!draggedId || draggedId === item.id) return;
+        const from = queue.findIndex(x => x.id === draggedId);
+        const to = queue.findIndex(x => x.id === item.id);
+        if (from < 0 || to < 0) return;
+        const [moved] = queue.splice(from, 1);
+        queue.splice(to, 0, moved);
+        saveQueue();
+        renderQueue();
+      });
+      return d;
+    };
+    if (groupByColor) {
+      order.sort().forEach(color => {
+        const box = document.createElement("div");
+        box.className = "queueColorGroup";
+        const count = groups[color].reduce((sum, x) => sum + Math.max(1, Number(x.qty || 1)), 0);
+        box.innerHTML = `<div class="queueColorGroupTitle"><span>${escapeHtml(color)}</span><span>${count} label${count === 1 ? "" : "s"}</span></div>`;
+        groups[color].forEach(item => box.appendChild(renderItem(item)));
+        holder.appendChild(box);
+      });
+    } else {
+      queue.forEach(item => holder.appendChild(renderItem(item)));
+    }
+  };
+
+  const originalApplyZoomSliderCapV8644 = applyZoomSliderCap;
+  applyZoomSliderCap = function(labelHost) {
+    const z = originalApplyZoomSliderCapV8644(labelHost);
+    updateZoomPercentV8644(z);
+    return z;
+  };
+
+  const originalRenderAllV8644 = renderAll;
+  renderAll = function() {
+    originalRenderAllV8644();
+    injectGuiDbCssV8644();
+    ensureZoomPercentV8644();
+    updateZoomPercentV8644();
+    ensurePresetMetaControlsV8644();
+    ensureQueueControlsV8644();
+    ensureImportPrintingButtonV8644();
+    updateOperatorLabelsV8644();
+  };
+
+  const originalEnsureLeftPanelV8644 = ensureLeftPanel;
+  ensureLeftPanel = function() {
+    originalEnsureLeftPanelV8644();
+    ensurePresetMetaControlsV8644();
+    ensureQueueControlsV8644();
+    updateOperatorLabelsV8644();
+  };
+
+  const originalInitEventsV8644 = initEvents;
+  initEvents = function() {
+    originalInitEventsV8644();
+    ensureImportPrintingButtonV8644();
+    ensureZoomPercentV8644();
+    if ($("presetSelect")) $("presetSelect").onchange = syncPresetMetaControlsV8644;
+    if ($("queueGroupColorToggle")) $("queueGroupColorToggle").onchange = () => {
+      localStorage.setItem("beinvtQueueGroupByColor_v8644", JSON.stringify($("queueGroupColorToggle").checked));
+      renderQueue();
+    };
+  };
+
+  const originalHasWrapObjectValueV8644 = hasWrapObjectValue;
+  hasWrapObjectValue = function(id, row) {
+    if (row && row.__importNoWo && (id === "WO" || id === "WO_QR" || id === "LOT" || id === "LOT_QR")) return false;
+    return originalHasWrapObjectValueV8644(id, row);
+  };
+  const originalWrapObjectTextV8644 = wrapObjectText;
+  wrapObjectText = function(id, row) {
+    if (row && row.__importNoWo && id === "WO") return "";
+    return originalWrapObjectTextV8644(id, row);
+  };
+
+  function updateOperatorLabelsV8644() {
+    const pos = $("positionSection");
+    if (pos) {
+      const h = pos.querySelector(".beinvtCardHeader");
+      if (h) h.textContent = "Move / Resize Selected Object";
+    }
+    const grid = $("gridSection");
+    if (grid) {
+      const h = grid.querySelector(".beinvtCardHeader");
+      if (h) h.textContent = "Guides / Safe Print Area";
+    }
+    const labels = {
+      x: "Move X",
+      y: "Move Y",
+      w: isImageObject(selectedId) ? "Resize Width" : "Text Box Width",
+      h: isImageObject(selectedId) ? "Resize Height" : "Text Box Height",
+      rot: "Rotate",
+      fontSize: "Text Size",
+      safeMargin: "Safe Margin",
+      gridPx: "Grid Size",
+      snapPx: "Snap Distance"
+    };
+    Object.entries(labels).forEach(([id, txt]) => {
+      const label = document.querySelector(`label[for="${id}"]`);
+      if (label) label.textContent = txt;
+    });
+  }
+
+  function ensureImportPrintingButtonV8644() {
+    if ($("importPrintingBtn")) return;
+    const printQueueBtn = $("printQueue") || findTopbarButtonByText(/^print\s+queue$/i);
+    const parent = (printQueueBtn && printQueueBtn.parentNode) || (($("modeTabs") && $("modeTabs").parentNode) || null);
+    if (!parent) return;
+    const btn = document.createElement("button");
+    btn.id = "importPrintingBtn";
+    btn.type = "button";
+    btn.className = "modeTab utilityTab";
+    btn.textContent = "Import Printing";
+    btn.onclick = openImportPrintingModalV8644;
+    if (printQueueBtn) parent.insertBefore(btn, printQueueBtn.nextSibling);
+    else parent.appendChild(btn);
+  }
+
+  function ensureImportPrintingModalV8644() {
+    let overlay = $("importPrintOverlay");
+    if (overlay) return overlay;
+    overlay = document.createElement("div");
+    overlay.id = "importPrintOverlay";
+    overlay.className = "importPrintOverlay";
+    overlay.innerHTML = `
+      <div class="importPrintModal" role="dialog" aria-modal="true" aria-labelledby="importPrintTitle">
+        <div class="importPrintHeader">
+          <div><h2 id="importPrintTitle">Import Printing</h2><p>Paste CSV/TSV data or type free-entry labels, then choose label style and size.</p></div>
+          <button type="button" class="importClose" id="importPrintCloseTop">Close</button>
+        </div>
+        <div class="importPrintBody">
+          <div class="importPrintCard">
+            <h3>Label Setup</h3>
+            <div class="importGrid">
+              <div class="importField"><label for="importLabelType">Print As</label><select id="importLabelType"><option value="POT">Pot Stake</option><option value="WRAP">Wrap Tie</option></select></div>
+              <div class="importField"><label for="importLabelSize">Label Size</label><select id="importLabelSize"></select></div>
+              <div class="importField"><label for="importColor">Label Color</label><input id="importColor" placeholder="White, Blue, Pink..." value="White"></div>
+              <div class="importField"><label for="importQty">Qty</label><input id="importQty" type="number" min="1" value="1"></div>
+              <div class="importField"><label for="importSalesFormat">Sales Format</label><select id="importSalesFormat"><option value="">None</option><option>CN</option><option>QS</option><option>Liner</option><option>Bud</option></select></div>
+              <div class="importField"><label for="importWo">WO</label><input id="importWo" placeholder="Optional"></div>
+              <div class="importField"><label for="importCrop">Crop</label><input id="importCrop" placeholder="Cherry, Almond..."></div>
+              <div class="importField"><label for="importInternal">Internal ID</label><input id="importInternal" placeholder="Optional"></div>
+              <div class="importField"><label for="importScion">Scion / Custom Text</label><input id="importScion" placeholder="Custom text or scion"></div>
+              <div class="importField"><label for="importRootstock">Rootstock</label><input id="importRootstock" placeholder="Rootstock or pot stake text"></div>
+            </div>
+          </div>
+          <div class="importPrintCard">
+            <h3>Paste CSV / TSV Data</h3>
+            <div class="importField"><label for="importPaste">Accepted headers: crop, scion, rootstock, internal id, wo, color, qty, sales format</label><textarea id="importPaste" placeholder="Paste CSV or TSV here, or leave blank and use the free-entry fields."></textarea></div>
+          </div>
+          <div class="importPrintCard">
+            <h3>Sample Behavior</h3>
+            <div class="importSample" id="importSample">Pot Stake: rootstock/custom text only, no week number. Wrap Tie: crop/scion/rootstock/internal ID/WO when provided. If WO is blank, it prints like a shipping-style manual label without lot fields.</div>
+          </div>
+          <div class="importPrintCard">
+            <h3>Parsed Rows</h3>
+            <div class="importSample" id="importParsedRows">0 rows ready.</div>
+          </div>
+        </div>
+        <div class="importPrintFooter">
+          <span class="smallNote">Manual/import mode never requires lot fields.</span>
+          <div class="buttonRow"><button type="button" id="importPrintPreviewBtn">Refresh Preview</button><button type="button" id="importPrintDoBtn" class="importPrimary">Print Imported Labels</button><button type="button" id="importPrintAddQueueBtn">Add to Queue</button><button type="button" id="importPrintCloseBottom">Cancel</button></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    $("importPrintCloseTop").onclick = closeImportPrintingModalV8644;
+    $("importPrintCloseBottom").onclick = closeImportPrintingModalV8644;
+    $("importLabelType").onchange = () => { populateImportSizeOptionsV8644(); updateImportSampleV8644(); };
+    ["importLabelSize","importColor","importQty","importSalesFormat","importWo","importCrop","importInternal","importScion","importRootstock","importPaste"].forEach(id => {
+      const el = $(id);
+      if (el) el.oninput = updateImportSampleV8644;
+      if (el && el.tagName === "SELECT") el.onchange = updateImportSampleV8644;
+    });
+    $("importPrintPreviewBtn").onclick = updateImportSampleV8644;
+    $("importPrintDoBtn").onclick = () => {
+      const data = buildImportRowsV8644();
+      if (!data.rows.length) { alert("Enter at least one manual row or paste CSV/TSV data."); return; }
+      printImportRowsV8644(data.rows, data.type, data.size);
+    };
+    $("importPrintAddQueueBtn").onclick = () => {
+      const data = buildImportRowsV8644();
+      if (!data.rows.length) { alert("Enter at least one manual row or paste CSV/TSV data."); return; }
+      data.rows.forEach(row => queue.push({ id: Date.now() + "_" + Math.random().toString(16).slice(2), row: clone(row), qty: Math.max(1, parseInt(row.labelsNeeded || "1", 10) || 1), importType: data.type, importSize: clone(data.size) }));
+      saveQueue();
+      renderQueue();
+      closeImportPrintingModalV8644();
+    };
+    overlay.addEventListener("click", ev => { if (ev.target === overlay) closeImportPrintingModalV8644(); });
+    return overlay;
+  }
+
+  function openImportPrintingModalV8644() {
+    const overlay = ensureImportPrintingModalV8644();
+    populateImportSizeOptionsV8644();
+    updateImportSampleV8644();
+    overlay.classList.add("open");
+    setTimeout(() => { const el = $("importScion"); if (el) el.focus(); }, 30);
+  }
+  function closeImportPrintingModalV8644() {
+    const overlay = $("importPrintOverlay");
+    if (overlay) overlay.classList.remove("open");
+  }
+  function populateImportSizeOptionsV8644() {
+    const type = ($("importLabelType") && $("importLabelType").value) || "POT";
+    const select = $("importLabelSize");
+    if (!select) return;
+    const current = labelSizeInches(type);
+    const opts = type === "POT"
+      ? LABEL_SIZE_PRESET_CONFIG.potWidthPresets.map(w => ({ label: `${formatPresetInches(w)}in × 5in`, size: { widthIn: w, heightIn: current.heightIn || 5 } }))
+      : LABEL_SIZE_PRESET_CONFIG.wrapHeightPresets.map(h => ({ label: `5in × ${formatPresetInches(h)}in`, size: { widthIn: 5, heightIn: h } }));
+    select.innerHTML = opts.map(o => `<option value="${escapeHtml(JSON.stringify(o.size))}">${escapeHtml(o.label)}</option>`).join("");
+    const match = opts.findIndex(o => Math.abs(o.size.widthIn - current.widthIn) < .001 && Math.abs(o.size.heightIn - current.heightIn) < .001);
+    select.selectedIndex = match >= 0 ? match : 0;
+  }
+  function parseDelimitedImportV8644(text) {
+    const raw = String(text || "").trim();
+    if (!raw) return [];
+    const delim = raw.includes("\t") ? "\t" : ",";
+    const rows = parseCsv(raw.replace(/\t/g, delim));
+    if (!rows.length) return [];
+    const headers = rows[0].map(h => cleanDisplay(h));
+    const hasHeader = headers.some(h => /^(crop|scion|rootstock|root stock|internal|internal id|wo|work order|color|label color|qty|quantity|sales format)$/i.test(h));
+    const dataRows = hasHeader ? rows.slice(1) : rows;
+    return dataRows.map(line => {
+      const obj = {};
+      if (hasHeader) headers.forEach((h, i) => obj[h] = line[i] || "");
+      else {
+        obj["custom"] = line[0] || "";
+        obj["rootstock"] = line[1] || "";
+        obj["scion"] = line[2] || "";
+        obj["internal id"] = line[3] || "";
+        obj["wo"] = line[4] || "";
+      }
+      return obj;
+    }).filter(obj => Object.values(obj).some(v => cleanDisplay(v)));
+  }
+  function importValV8644(obj, names) {
+    for (const name of names) {
+      const hit = Object.keys(obj).find(k => normCsvKey(k) === normCsvKey(name));
+      if (hit && cleanDisplay(obj[hit])) return cleanDisplay(obj[hit]);
+    }
+    return "";
+  }
+  function buildImportRowsV8644() {
+    const type = ($("importLabelType") && $("importLabelType").value) || "POT";
+    let size = labelSizeInches(type);
+    try { size = JSON.parse(($("importLabelSize") && $("importLabelSize").value) || "{}"); } catch (e) {}
+    const baseColor = cleanDisplay($("importColor") && $("importColor").value) || "White";
+    const baseQty = Math.max(1, parseInt(($("importQty") && $("importQty").value) || "1", 10) || 1);
+    const pasteRows = parseDelimitedImportV8644($("importPaste") && $("importPaste").value);
+    const manualObj = {
+      crop: cleanDisplay($("importCrop") && $("importCrop").value),
+      scion: cleanDisplay($("importScion") && $("importScion").value),
+      rootstock: cleanDisplay($("importRootstock") && $("importRootstock").value),
+      internalId: cleanDisplay($("importInternal") && $("importInternal").value),
+      wo: cleanDisplay($("importWo") && $("importWo").value),
+      labelColor: baseColor,
+      qty: baseQty,
+      salesFormat: cleanDisplay($("importSalesFormat") && $("importSalesFormat").value)
+    };
+    const sourceRows = pasteRows.length ? pasteRows : [manualObj].filter(obj => Object.values(obj).some(v => cleanDisplay(v)));
+    const rows = sourceRows.map(obj => {
+      const crop = importValV8644(obj, ["Crop"]) || manualObj.crop;
+      const scion = importValV8644(obj, ["Scion", "Custom", "Custom Text", "Text"]) || manualObj.scion;
+      const rootstock = importValV8644(obj, ["Rootstock", "Root Stock"]) || manualObj.rootstock;
+      const internalId = importValV8644(obj, ["Internal ID", "Internal", "ID"]) || manualObj.internalId;
+      const wo = importValV8644(obj, ["WO", "Work Order"]) || manualObj.wo;
+      const color = importValV8644(obj, ["Label Color", "Color"]) || baseColor;
+      const qty = normalizeLabelCount(importValV8644(obj, ["Labels Needed", "Labels", "Qty", "Quantity"]) || baseQty);
+      const sales = controlledSalesFormat(importValV8644(obj, ["Sales Format", "Format"]) || manualObj.salesFormat);
+      if (type === "POT") {
+        return { wo: wo || internalId || "", act: "MANUAL IMPORT", crop, scion: "", rootstock: rootstock || scion || crop || "CUSTOM", name: rootstock || scion || crop || "CUSTOM", internalId, lotNumber: "", scionPatent: "", rootstockPatent: "", labelColor: color, quantity: qty, labelsNeeded: qty, week: "", salesFormat: sales, __manualImport: true };
+      }
+      return { wo, act: "MANUAL IMPORT", crop, scion, rootstock, name: [crop, scion, rootstock, sales].filter(Boolean).join(" | "), internalId, lotNumber: "", scionPatent: "", rootstockPatent: "", labelColor: color, quantity: qty, labelsNeeded: qty, week: "", salesFormat: sales, __manualImport: true, __importNoWo: !cleanDisplay(wo) };
+    });
+    return { rows, type, size };
+  }
+  function updateImportSampleV8644() {
+    const data = buildImportRowsV8644();
+    const box = $("importParsedRows");
+    if (box) {
+      const preview = data.rows.slice(0, 5).map((r, i) => `${i + 1}. ${data.type === "POT" ? (r.rootstock || r.name) : [r.crop, r.scion, r.rootstock, r.internalId, r.wo].filter(Boolean).join(" / ")} (${r.labelColor}, qty ${r.labelsNeeded})`).join("<br>");
+      box.innerHTML = data.rows.length ? `${data.rows.length} row${data.rows.length === 1 ? "" : "s"} ready.<br>${preview}` : "0 rows ready.";
+    }
+    const sample = $("importSample");
+    if (sample) {
+      sample.innerHTML = data.type === "POT"
+        ? "Pot Stake mode: prints your rootstock/custom text in the pot stake layout. Week number is intentionally blank for imported/free-entry labels."
+        : "Wrap Tie mode: uses Crop, Scion, Rootstock, Internal ID, and WO when supplied. If WO is blank, WO QR/WO text and lot fields are hidden so the left side shows Crop and Internal ID only.";
+    }
+  }
+  function printImportRowsV8644(rows, type, size) {
+    const oldType = labelType;
+    const oldLayout = clone(layout);
+    const oldSelected = selectedId;
+    const oldSize = labelSizeInches(type);
+    try {
+      labelType = type;
+      saveLabelSizeInches(type, size);
+      selectedId = defaultSelectedId(type);
+      layout = loadWorkingLayout(type);
+      layout.labelSize = labelSizeInches(type);
+      if (isWrapLikeMode(type)) rebalanceWrapLikeQrLayout(layout, type);
+      printRows(rows.map(row => ({ row, qty: Math.max(1, parseInt(row.labelsNeeded || "1", 10) || 1) })));
+    } finally {
+      saveLabelSizeInches(type, oldSize);
+      labelType = oldType;
+      layout = oldLayout;
+      selectedId = oldSelected;
+      renderAll();
+    }
+  }
+
+  const originalPrintQueueV8644 = printQueue;
+  printQueue = function() {
+    if (!queue.length) { alert("Queue is empty."); return; }
+    const hasImportItems = queue.some(item => item && item.importType);
+    if (!hasImportItems) return originalPrintQueueV8644();
+    const groups = {};
+    queue.forEach(item => {
+      const type = item.importType || labelType;
+      const size = item.importSize || labelSizeInches(type);
+      const key = `${type}|${formatPresetInches(size.widthIn)}x${formatPresetInches(size.heightIn)}`;
+      if (!groups[key]) groups[key] = { type, size, rows: [] };
+      const row = clone(item.row || {});
+      row.labelsNeeded = String(Math.max(1, parseInt(item.qty || row.labelsNeeded || "1", 10) || 1));
+      row.quantity = row.labelsNeeded;
+      groups[key].rows.push(row);
+    });
+    Object.values(groups).forEach(group => printImportRowsV8644(group.rows, group.type, group.size));
+  };
+
+  // Initialize immediately for already-rendered UI, then renderAll will keep it fresh.
+  injectGuiDbCssV8644();
+  setTimeout(() => {
+    ensureZoomPercentV8644();
+    ensurePresetMetaControlsV8644();
+    ensureQueueControlsV8644();
+    ensureImportPrintingButtonV8644();
+    updateOperatorLabelsV8644();
+    updateZoomPercentV8644();
+  }, 0);
+})();
+
 function boot() {
   removeGitHubWorkflowText();
   loadDefaults();
