@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.45_pot_center_import_header_rules";
+const APP_VERSION = "8.6.46_no_lock_visible_checkboxes";
 const WRAP_QR_BALANCE_VERSION = "8.6.44";
 const INCH = 96;
 const LABEL_SIZES = {
@@ -125,6 +125,7 @@ const UI_THEME_CONFIG = {
   - v8.6.31: Shipping Labels hides WO/Lot objects, shifts logo + warning left, removes Qty pill, cleans topbar helper text, and avoids duplicate single-line scion/rootstock rendering.
   - v8.6.32: Adds one shared label-color config for all templates, aligns Shipping label color bar to the label width, and centers wrap-like zoom out behavior.
   - v8.6.37: Label color config now matches the NetSuite list exactly and preserves title-case display names.
+  - v8.6.46: Removed Lock / Visible checkboxes from Position / Size; object card lock/eye icons now control those states.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -2437,10 +2438,6 @@ function ensureLeftPanel() {
           <div class="field"><label for="rot">Rot</label><input id="rot" type="number" step="1"></div>
           <div class="field"><label for="fontSize">Font Size</label><input id="fontSize" type="number" step="1"></div>
         </div>
-        <div class="buttonRow" style="margin-top:9px">
-          <label class="checkItem"><input id="lockToggle" type="checkbox"> Lock</label>
-          <label class="checkItem"><input id="visibleToggle" type="checkbox"> Visible</label>
-        </div>
       </div>
     </section>
     <section class="beinvtCard" id="gridSection">
@@ -3346,7 +3343,7 @@ function removeDuplicateRightMenuControls() {
   const primary = findSettingsPanel();
   if (!primary) return;
   const duplicateIds = [
-    "selectedName", "x", "y", "w", "h", "rot", "fontSize", "lockToggle", "visibleToggle",
+    "selectedName", "x", "y", "w", "h", "rot", "fontSize",
     "safeToggle", "safeMargin", "safeValue", "gridToggle", "snapToggle", "snapGridToggle", "gridPx", "snapPx",
     "printCalibration", "saveCalibration", "measuredW", "measuredH", "calStatus",
     "printWidthIn", "printHeightIn", "printOrientation", "resetPrintSize", "printSizeNote"
@@ -4110,8 +4107,6 @@ function syncControls() {
     inp.value = k === "fontSize" ? Number(o[k] || 0) : Math.round(Number(o[k] || 0));
   }
   if ($("fontSize")) $("fontSize").disabled = isImageObject(selectedId);
-  if ($("lockToggle")) $("lockToggle").checked = !!o.locked;
-  if ($("visibleToggle")) $("visibleToggle").checked = o.visible !== false;
   if ($("safeToggle")) $("safeToggle").checked = showSafeZone;
   if ($("objectGuidesToggle")) $("objectGuidesToggle").checked = showObjectGuides;
   if ($("gridToggle")) $("gridToggle").checked = showGrid;
@@ -4135,8 +4130,6 @@ function applyControls() {
     if (Number.isFinite(fs) && fs > 0) o.fontSize = fs;
     o.fontFamily = "Times New Roman";
   }
-  if ($("lockToggle")) o.locked = $("lockToggle").checked;
-  if ($("visibleToggle")) o.visible = $("visibleToggle").checked;
   if ($("safeMargin")) layout.safeMarginPx = Number($("safeMargin").value || 0);
   if ($("gridPx")) layout.gridPx = Number($("gridPx").value || 4);
   if ($("snapPx")) layout.snapPx = Number($("snapPx").value || 5);
@@ -4389,8 +4382,6 @@ function initEvents() {
       inp.onkeydown = ev => { if (ev.key === "Enter") applyControls(); };
     }
   }
-  if ($("lockToggle")) $("lockToggle").onchange = applyControls;
-  if ($("visibleToggle")) $("visibleToggle").onchange = applyControls;
   if ($("savePreset")) $("savePreset").onclick = savePreset;
   if ($("loadPreset")) $("loadPreset").onclick = loadPreset;
   if ($("deletePreset")) $("deletePreset").onclick = deletePreset;
