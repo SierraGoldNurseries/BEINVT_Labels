@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.33-theme-toggle-aligned-meta";
+const APP_VERSION = "8.6.34-theme-fix-left-meta";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -28,7 +28,7 @@ const WRAP_LIKE_PREVIEW_CONFIG = {
   metaBelowHeightPx: 44,
   // Center keeps Finished Trees / Field / Shipping zoom-out anchored in the middle.
   // Use "left" only if you intentionally want the label preview locked to the left edge.
-  previewAlign: "center",
+  previewAlign: "left",
   // Keep the label color/qty row glued to the label width when objects pane is hidden/shown.
   metaLockToLabelWidth: true
 };
@@ -176,6 +176,7 @@ const POT_EXCLUDED_ACTIVITIES = [
 
 let DEFAULT_LAYOUTS = {};
 let labelType = "POT";
+let uiTheme = (localStorage.getItem(UI_THEME_CONFIG.storageKey) || UI_THEME_CONFIG.defaultTheme || "dark").toLowerCase() === "light" ? "light" : "dark";
 let rows = [];
 let filteredRows = [];
 let labelRows = [];
@@ -884,24 +885,41 @@ function sizePx(type = labelType) {
     body.beinvt-light-theme .stageMeta{background:#ffffff!important;color:#111827!important;border-color:rgba(15,23,42,.18)!important}
     body.beinvt-light-theme .stageMeta .metaPill:not(.colorPill){background:#eef2ff!important;color:#111827!important;border-color:rgba(15,23,42,.14)!important}
 
-    body.beinvt-label-wrap #stageLabelHost{align-items:center!important;justify-content:center!important;overflow:hidden!important}
-    body.beinvt-label-wrap #stageLabelHost .stageStack{width:100%!important;max-width:100%!important;align-items:center!important;justify-content:center!important;overflow:visible!important}
+    body.beinvt-label-wrap #stageLabelHost{align-items:flex-start!important;justify-content:flex-start!important;overflow:visible!important}
+    body.beinvt-label-wrap #stageLabelHost .stageStack{width:100%!important;max-width:100%!important;align-items:flex-start!important;justify-content:flex-start!important;overflow:visible!important}
     body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow{
-      flex-direction:column!important;align-items:center!important;justify-content:center!important;
-      width:100%!important;max-width:100%!important;overflow:visible!important;margin:0 auto!important;
+      flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;
+      width:auto!important;max-width:100%!important;overflow:visible!important;margin:0!important;
     }
     body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow .stageFrame{
-      max-width:none!important;align-self:center!important;flex:0 0 auto!important;margin-left:auto!important;margin-right:auto!important;
+      max-width:none!important;align-self:flex-start!important;flex:0 0 auto!important;margin-left:0!important;margin-right:0!important;
       transform-origin:center center!important;
     }
     body.beinvt-label-wrap .stageMeta.stageMetaBelowLabel{
-      align-self:center!important;margin-left:auto!important;margin-right:auto!important;transform-origin:top center!important;
+      align-self:flex-start!important;margin-left:0!important;margin-right:0!important;transform-origin:top left!important;
     }
     body.beinvt-objects-pane-hidden.beinvt-label-wrap #stageLabelHost .stageStack,
-    body.beinvt-stage-fixed.beinvt-label-wrap #stageLabelHost .stageStack{align-items:center!important;justify-content:center!important}
+    body.beinvt-stage-fixed.beinvt-label-wrap #stageLabelHost .stageStack{align-items:flex-start!important;justify-content:flex-start!important}
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v8633-theme-aligned-meta-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
+(function injectThemeFixLeftMetaV8634Css(){
+  const css = `
+    /* v8.6.34: fix uiTheme initialization and force wrap-like preview/meta to stay left-aligned without clipping. */
+    body.beinvt-label-wrap #stageLabelHost{align-items:flex-start!important;justify-content:flex-start!important;overflow:visible!important}
+    body.beinvt-label-wrap #stageLabelHost .stageStack{width:100%!important;max-width:100%!important;align-items:flex-start!important;justify-content:flex-start!important;overflow:visible!important}
+    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow{flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;width:auto!important;max-width:100%!important;margin:0!important;overflow:visible!important}
+    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow .stageFrame{align-self:flex-start!important;margin-left:0!important;margin-right:0!important;max-width:none!important;transform-origin:center center!important}
+    body.beinvt-label-wrap .stageMeta.stageMetaBelowLabel{align-self:flex-start!important;margin-left:0!important;margin-right:0!important;transform-origin:top left!important}
+    body.beinvt-objects-pane-hidden.beinvt-label-wrap #stageLabelHost .stageStack,
+    body.beinvt-stage-fixed.beinvt-label-wrap #stageLabelHost .stageStack{align-items:flex-start!important;justify-content:flex-start!important}
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-v8634-theme-fix-left-meta-css", "1");
   tag.textContent = css;
   document.head.appendChild(tag);
 })();
@@ -3040,17 +3058,23 @@ function applyWrapLikeMetaPreviewLayout(meta, previewRow, zoom, s, frame) {
   const scale = clamp(rawScale, Number(cfg.metaMinScale || 0.72), Number(cfg.metaMaxScale || 1.35));
   const labelVisibleW = Math.max(160, Math.ceil(Number(s && s.w || 480) * Number(zoom || 1)));
   const layoutW = Math.max(160, Math.ceil(labelVisibleW / Math.max(0.01, scale)));
-  const align = (cfg.previewAlign || "center").toLowerCase() === "left" ? "flex-start" : "center";
+  const leftLocked = (cfg.previewAlign || "left").toLowerCase() === "left";
+  const align = leftLocked ? "flex-start" : "center";
   previewRow.style.setProperty("--beinvt-wrap-meta-gap", Math.max(0, Number(cfg.metaGapPx || 6)) + "px");
   previewRow.style.setProperty("align-items", align, "important");
-  previewRow.style.setProperty("justify-content", "center", "important");
-  previewRow.style.setProperty("width", "100%", "important");
+  previewRow.style.setProperty("justify-content", align, "important");
+  // For left-locked wrap-like labels, make the preview row exactly the visible label width.
+  // This keeps the label and color/qty row glued together when hiding/showing objects pane.
+  previewRow.style.setProperty("width", leftLocked ? (labelVisibleW + "px") : "100%", "important");
   previewRow.style.setProperty("max-width", "100%", "important");
+  previewRow.style.setProperty("margin-left", leftLocked ? "0" : "auto", "important");
+  previewRow.style.setProperty("margin-right", leftLocked ? "0" : "auto", "important");
   if (frame) {
     frame.style.setProperty("align-self", align, "important");
-    frame.style.setProperty("margin-left", align === "center" ? "auto" : "0", "important");
-    frame.style.setProperty("margin-right", align === "center" ? "auto" : "0", "important");
+    frame.style.setProperty("margin-left", leftLocked ? "0" : "auto", "important");
+    frame.style.setProperty("margin-right", leftLocked ? "0" : "auto", "important");
     frame.style.setProperty("max-width", "none", "important");
+    // Scale the label itself around its center so zoom-out does not collapse toward the left.
     frame.style.setProperty("transform-origin", "center center", "important");
   }
   meta.classList.add("stageMetaBelowLabel");
@@ -3059,10 +3083,10 @@ function applyWrapLikeMetaPreviewLayout(meta, previewRow, zoom, s, frame) {
   meta.style.setProperty("min-width", layoutW + "px", "important");
   meta.style.setProperty("max-width", layoutW + "px", "important");
   meta.style.setProperty("align-self", align, "important");
-  meta.style.setProperty("margin-left", align === "center" ? "auto" : "0", "important");
-  meta.style.setProperty("margin-right", align === "center" ? "auto" : "0", "important");
+  meta.style.setProperty("margin-left", leftLocked ? "0" : "auto", "important");
+  meta.style.setProperty("margin-right", leftLocked ? "0" : "auto", "important");
   meta.style.setProperty("transform", "scale(" + scale.toFixed(3) + ")", "important");
-  meta.style.setProperty("transform-origin", "top center", "important");
+  meta.style.setProperty("transform-origin", leftLocked ? "top left" : "top center", "important");
 }
 
 function renderCanvas() {
@@ -3093,6 +3117,7 @@ function renderCanvas() {
   stage.style.width = s.w + "px";
   stage.style.height = s.h + "px";
   stage.style.transform = `scale(${zoom})`;
+  stage.style.transformOrigin = isWrapLikeMode(labelType) ? "center center" : "0 0";
   const canvas = document.createElement("div");
   canvas.className = "labelCanvas";
   canvas.style.width = s.w + "px";
