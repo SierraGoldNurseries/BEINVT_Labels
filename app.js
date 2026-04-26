@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.0-full-width-wrap-pot-right";
+const APP_VERSION = "8.6.1-syntax-clean-full-replace";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
