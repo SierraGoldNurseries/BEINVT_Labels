@@ -1,5 +1,5 @@
-const APP_VERSION = "8.6.42_wrap_qr_autosize";
-const WRAP_QR_BALANCE_VERSION = "8.6.42";
+const APP_VERSION = "8.6.43_qr_clearance_full_width";
+const WRAP_QR_BALANCE_VERSION = "8.6.43";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -345,6 +345,7 @@ function wrapLikeQrBalanceKey(size) {
 function wrapLikeQrSidePx(labelHeightPx, type, role) {
   const baseRatio = role === "single" ? 0.76 : 0.72;
   const preferred = Math.round(Number(labelHeightPx || 48) * baseRatio);
+  // Keep QR readable as wrap-like labels get taller, but always leave a small top/bottom margin.
   return clamp(preferred, 34, Math.max(34, Math.round(Number(labelHeightPx || 48) - 8)));
 }
 function rebalanceWrapLikeQrLayout(layoutObj, type) {
@@ -402,6 +403,33 @@ function rebalanceWrapLikeQrLayout(layoutObj, type) {
 
   layoutObj.__wrapQrBalanceKey = wrapLikeQrBalanceKey(size);
   return layoutObj;
+}
+function enforceWrapQrTextClearance(row) {
+  if (!layout || !layout.objects || !isWrapLikeMode(labelType)) return;
+  // applyWrapDataAwareStack rebuilds the scion/rootstock stack every render.
+  // Re-apply QR clearance after that stack so big QR codes never overlap the names.
+  rebalanceWrapLikeQrLayout(layout, labelType);
+  const o = layout.objects;
+  const gap = Math.max(6, Math.round(6 * Math.min(labelSizeScaleFactors(labelType).sx, labelSizeScaleFactors(labelType).sy)));
+  const leftQr = o.WO_QR && labelType !== "FIELD" && shouldRenderObject("WO_QR", row) ? o.WO_QR : null;
+  const rightQr = o.LOT_QR && labelType !== "SHIP" && shouldRenderObject("LOT_QR", row) ? o.LOT_QR : null;
+  if (leftQr) {
+    const minLeft = Math.round(Number(leftQr.x || 0) + Number(leftQr.w || 0) + gap);
+    ["WO", "CROP", "INTERNAL"].forEach(id => {
+      if (!o[id]) return;
+      const oldRight = Number(o[id].x || 0) + Number(o[id].w || 0);
+      o[id].x = minLeft;
+      o[id].w = Math.max(24, oldRight - minLeft);
+    });
+  }
+  if (rightQr) {
+    const maxRight = Math.max(20, Math.round(Number(rightQr.x || 0) - gap));
+    ["SCION", "SCION_PATENT", "ROOTSTOCK", "ROOTSTOCK_PATENT", "LOT", "ADDRESS"].forEach(id => {
+      if (!o[id]) return;
+      o[id].w = Math.max(36, maxRight - Number(o[id].x || 0));
+    });
+  }
+  clampAllObjects();
 }
 function wrapVerticalScale(type = labelType) {
   const base = baseLabelSizeInches(type);
@@ -1375,6 +1403,31 @@ function sizePx(type = labelType) {
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v8636-center-zoom-light-theme-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
+(function injectQrClearanceFullWidthV8643Css(){
+  const css = `
+    /* v8.6.43: 1in wrap-like height presets keep full render-table width; preview can grow vertically instead of narrowing. */
+    body.beinvt-label-wrap #stageLabelHost{
+      overflow:visible!important;
+    }
+    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow,
+    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow .stageFrame,
+    body.beinvt-label-wrap .labelPreviewRow.wrapPreviewRow .stageInner{
+      overflow:visible!important;
+    }
+    body.beinvt-label-wrap .obj[data-id="WO_QR"] img,
+    body.beinvt-label-wrap .obj[data-id="LOT_QR"] img{
+      width:100%!important;
+      height:100%!important;
+      object-fit:contain!important;
+      image-rendering:pixelated!important;
+    }
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-v8643-qr-clearance-full-width-css", "1");
   tag.textContent = css;
   document.head.appendChild(tag);
 })();
@@ -3394,7 +3447,10 @@ function applyZoomSliderCap(labelHost) {
   const maxByW = availableW / Math.max(1, s.w);
   const maxByH = availableH / Math.max(1, s.h);
   const hardMax = isWrapLikeMode(labelType) ? 5.0 : 2.15;
-  const max = clamp(Math.min(maxByW, maxByH, hardMax), 0.35, hardMax);
+  // Wrap-like labels should stay full render-table width even when switching from 0.5in to 0.75in/1in height.
+  // Height presets make the label taller, not narrower; the lower preview area has room to grow vertically.
+  const fitRule = isWrapLikeMode(labelType) ? maxByW : Math.min(maxByW, maxByH);
+  const max = clamp(Math.min(fitRule, hardMax), 0.35, hardMax);
 
   if (zoomInput) {
     zoomInput.min = "0.25";
@@ -3599,7 +3655,10 @@ function renderCanvas() {
   if (!labelHost || !layout) return;
   labelHost.innerHTML = "";
   if (labelType === "POT") syncPotAutoLayout();
-  if (isWrapLikeMode(labelType)) applyWrapDataAwareStack(currentRow());
+  if (isWrapLikeMode(labelType)) {
+    applyWrapDataAwareStack(currentRow());
+    enforceWrapQrTextClearance(currentRow());
+  }
   const s = sizePx();
   const zoom = applyZoomSliderCap(labelHost);
   const row = currentRow();
@@ -3840,9 +3899,9 @@ function autoFitPotText() {
 }
 function autoFitWrapText() {
   const ranges = {
-    WO: [16, 6], CROP: [11, 5], INTERNAL: [11, 5],
-    SCION: [28, 7], ROOTSTOCK: [28, 7],
-    SCION_PATENT: [6, 3], ROOTSTOCK_PATENT: [6, 3], LOT: [6.5, 3], ADDRESS: [5.6, 3], WARNING: [3.6, 2.1]
+    WO: [16, 5], CROP: [11, 4.2], INTERNAL: [11, 4.2],
+    SCION: [30, 3.2], ROOTSTOCK: [30, 3.2],
+    SCION_PATENT: [6, 2.6], ROOTSTOCK_PATENT: [6, 2.6], LOT: [6.5, 2.8], ADDRESS: [5.6, 2.6], WARNING: [3.6, 2.1]
   };
   for (const [id, range] of Object.entries(ranges)) {
     const obj = document.querySelector(`.obj[data-id="${id}"]`);
