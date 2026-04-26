@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.23-field-labels-mode";
+const APP_VERSION = "8.6.24-field-stage-row-fit";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -33,6 +33,7 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - v8.6.21: when objects pane is hidden, move stageWrap to a fixed full-width stage below the topbar so table/label cannot be squeezed by the old left-column flex layout.
   - v8.6.22: wrap ties for olives/berries render scion-only center text; rootstock/on text is suppressed. Stage transform correction is disabled for stable table position.
   - v8.6.23: add Field Labels mode next to Finished Trees; Field uses Wrap layout with Row text instead of left WO QR and table filtered to Field Planting activities.
+  - v8.6.24: stage is fixed beside the objects pane so the table cannot overlap it; Field Row marker uses a taller box with smaller upright portrait text.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -691,6 +692,27 @@ function sizePx(type = labelType) {
   document.head.appendChild(tag);
 })();
 
+(function injectStableStageAndFieldRowV8624Css(){
+  const css = `
+    /* v8.6.24: Keep render table/label stage outside the old flex flow so it cannot overlap the objects pane. */
+    body.beinvt-stage-fixed .stageWrap{position:fixed!important;left:var(--beinvt-stage-fixed-left,730px)!important;top:var(--beinvt-stage-fixed-top,56px)!important;width:var(--beinvt-stage-fixed-width,1600px)!important;min-width:var(--beinvt-stage-fixed-width,1600px)!important;max-width:var(--beinvt-stage-fixed-width,1600px)!important;height:var(--beinvt-stage-fixed-height,1100px)!important;min-height:var(--beinvt-stage-fixed-height,1100px)!important;max-height:var(--beinvt-stage-fixed-height,1100px)!important;transform:none!important;margin:0!important;z-index:20!important;display:flex!important;visibility:visible!important;opacity:1!important;box-sizing:border-box!important;overflow:hidden!important;flex:0 0 var(--beinvt-stage-fixed-width,1600px)!important;flex-basis:var(--beinvt-stage-fixed-width,1600px)!important}
+    body.beinvt-stage-fixed #canvasHost{width:100%!important;min-width:0!important;max-width:100%!important;height:100%!important;min-height:0!important;max-height:100%!important;display:flex!important;visibility:visible!important;opacity:1!important;overflow:hidden!important;align-items:stretch!important;justify-content:stretch!important}
+    body.beinvt-stage-fixed.beinvt-label-pot #canvasHost{flex-direction:row!important}
+    body.beinvt-stage-fixed.beinvt-label-wrap #canvasHost{flex-direction:column!important}
+    body.beinvt-stage-fixed #stageDataWrap,body.beinvt-stage-fixed #stageLabelHost{display:flex!important;visibility:visible!important;opacity:1!important}
+    body.beinvt-stage-fixed #stageDataWrap{min-width:0!important;max-width:none!important;overflow:hidden!important}
+    body.beinvt-stage-fixed.beinvt-label-pot #stageDataWrap{flex:1 1 auto!important;width:auto!important;height:100%!important}
+    body.beinvt-stage-fixed.beinvt-label-pot #stageLabelHost{flex:0 0 360px!important;width:360px!important;min-width:360px!important;max-width:360px!important;height:100%!important}
+    body.beinvt-stage-fixed.beinvt-label-wrap #stageDataWrap{width:100%!important;max-width:none!important;flex:0 0 clamp(390px,54vh,700px)!important}
+    body.beinvt-stage-fixed.beinvt-label-wrap #stageLabelHost{width:100%!important;max-width:none!important;flex:1 1 auto!important}
+    .fieldRowText{font-size:12px!important;line-height:1!important;letter-spacing:0!important;padding:0!important;writing-mode:vertical-rl!important;text-orientation:upright!important;transform:none!important;white-space:nowrap!important;overflow:visible!important}
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-v8624-stable-stage-field-row-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
 function fallbackLayout(type) {
   if (type === "POT") {
     return {
@@ -714,7 +736,7 @@ function fallbackLayout(type) {
     gridPx: 4,
     snapPx: 5,
     objects: {
-      WO_QR: { x: 4, y: 7, w: 34, h: 34, rot: 0, locked: false, visible: true },
+      WO_QR: { x: 4, y: type === "FIELD" ? 2 : 7, w: 34, h: type === "FIELD" ? 44 : 34, rot: 0, fontSize: type === "FIELD" ? 12 : undefined, locked: false, visible: true },
       WO: { x: 42, y: 2, w: 72, h: 13, rot: 0, fontSize: 13, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
       CROP: { x: 42, y: 16, w: 72, h: 11, rot: 0, fontSize: 9, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
       INTERNAL: { x: 42, y: 29, w: 72, h: 12, rot: 0, fontSize: 10, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
@@ -742,6 +764,15 @@ function normalizeLayout(src) {
   }
   if (isWrapLikeMode(type) && sourceObjects.ITEM && !sourceObjects.SCION) {
     out.objects = clone(base.objects);
+  }
+  if (type === "FIELD" && out.objects && out.objects.WO_QR) {
+    out.objects.WO_QR.x = 4;
+    out.objects.WO_QR.y = 2;
+    out.objects.WO_QR.w = 34;
+    out.objects.WO_QR.h = 44;
+    out.objects.WO_QR.fontSize = 12;
+    out.objects.WO_QR.rot = 0;
+    out.objects.WO_QR.visible = true;
   }
   return out;
 }
@@ -1186,8 +1217,70 @@ function applyObjectsPaneVisibility() {
       clearObjectsPaneInlineHide(panel);
     }
   }
-  if (leftPaneHidden) applyHiddenObjectsStageLayout();
-  else clearHiddenObjectsStageLayout();
+  if (leftPaneHidden) {
+    clearNormalStageFixedLayout();
+    applyHiddenObjectsStageLayout();
+  } else {
+    clearHiddenObjectsStageLayout();
+    applyNormalStageFixedLayout();
+  }
+}
+function normalStageFixedBounds() {
+  const top = topMenuBounds();
+  const panel = getObjectsPanePanel() || findSettingsPanel();
+  const vw = viewportWidthNow();
+  const vh = viewportHeightNow();
+  const topLeft = Math.max(0, Math.round((top && top.left) || 0));
+  const topRight = Math.max(topLeft + 640, Math.round((top && top.right) || vw));
+  const panelRect = panel && panel.getBoundingClientRect ? panel.getBoundingClientRect() : null;
+  const left = Math.max(topLeft, Math.round((panelRect && panelRect.right) || topLeft) + 2);
+  const topY = Math.max(0, Math.round(((top && top.bottom) || 48) + 6));
+  const width = Math.max(640, topRight - left - 2);
+  const height = Math.max(260, Math.floor(vh - topY - 4));
+  return { left, top: topY, width, height };
+}
+function clearNormalStageFixedLayout(stage) {
+  const el = stage || document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
+  if (document.body) document.body.classList.remove("beinvt-stage-fixed");
+  document.documentElement.style.removeProperty("--beinvt-stage-fixed-left");
+  document.documentElement.style.removeProperty("--beinvt-stage-fixed-top");
+  document.documentElement.style.removeProperty("--beinvt-stage-fixed-width");
+  document.documentElement.style.removeProperty("--beinvt-stage-fixed-height");
+  if (!el) return;
+  ["position", "left", "top", "z-index", "transform", "will-change"].forEach(prop => el.style.removeProperty(prop));
+}
+function applyNormalStageFixedLayout() {
+  const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
+  if (!stage || leftPaneHidden) return;
+  const b = normalStageFixedBounds();
+  if (document.body) document.body.classList.add("beinvt-stage-fixed");
+  document.documentElement.style.setProperty("--beinvt-stage-fixed-left", b.left + "px");
+  document.documentElement.style.setProperty("--beinvt-stage-fixed-top", b.top + "px");
+  document.documentElement.style.setProperty("--beinvt-stage-fixed-width", b.width + "px");
+  document.documentElement.style.setProperty("--beinvt-stage-fixed-height", b.height + "px");
+  stage.dataset.beinvtOuterCardTarget = b.width + "x" + b.height;
+  stage.dataset.beinvtOuterCardWidthMode = "stableFixedBesideObjects";
+  stage.style.setProperty("position", "fixed", "important");
+  stage.style.setProperty("left", b.left + "px", "important");
+  stage.style.setProperty("top", b.top + "px", "important");
+  stage.style.setProperty("width", b.width + "px", "important");
+  stage.style.setProperty("min-width", b.width + "px", "important");
+  stage.style.setProperty("max-width", b.width + "px", "important");
+  stage.style.setProperty("height", b.height + "px", "important");
+  stage.style.setProperty("min-height", b.height + "px", "important");
+  stage.style.setProperty("max-height", b.height + "px", "important");
+  stage.style.setProperty("flex", "0 0 " + b.width + "px", "important");
+  stage.style.setProperty("flex-basis", b.width + "px", "important");
+  stage.style.setProperty("transform", "none", "important");
+  stage.style.setProperty("will-change", "auto", "important");
+  stage.style.setProperty("display", "flex", "important");
+  stage.style.setProperty("visibility", "visible", "important");
+  stage.style.setProperty("opacity", "1", "important");
+  [$("canvasHost"), $("stageDataWrap"), $("stageLabelHost")].filter(Boolean).forEach(el => {
+    el.style.setProperty("display", "flex", "important");
+    el.style.setProperty("visibility", "visible", "important");
+    el.style.setProperty("opacity", "1", "important");
+  });
 }
 function hiddenObjectsStageBounds() {
   const top = topMenuBounds();
@@ -1688,10 +1781,14 @@ function forceOuterCardSize() {
   if (!stage) return;
   if (leftPaneHidden) {
     if (document.body) document.body.classList.remove("beinvt-left-pane-hidden");
+    clearNormalStageFixedLayout(stage);
     applyHiddenObjectsStageLayout();
     return;
   }
   clearHiddenObjectsStageLayout(stage);
+  applyNormalStageFixedLayout();
+  applyPersistentDebugLayerSizes(false);
+  return;
 
   releaseOuterCardAncestors(stage);
 
@@ -1776,10 +1873,14 @@ function dockStageAwayFromLeftPanel() {
   const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
   if (!stage) return;
   if (leftPaneHidden) {
+    clearNormalStageFixedLayout(stage);
     applyHiddenObjectsStageLayout();
     return;
   }
   clearHiddenObjectsStageLayout(stage);
+  applyNormalStageFixedLayout();
+  applyPersistentDebugLayerSizes(false);
+  return;
   const panel = findSettingsPanel();
   if (!panel) return;
 
@@ -2638,11 +2739,12 @@ function renderQrInto(el, text) {
   };
   el.appendChild(img);
 }
-function makeFieldRowInner(holder) {
+function makeFieldRowInner(holder, o) {
   const inner = document.createElement("div");
   inner.className = "wrapTextInner fieldRowText";
   inner.dataset.textId = "ROW";
-  inner.textContent = "Row";
+  inner.textContent = "ROW";
+  const fs = Math.max(9, Math.min(12, Number((o && o.fontSize) || 12)));
   inner.style.position = "absolute";
   inner.style.left = "0";
   inner.style.top = "0";
@@ -2654,10 +2756,14 @@ function makeFieldRowInner(holder) {
   inner.style.textAlign = "center";
   inner.style.fontFamily = "Times New Roman, Georgia, serif";
   inner.style.fontWeight = "900";
-  inner.style.fontSize = "16px";
-  inner.style.lineHeight = ".9";
+  inner.style.fontSize = fs + "px";
+  inner.style.lineHeight = "1";
   inner.style.textTransform = "uppercase";
-  inner.style.transform = "rotate(-90deg)";
+  inner.style.writingMode = "vertical-rl";
+  inner.style.textOrientation = "upright";
+  inner.style.letterSpacing = "0";
+  inner.style.transform = "none";
+  inner.style.padding = "0";
   holder.appendChild(inner);
   return holder;
 }
@@ -2666,7 +2772,7 @@ function makeWrapObjectInner(id, row, o) {
   holder.style.position = "absolute";
   holder.style.inset = "0";
   holder.style.overflow = "hidden";
-  if (id === "WO_QR") { if (isFieldMode()) return makeFieldRowInner(holder); renderQrInto(holder, wrapLeftQrText(row)); return holder; }
+  if (id === "WO_QR") { if (isFieldMode()) return makeFieldRowInner(holder, o); renderQrInto(holder, wrapLeftQrText(row)); return holder; }
   if (id === "LOT_QR") { const txt = wrapRightQrText(row); if (txt) renderQrInto(holder, txt); return holder; }
   if (id === "LOGO") return makeLogoInner(row);
   const text = wrapObjectText(id, row);
@@ -3112,7 +3218,7 @@ function printTextInner(id, row, o) {
   return `<div style="position:absolute;left:${left}px;top:${top}px;width:${w}px;height:${h}px;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:center;${wrap}text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize || 16}px;transform-origin:center center;transform:rotate(${o.rot || 0}deg);">${escapeHtml(labelText(id, row))}</div>`;
 }
 function printWrapObjectInner(id, row, o) {
-  if (id === "WO_QR" && isFieldMode()) return `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:16px;line-height:.9;text-transform:uppercase;transform:rotate(-90deg);color:#000;">Row</div>`;
+  if (id === "WO_QR" && isFieldMode()) return `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:12px;line-height:1;text-transform:uppercase;writing-mode:vertical-rl;text-orientation:upright;color:#000;">ROW</div>`;
   if (id === "WO_QR") return `<img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated">`;
   if (id === "LOT_QR") { const txt = wrapRightQrText(row); return txt ? `<img src="${qrUrl(txt)}" style="width:100%;height:100%;image-rendering:pixelated">` : ""; }
   if (id === "LOGO") {
@@ -3202,7 +3308,7 @@ function initEvents() {
     else if (ev.key === "ArrowLeft") { ev.preventDefault(); nudgeSelected(-step, 0); }
     else if (ev.key === "ArrowRight") { ev.preventDefault(); nudgeSelected(step, 0); }
   });
-  window.addEventListener("resize", () => { if (leftPaneHidden) applyHiddenObjectsStageLayout(); applyZoomSliderCap($("stageLabelHost")); renderCanvas(); });
+  window.addEventListener("resize", () => { if (leftPaneHidden) applyHiddenObjectsStageLayout(); else applyNormalStageFixedLayout(); applyZoomSliderCap($("stageLabelHost")); renderCanvas(); });
 }
 function boot() {
   removeGitHubWorkflowText();
