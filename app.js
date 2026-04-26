@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.18-hide-guides-left-pane-toggle";
+const APP_VERSION = "8.6.19-hide-objects-pane-only";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -27,6 +27,7 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - v8.6.16: debug panel stops auto-refresh while interacting, so Set buttons cannot be destroyed before click.
   - v8.6.17: left settings panel is 730px wide in both templates; preview meta pills are 10% smaller.
   - v8.6.18: add topbar/left-panel toggles for object guide lines and hiding the left pane; hidden pane lets A use full T width.
+  - v8.6.19: hide-pane toggle now hides only the real left object/settings pane (.beinvtSettingsPanel), never table/label cards.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -565,11 +566,14 @@ function sizePx(type = labelType) {
     body.beinvt-hide-object-guides .labelCanvas .guide{
       display:none!important;
     }
-    body.beinvt-left-pane-hidden aside.panel,
-    body.beinvt-left-pane-hidden .panel.sidebar,
-    body.beinvt-left-pane-hidden .settingsPanel,
+    /*
+      v8.6.19: hide ONLY the actual object/settings pane that ensureLeftPanel()
+      marks with .beinvtSettingsPanel. Do NOT hide broad .panel/.sidebar/aside
+      selectors because the table/preview cards can share generic panel classes.
+    */
     body.beinvt-left-pane-hidden .beinvtSettingsPanel{
       display:none!important;
+      visibility:hidden!important;
       width:0!important;
       min-width:0!important;
       max-width:0!important;
@@ -579,9 +583,25 @@ function sizePx(type = labelType) {
       margin:0!important;
       border:0!important;
       overflow:hidden!important;
+      pointer-events:none!important;
     }
     body.beinvt-left-pane-hidden .stageWrap{
       margin-left:0!important;
+    }
+    body.beinvt-left-pane-hidden .stageWrap,
+    body.beinvt-left-pane-hidden #canvasHost,
+    body.beinvt-left-pane-hidden #stageDataWrap,
+    body.beinvt-left-pane-hidden #stageLabelHost,
+    body.beinvt-left-pane-hidden .stageStack,
+    body.beinvt-left-pane-hidden .labelPreviewRow{
+      display:flex!important;
+      visibility:visible!important;
+      opacity:1!important;
+    }
+    body.beinvt-left-pane-hidden #stageDataWrap{
+      flex:1 1 auto!important;
+      min-width:0!important;
+      max-width:none!important;
     }
   `;
   const tag = document.createElement("style");
@@ -1020,6 +1040,8 @@ function setObjectGuidesVisible(on) {
   renderCanvas();
 }
 function setLeftPaneHidden(on) {
+  const panel = findSettingsPanel();
+  if (panel) panel.classList.add("beinvtSettingsPanel");
   leftPaneHidden = !!on;
   persistPreviewUiPrefs();
   applyModeClass();
@@ -1031,7 +1053,7 @@ function setLeftPaneHidden(on) {
 function updateTopbarUtilityButtons() {
   const leftBtn = $("leftPaneToggleBtn");
   if (leftBtn) {
-    leftBtn.textContent = leftPaneHidden ? "Show Left Pane" : "Hide Left Pane";
+    leftBtn.textContent = leftPaneHidden ? "Show Objects Pane" : "Hide Objects Pane";
     leftBtn.classList.toggle("good", !!leftPaneHidden);
   }
   const guidesBtn = $("objectGuidesTopBtn");
@@ -1439,6 +1461,13 @@ function forceOuterCardSize() {
   if (!shouldForceOuterCardSize()) return;
   const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
   if (!stage) return;
+  if (leftPaneHidden) {
+    [stage, $("canvasHost"), $("stageDataWrap"), $("stageLabelHost")].filter(Boolean).forEach(el => {
+      el.style.setProperty("display", "flex", "important");
+      el.style.setProperty("visibility", "visible", "important");
+      el.style.setProperty("opacity", "1", "important");
+    });
+  }
 
   releaseOuterCardAncestors(stage);
 
