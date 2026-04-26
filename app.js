@@ -1,4 +1,4 @@
-const APP_VERSION = "7.0.0-no-overlap-left-menu-wrap-clean";
+const APP_VERSION = "6.15.0-from-v69-merged-left-menu-stage-width";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
@@ -143,65 +143,40 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .beinvt-settings-compact .section[data-settings-group]{margin-bottom:10px!important}
 
     @media(max-width:1100px){body.beinvt-label-pot #canvasHost{flex-direction:column!important;min-height:0!important}body.beinvt-label-pot #stageDataWrap{width:100%;max-width:none;min-width:0;flex:0 0 clamp(360px,58vh,620px);height:auto;min-height:360px}body.beinvt-label-pot #stageLabelHost{flex:0 0 auto;min-width:0}}
+
+    /* v6.14 safe reapply from v6.9: do not rebuild/move the top toolbar */
+    .labelPreviewRow .stageMeta{flex:0 0 230px!important;max-width:230px!important;min-width:230px!important}
+    .stageMeta .metaPill{min-height:30px!important;padding:7px 12px!important;font-size:12px!important;overflow:hidden;text-overflow:ellipsis}
+    .stageMeta .metaPill b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+    body.beinvt-label-pot #stageDataWrap{min-width:560px!important;flex:1 1 auto!important;max-width:none!important;min-height:calc(100vh - 205px)!important}
+    body.beinvt-label-pot #stageRowsTable{min-width:1080px!important}
+    body.beinvt-label-pot #stageLabelHost{flex:0 0 330px!important;min-width:310px!important;overflow:hidden!important;align-items:flex-start!important}
+    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(520px,72vh,760px)!important;min-height:520px!important;max-height:none!important}
+    body.beinvt-label-wrap #stageLabelHost{align-items:flex-end!important;justify-content:center!important;min-height:120px!important;padding-bottom:18px!important;overflow:hidden!important}
+    body.beinvt-label-wrap .wrapPreviewRow{align-items:flex-end!important;transform:translateY(-8px)}
+    body.beinvt-label-pot aside.panel,body.beinvt-label-wrap aside.panel,body.beinvt-label-pot .panel.sidebar,body.beinvt-label-wrap .panel.sidebar,body.beinvt-label-pot .settingsPanel,body.beinvt-label-wrap .settingsPanel{order:-10!important;flex:0 0 330px!important;max-width:330px!important;min-width:290px!important;overflow:auto!important}
+    #objectPanel{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+    .objectBtn{min-width:0!important;white-space:normal!important;line-height:1.1!important}
+    .wrapMainBlock{padding:1px 3px 0!important;line-height:.88!important}
+    .wrapMainBlock .scionLine,.wrapMainBlock .rootLine{line-height:.86!important}
+
+    /* v6.15: merge the old right/position menu into the left panel so the stage gets its width back. */
+    .beinvtMergedSettingsPanel{flex:0 0 345px!important;max-width:345px!important;min-width:310px!important;overflow:auto!important;align-self:stretch!important}
+    .beinvtHiddenControlPanel{display:none!important;width:0!important;min-width:0!important;max-width:0!important;flex:0 0 0!important;overflow:hidden!important;padding:0!important;margin:0!important;border:0!important}
+    .stageWrap{flex:1 1 auto!important;min-width:0!important;max-width:none!important;width:auto!important;align-self:stretch!important;justify-content:flex-start!important;overflow:hidden!important}
+    .stageWrap > *:not(#canvasHost){flex:0 0 auto!important;max-width:100%!important}
+    #canvasHost,.canvasHost{width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important}
+    body.beinvt-label-pot #canvasHost{display:flex!important;flex-direction:row!important;align-items:stretch!important;gap:10px!important;min-height:calc(100vh - 155px)!important}
+    body.beinvt-label-pot #stageDataWrap{min-width:0!important;width:auto!important;max-width:none!important;flex:1 1 auto!important;min-height:calc(100vh - 170px)!important}
+    body.beinvt-label-pot #stageLabelHost{flex:0 0 365px!important;min-width:330px!important;max-width:385px!important;overflow:hidden!important}
+    body.beinvt-label-wrap #canvasHost{display:flex!important;flex-direction:column!important;min-width:0!important;max-width:100%!important}
+    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(560px,76vh,820px)!important;min-height:560px!important;max-height:none!important}
+    body.beinvt-label-wrap #stageLabelHost{min-height:122px!important;padding-bottom:10px!important;align-items:flex-end!important;overflow:hidden!important}
+    .labelPreviewRow .stageMeta{flex:0 0 250px!important;max-width:250px!important;min-width:250px!important}
+
   `;
   const tag = document.createElement("style");
   tag.setAttribute("data-beinvt-v4-css", "1");
-  tag.textContent = css;
-  document.head.appendChild(tag);
-})();
-
-(function injectNoOverlapCss(){
-  const css = `
-    *{box-sizing:border-box!important}
-    html,body{min-width:0!important;overflow:hidden!important}
-    body{--beinvt-top-offset:118px;background:#0b1020!important}
-    .beinvt-main-shell{display:grid!important;grid-template-columns:minmax(300px,360px) minmax(0,1fr)!important;gap:12px!important;align-items:stretch!important;width:100%!important;max-width:100vw!important;height:calc(100vh - var(--beinvt-top-offset))!important;min-height:520px!important;overflow:hidden!important;padding:8px 10px!important}
-    .beinvt-main-shell > aside.panel,.beinvt-left-settings-panel{order:1!important;grid-column:1!important;width:100%!important;min-width:0!important;max-width:none!important;height:100%!important;max-height:none!important;overflow:auto!important;position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;z-index:10!important;margin:0!important;float:none!important;transform:none!important}
-    .beinvt-main-shell > .stageWrap,.beinvt-stage-main{order:2!important;grid-column:2!important;width:100%!important;min-width:0!important;max-width:none!important;height:100%!important;max-height:none!important;overflow:hidden!important;margin:0!important;position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;z-index:1!important;float:none!important;transform:none!important}
-    .stageWrap{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;padding:8px!important;gap:8px!important;overflow:hidden!important;min-width:0!important;background:radial-gradient(circle at center, rgba(255,255,255,.08), rgba(255,255,255,.02))!important}
-    #canvasHost{display:grid!important;gap:10px!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;overflow:hidden!important;align-items:stretch!important}
-    body.beinvt-label-pot #canvasHost{grid-template-columns:minmax(560px,1fr) minmax(248px,340px)!important;grid-template-rows:1fr!important;min-height:0!important}
-    body.beinvt-label-wrap #canvasHost{grid-template-columns:1fr!important;grid-template-rows:minmax(430px,1fr) 118px!important;min-height:0!important}
-    #stageDataWrap{order:1!important;grid-column:auto!important;grid-row:auto!important;width:100%!important;min-width:0!important;max-width:none!important;height:100%!important;min-height:0!important;max-height:none!important;flex:unset!important;align-self:stretch!important;overflow:hidden!important;border-radius:12px!important;position:relative!important;z-index:1!important}
-    body.beinvt-label-pot #stageDataWrap{grid-column:1!important;grid-row:1!important;min-width:0!important;width:100%!important;flex:unset!important;min-height:0!important;height:100%!important;max-height:none!important}
-    body.beinvt-label-wrap #stageDataWrap{grid-column:1!important;grid-row:1!important;min-height:0!important;height:100%!important;max-height:none!important;flex:unset!important}
-    .stageTableScroll{width:100%!important;height:100%!important;min-height:0!important;overflow:auto!important;position:relative!important}
-    #stageRowsTable{width:100%!important;min-width:920px!important;table-layout:fixed!important}
-    body.beinvt-label-pot #stageRowsTable{min-width:1040px!important}
-    body.beinvt-label-wrap #stageRowsTable{min-width:1060px!important}
-    #stageLabelHost{order:2!important;grid-column:auto!important;grid-row:auto!important;min-width:0!important;min-height:0!important;width:100%!important;height:100%!important;max-height:none!important;display:flex!important;overflow:hidden!important;position:relative!important;z-index:1!important;padding:6px!important;background:transparent!important}
-    body.beinvt-label-pot #stageLabelHost{grid-column:2!important;grid-row:1!important;align-items:flex-start!important;justify-content:center!important;min-width:0!important;flex:unset!important;padding-top:4px!important}
-    body.beinvt-label-wrap #stageLabelHost{grid-column:1!important;grid-row:2!important;align-items:flex-start!important;justify-content:center!important;min-height:0!important;padding-top:8px!important;padding-bottom:0!important;flex:unset!important}
-    #stageLabelHost .stageStack{width:100%!important;height:100%!important;max-height:100%!important;min-width:0!important;min-height:0!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;padding:0!important;overflow:hidden!important}
-    body.beinvt-label-wrap #stageLabelHost .stageStack{justify-content:flex-start!important}
-    .labelPreviewRow{max-width:100%!important;min-width:0!important;width:auto!important;display:flex!important;flex-wrap:nowrap!important;overflow:hidden!important;gap:12px!important;align-items:center!important;justify-content:center!important}
-    body.beinvt-label-pot .labelPreviewRow{flex-direction:column!important;width:100%!important;gap:10px!important;align-items:center!important;justify-content:flex-start!important}
-    body.beinvt-label-wrap .labelPreviewRow{flex-direction:row!important;width:100%!important;gap:14px!important;align-items:flex-start!important;justify-content:center!important}
-    .stageFrame{overflow:visible!important;max-width:100%!important;max-height:100%!important;flex:0 0 auto!important}
-    .labelPreviewRow .stageMeta{display:flex!important;flex:0 0 auto!important;width:240px!important;max-width:240px!important;min-width:220px!important;align-self:center!important;gap:8px!important;padding:8px!important;z-index:5!important}
-    body.beinvt-label-pot .labelPreviewRow .stageMeta{width:100%!important;max-width:300px!important;min-width:240px!important;flex-direction:column!important;align-items:stretch!important;order:1!important}
-    body.beinvt-label-pot .stageFrame{order:2!important}
-    body.beinvt-label-wrap .labelPreviewRow .stageMeta{width:260px!important;max-width:260px!important;min-width:240px!important;flex-direction:column!important;align-items:stretch!important}
-    .stageMeta .metaPill{width:100%!important;min-width:0!important;font-size:13px!important;padding:8px 10px!important;white-space:nowrap!important}
-    #objectPanel{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;width:100%!important;min-width:0!important}
-    body.beinvt-label-wrap #objectPanel{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-    .objectBtn{min-width:0!important;max-width:100%!important;white-space:normal!important;overflow:hidden!important;line-height:1.1!important}
-    .objectBtn span:first-child{overflow:hidden!important;text-overflow:ellipsis!important}
-    .settingsGroupTabs{display:flex!important;flex-wrap:wrap!important;gap:6px!important;margin:0 0 10px 0!important;padding:8px!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:12px!important;background:rgba(15,23,42,.95)!important;position:sticky!important;top:0!important;z-index:40!important}
-    .settingsGroupTab{border:1px solid rgba(255,255,255,.16)!important;border-radius:999px!important;background:rgba(255,255,255,.05)!important;color:#e5e7eb!important;padding:7px 10px!important;font-size:12px!important;font-weight:800!important;cursor:pointer!important;max-width:145px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
-    .settingsGroupTab.active{border-color:#60a5fa!important;background:rgba(96,165,250,.22)!important;color:#fff!important}
-    .beinvt-settings-compact .section[data-settings-group].beinvt-hidden-section{display:none!important}
-    .beinvt-settings-compact .section[data-settings-group]{margin-bottom:10px!important;position:relative!important;z-index:1!important}
-    .beinvt-legacy-data-section{display:none!important}
-    .wrapTextInner{position:absolute!important;inset:0!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;overflow:hidden!important;white-space:normal!important;word-break:break-word!important;overflow-wrap:anywhere!important;line-height:.82!important;text-transform:uppercase!important;font-family:"Times New Roman",Georgia,serif!important;font-weight:900!important;padding:0 1px!important}
-    .wrapTextInner.leftText{justify-content:flex-start!important;text-align:left!important}
-    .wrapTextInner.smallText{line-height:.88!important}
-    .wrapTextInner.rootstockInner{text-transform:none!important;white-space:nowrap!important;line-height:.82!important}
-    .wrapTextInner .wrapOn{font-size:.62em!important;margin-right:.16em!important;text-transform:none!important;display:inline-block!important;vertical-align:baseline!important}
-    @media(max-width:1180px){.beinvt-main-shell{grid-template-columns:1fr!important;grid-template-rows:auto 1fr!important;height:auto!important;min-height:0!important;overflow:auto!important}.beinvt-main-shell > aside.panel,.beinvt-left-settings-panel{grid-column:1!important;grid-row:1!important;max-height:260px!important}.beinvt-main-shell > .stageWrap,.beinvt-stage-main{grid-column:1!important;grid-row:2!important;height:calc(100vh - 360px)!important;min-height:520px!important}body.beinvt-label-pot #canvasHost{grid-template-columns:1fr!important;grid-template-rows:minmax(340px,1fr) auto!important}body.beinvt-label-pot #stageDataWrap{grid-column:1!important;grid-row:1!important}body.beinvt-label-pot #stageLabelHost{grid-column:1!important;grid-row:2!important;min-height:320px!important}}
-  `;
-  const tag = document.createElement("style");
-  tag.setAttribute("data-beinvt-no-overlap-css", "1");
   tag.textContent = css;
   document.head.appendChild(tag);
 })();
@@ -225,18 +200,22 @@ const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const cap=s=>String(s??"").toUpperCase();
 const clone=o=>JSON.parse(JSON.stringify(o));
 const POT_OBJECT_ORDER=["WO","QR","ITEM","WEEK"];
-const WRAP_OBJECT_ORDER=["WO_QR","WO","CROP","INTERNAL","SCION","SCION_ROYALTY","ROOTSTOCK","ROOTSTOCK_ROYALTY","LOT","ADDRESS","LOT_QR","LOGO","WARNING"];
-const IMAGE_OBJECT_IDS=new Set(["QR","WO_QR","LOT_QR","LOGO"]);
+const WRAP_OBJECT_ORDER=["WO","ITEM","QR","WEEK"];
+const IMAGE_OBJECT_IDS=new Set(["QR"]);
 function cleanDisplay(v){
-  const s=String(v??"").trim();
-  if(!s) return "";
-  if(/^-?\s*none\s*-?$/i.test(s)) return "";
-  return s;
+  const raw=String(v??"").trim();
+  if(!raw) return "";
+  if(/^-?\s*none\s*-?$/i.test(raw)) return "";
+  return raw;
 }
 function capClean(v){ return cap(cleanDisplay(v)); }
 function objectOrder(type=labelType){ return type==="WRAP"?WRAP_OBJECT_ORDER:POT_OBJECT_ORDER; }
-function defaultSelectedId(type=labelType){ return type==="WRAP"?"SCION":"ITEM"; }
+function defaultSelectedId(type=labelType){ return "ITEM"; }
 function isImageObject(id){ return IMAGE_OBJECT_IDS.has(id); }
+function isExcludedPotActivity(act){
+  const s=String(act||"").toLowerCase().replace(/[\s_-]+/g," ").trim();
+  return ["pre ship sorting","pre-ship sorting","shipping request","propagation material processing"].some(x=>s===x.replace(/[\s_-]+/g," ").trim());
+}
 
 function sizePx(type=labelType){
   const s=LABEL_SIZES[type];
@@ -302,19 +281,10 @@ function fallbackLayout(t){
     safeMarginPx:3,
     gridPx:4,
     objects:{
-      WO_QR:{x:2,y:6,w:36,h:36,rot:0,locked:false,visible:true},
-      WO:{x:41,y:3,w:69,h:12,rot:0,fontSize:13,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
-      CROP:{x:41,y:17,w:69,h:12,rot:0,fontSize:10,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
-      INTERNAL:{x:41,y:31,w:69,h:12,rot:0,fontSize:9,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
-      SCION:{x:114,y:2,w:240,h:16,rot:0,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      SCION_ROYALTY:{x:114,y:18,w:240,h:4,rot:0,fontSize:4.4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ROOTSTOCK:{x:114,y:22,w:240,h:16,rot:0,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ROOTSTOCK_ROYALTY:{x:114,y:38,w:240,h:4,rot:0,fontSize:4.4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      LOT:{x:114,y:42,w:240,h:3,rot:0,fontSize:3.4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ADDRESS:{x:114,y:45,w:240,h:3,rot:0,fontSize:3.4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      LOT_QR:{x:358,y:7,w:33,h:33,rot:0,locked:false,visible:true},
-      LOGO:{x:394,y:14,w:19,h:19,rot:0,locked:false,visible:true},
-      WARNING:{x:418,y:3,w:60,h:42,rot:0,fontSize:4.0,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"}
+      WO:{x:2,y:2,w:104,h:44,rot:0,fontSize:18,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ITEM:{x:108,y:1,w:254,h:46,rot:0,fontSize:26,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      QR:{x:364,y:2,w:44,h:44,rot:0,locked:false,visible:true},
+      WEEK:{x:410,y:2,w:68,h:44,rot:0,fontSize:4.8,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"}
     }
   };
 }
@@ -326,7 +296,7 @@ function normalizeLayout(src){
   const type=(src&&src.labelType)||labelType||"POT";
   const base=fallbackLayout(type);
   if(!src||!src.objects) return base;
-  if(type==="WRAP" && !src.objects.SCION){
+  if(type==="WRAP" && !src.objects.ITEM){
     return base;
   }
   const out=Object.assign({}, base, src, {labelType:type, objects:{}});
@@ -504,10 +474,7 @@ function isRschRow(row){
 }
 function displayPotItem(row){
   const olive=/olive/i.test(row.crop||"");
-  const scion=cleanDisplay(derivedScion(row));
-  const rootstock=cleanDisplay(derivedRootstock(row));
-  const crop=cleanDisplay(row.crop);
-  let txt=olive?(scion||rootstock||crop||"ITEM"):(rootstock||scion||crop||"ITEM");
+  let txt=olive?(derivedScion(row)||derivedRootstock(row)||"ITEM"):(derivedRootstock(row)||derivedScion(row)||"ITEM");
   if(/^platinum\s+pistachio\s+rootstock$/i.test(String(txt||"").trim())) txt = "Platinum";
   return cap(txt);
 }
@@ -596,17 +563,69 @@ function applyModeClass(){
 
 function removeGitHubWorkflowText(){
   const needle="To commit a preset to GitHub: export/download JSON, then use the included manual GitHub workflow Commit layout preset.";
+  const walker=document.createTreeWalker(document.body||document.documentElement,NodeFilter.SHOW_TEXT);
+  const nodes=[];
+  while(walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(n=>{
+    if(String(n.nodeValue||"").includes(needle)) n.nodeValue=String(n.nodeValue||"").replace(needle,"").trim();
+  });
   document.querySelectorAll("body *").forEach(el=>{
-    if(!el||["SCRIPT","STYLE"].includes(el.tagName)) return;
-    if(el.dataset && el.dataset.beinvtGitTextRemoved) return;
-    [...el.childNodes].forEach(n=>{
-      if(n.nodeType===3 && String(n.nodeValue||"").includes(needle)){
-        n.nodeValue=String(n.nodeValue||"").replace(needle,"").trim();
-        if(el.dataset) el.dataset.beinvtGitTextRemoved="1";
-      }
-    });
+    if(["SCRIPT","STYLE"].includes(el.tagName)) return;
     if(el.children.length===0 && String(el.textContent||"").trim()===needle) el.remove();
   });
+}
+function ensureControlPanelLeft(){
+  const panel=document.querySelector("aside.panel")||document.querySelector(".panel.sidebar")||document.querySelector(".settingsPanel");
+  if(!panel||panel.dataset.beinvtSafeLeftDone) return;
+  panel.style.order="-10";
+  panel.style.flex="0 0 345px";
+  panel.style.maxWidth="345px";
+  panel.style.minWidth="310px";
+  panel.style.overflow="auto";
+  panel.classList.add("beinvtMergedSettingsPanel");
+  panel.dataset.beinvtSafeLeftDone="1";
+}
+
+function closestSettingsPanel(el){
+  if(!el) return null;
+  return el.closest("aside.panel,.panel.sidebar,.settingsPanel,.controlsPanel,.sidePanel,.panel");
+}
+function resetSettingsGroupState(panel){
+  if(!panel) return;
+  const tabs=panel.querySelector("#settingsGroupTabs");
+  if(tabs) tabs.remove();
+  panel.classList.remove("beinvt-settings-compact");
+  panel.querySelectorAll(".section[data-settings-group]").forEach(sec=>{
+    delete sec.dataset.settingsGroup;
+    sec.classList.remove("beinvt-hidden-section");
+  });
+}
+function consolidateSettingsPanels(){
+  const dataPanel=closestSettingsPanel($("rowsBody")) || closestSettingsPanel($("search")) || document.querySelector("aside.panel,.panel.sidebar,.settingsPanel,.controlsPanel,.sidePanel,.panel");
+  const controlPanel=closestSettingsPanel($("objectPanel")) || closestSettingsPanel($("selectedName")) || closestSettingsPanel($("x")) || closestSettingsPanel($("layoutJson")) || closestSettingsPanel($("printCalibration"));
+  if(dataPanel) dataPanel.classList.add("beinvtMergedSettingsPanel");
+  if(!dataPanel || !controlPanel || dataPanel===controlPanel) return;
+  if(controlPanel.contains(dataPanel) || dataPanel.contains(controlPanel)) return;
+  if(dataPanel.dataset.beinvtMergedControls === "1"){
+    controlPanel.classList.add("beinvtHiddenControlPanel");
+    controlPanel.style.display="none";
+    return;
+  }
+
+  resetSettingsGroupState(dataPanel);
+  resetSettingsGroupState(controlPanel);
+
+  const children=[...controlPanel.children].filter(ch=>{
+    const tag=String(ch.tagName||"").toUpperCase();
+    if(tag==="SCRIPT" || tag==="STYLE") return false;
+    if(ch.id==="settingsGroupTabs") return false;
+    return true;
+  });
+  children.forEach(ch=>dataPanel.appendChild(ch));
+
+  controlPanel.classList.add("beinvtHiddenControlPanel");
+  controlPanel.style.display="none";
+  dataPanel.dataset.beinvtMergedControls="1";
 }
 
 function currentPotAutoKey(){
@@ -645,73 +664,20 @@ function applyPotAutoStack(){
 let __potTightenPass=false;
 function tightenPotLayoutAfterFit(){ return false; }
 
-function hasAnyId(sec,ids){
-  return ids.some(id=>sec.querySelector && sec.querySelector('#'+id));
-}
-function sectionContainsText(sec,patterns){
-  const t=String(sec&&sec.textContent||'').toLowerCase();
-  return patterns.some(p=>t.includes(String(p).toLowerCase()));
-}
-function isLegacyDataSection(sec){
-  if(!sec) return false;
-  if(sec.querySelector && (sec.querySelector('#rowsBody') || sec.querySelector('#rowsTable') || sec.querySelector('#search'))) return true;
-  const h=sec.querySelector && sec.querySelector('h1,h2,h3,h4,.sectionTitle,.title');
-  const title=String((h&&h.textContent)||sec.getAttribute('aria-label')||'').trim().toLowerCase();
-  return title==='data' && sectionContainsText(sec,['search labels','work order','activity']);
-}
-function hideLegacyDataSections(){
-  document.querySelectorAll('.section').forEach(sec=>{
-    if(isLegacyDataSection(sec)){
-      sec.classList.add('beinvt-legacy-data-section');
-      sec.style.display='none';
-    }
-  });
-}
-function ensureMainLayoutNoOverlap(){
-  const stage=document.querySelector('.stageWrap') || ($('canvasHost') && $('canvasHost').closest('.stageWrap'));
-  const panels=[...document.querySelectorAll('aside.panel,.panel.sidebar,.settingsPanel')];
-  const panel=panels.find(p=>p.querySelector('#objectPanel')||p.querySelector('#queueList')||p.querySelector('#presetSelect')||p.querySelector('#layoutJson'))||panels[0];
-  if(!stage||!panel||panel===stage||stage.contains(panel)) return;
-  let parent=stage.parentElement;
-  if(!parent) return;
-  try{
-    if(panel.parentElement!==parent) parent.insertBefore(panel,stage);
-    else if([...parent.children].indexOf(panel)>[...parent.children].indexOf(stage)) parent.insertBefore(panel,stage);
-  }catch(e){}
-  parent.classList.add('beinvt-main-shell');
-  stage.classList.add('beinvt-stage-main');
-  panel.classList.add('beinvt-left-settings-panel');
-  panel.style.position='relative';
-  panel.style.transform='none';
-  panel.style.float='none';
-  stage.style.position='relative';
-  stage.style.transform='none';
-  stage.style.float='none';
-}
-function classifySettingsSection(sec,idx){
-  if(!sec) return `Settings ${idx+1}`;
-  if(hasAnyId(sec,['objectPanel','selectedName'])) return 'Objects';
-  if(hasAnyId(sec,['x','y','w','h','rot','fontSize','centerH','centerV','centerBoth'])) return 'Object Position';
-  if(hasAnyId(sec,['safeToggle','gridToggle','gridPx','safeMargin','snapToggle','snapPx','snapGridToggle'])) return 'Guides & Snap';
-  if(hasAnyId(sec,['queueList','addCurrent','clearQueue'])) return 'Print Queue';
-  if(hasAnyId(sec,['presetSelect','savePreset','loadPreset','deletePreset'])) return 'Presets';
-  if(hasAnyId(sec,['layoutJson','exportLayout','importLayout','downloadLayout','resetLayout'])) return 'Layout JSON';
-  if(hasAnyId(sec,['printCalibration','saveCalibration','measuredW','measuredH'])) return 'Calibration';
-  if(hasAnyId(sec,['printLabel','printQueue','testMode'])) return 'Print Actions';
-  if(isLegacyDataSection(sec)) return 'Data';
-  const raw=(sec.querySelector('h1,h2,h3,h4,.sectionTitle,.title')||{}).textContent||sec.getAttribute('aria-label')||'';
-  const clean=String(raw||'').trim().replace(/\s+/g,' ');
-  if(clean && !/^settings\s*\d+$/i.test(clean)) return clean.slice(0,28);
-  const txt=String(sec.textContent||'').toLowerCase();
-  if(txt.includes('preset')) return 'Presets';
-  if(txt.includes('queue')) return 'Print Queue';
-  if(txt.includes('calibration')) return 'Calibration';
-  if(txt.includes('safe')||txt.includes('grid')||txt.includes('snap')) return 'Guides & Snap';
-  if(txt.includes('selected')||txt.includes('object')) return 'Objects';
-  return `Settings ${idx+1}`;
-}
 function settingsSectionTitle(sec,idx){
-  return classifySettingsSection(sec,idx);
+  const heading=sec.querySelector("h1,h2,h3,h4,.sectionTitle,.title");
+  const ids=[...sec.querySelectorAll("[id]")].map(x=>String(x.id||"").toLowerCase()).join(" ");
+  const txt=String((heading&&heading.textContent)||sec.textContent||"").toLowerCase();
+  const hay=(ids+" "+txt).replace(/[_-]+/g," ");
+  if(/objectpanel|selectedname|font size|locktoggle|visibletoggle|centerh|center selected|position|width|height|rotation/.test(hay)) return "Objects";
+  if(/queuelist|addcurrent|printqueue|clearqueue|queue/.test(hay)) return "Queue";
+  if(/presetselect|savepreset|loadpreset|deletepreset|layoutjson|exportlayout|importlayout|downloadlayout|preset|layout json/.test(hay)) return "Presets";
+  if(/printcalibration|savecalibration|measuredw|measuredh|calibration/.test(hay)) return "Calibration";
+  if(/safetoggle|gridtoggle|snaptoggle|snappx|zoom|safe zone|grid|snap|preview/.test(hay)) return "Preview";
+  if(/printlabel|testmode|test mode|print current/.test(hay)) return "Print";
+  if(/labeltype|modetabs|pot stakes|wrap ties|template|label type/.test(hay)) return "Template";
+  if(/search|rowsbody|labels|table/.test(hay)) return "Table";
+  return ["Objects","Preview","Presets","Queue","Print","Calibration"][idx]||`Group ${idx+1}`;
 }
 function activateSettingsGroup(idx){
   const tabs=document.querySelectorAll(".settingsGroupTab[data-settings-group]");
@@ -721,32 +687,31 @@ function activateSettingsGroup(idx){
   localStorage.setItem("beinvtSettingsGroup",String(idx));
 }
 function ensureSettingsGroups(){
-  hideLegacyDataSections();
-  const panel=document.querySelector("aside.panel")||document.querySelector(".panel.sidebar")||document.querySelector(".settingsPanel");
-  if(!panel) return;
+  const panel=(closestSettingsPanel($("rowsBody")) || closestSettingsPanel($("search")) || document.querySelector(".beinvtMergedSettingsPanel") || document.querySelector("aside.panel,.panel.sidebar,.settingsPanel"));
+  if(!panel||panel.querySelector("#settingsGroupTabs")) return;
   let sections=[];
-  try{ sections=[...panel.querySelectorAll(":scope > .section")]; }catch(e){ sections=[...panel.querySelectorAll(".section")].filter(sec=>sec.parentElement===panel); }
-  sections=sections.filter(sec=>!isLegacyDataSection(sec)&&sec.style.display!=="none"&&!sec.classList.contains("beinvt-legacy-data-section")&&!sec.querySelector("#stageRowsTable")&&!sec.closest("#canvasHost"));
+  try{ sections=[...panel.querySelectorAll(":scope > .section")]; }catch(e){ sections=[...panel.querySelectorAll(".section")]; }
+  sections=sections.filter(sec=>!sec.querySelector("#rowsBody")&&!sec.querySelector("#stageRowsTable")&&!sec.closest("#canvasHost"));
   if(sections.length<2) return;
   panel.classList.add("beinvt-settings-compact");
-  let tabs=panel.querySelector("#settingsGroupTabs");
-  if(!tabs){
-    tabs=document.createElement("div");
-    tabs.id="settingsGroupTabs";
-    tabs.className="settingsGroupTabs";
-    panel.insertBefore(tabs,sections[0]);
-  }
-  tabs.innerHTML="";
+  const tabs=document.createElement("div");
+  tabs.id="settingsGroupTabs";
+  tabs.className="settingsGroupTabs";
+  const used={};
   sections.forEach((sec,idx)=>{
     sec.dataset.settingsGroup=String(idx);
+    let title=settingsSectionTitle(sec,idx);
+    used[title]=(used[title]||0)+1;
+    if(used[title]>1) title=`${title} ${used[title]}`;
     const btn=document.createElement("button");
     btn.type="button";
     btn.className="settingsGroupTab";
     btn.dataset.settingsGroup=String(idx);
-    btn.textContent=settingsSectionTitle(sec,idx);
+    btn.textContent=title;
     btn.onclick=()=>activateSettingsGroup(idx);
     tabs.appendChild(btn);
   });
+  panel.insertBefore(tabs,sections[0]);
   const saved=Number(localStorage.getItem("beinvtSettingsGroup")||0);
   activateSettingsGroup(Number.isFinite(saved)&&saved>=0&&saved<sections.length?saved:0);
 }
@@ -754,10 +719,9 @@ function ensureSettingsGroups(){
 function renderAll(){
   applyModeClass();
   removeGitHubWorkflowText();
+  ensureControlPanelLeft();
+  consolidateSettingsPanels();
   ensureModeTabs();
-  ensureStageShell();
-  hideLegacyDataSections();
-  ensureMainLayoutNoOverlap();
   ensureSettingsGroups();
   updateModeTabs();
   if($("labelType")) $("labelType").value=labelType;
@@ -787,11 +751,8 @@ function ensureStageShell(){
     const oldBody=$("rowsBody");
     if(oldBody){
       const oldSection=oldBody.closest(".section");
-      if(oldSection){ oldSection.classList.add("beinvt-legacy-data-section"); oldSection.style.display="none"; }
-      else { const oldWrap=oldBody.closest("table,div"); if(oldWrap) oldWrap.style.display="none"; }
+      if(oldSection) oldSection.style.display="none";
     }
-    hideLegacyDataSections();
-    ensureMainLayoutNoOverlap();
     const stageSearch=$("stageSearch");
     if(stageSearch){
       stageSearch.value=($("search")&&$("search").value)||"";
@@ -809,21 +770,13 @@ function effectiveStageZoom(requested,s,labelHost){
   if(!isFinite(z)||z<=0) z=1;
   const hostW=Math.max(1,(labelHost&&labelHost.clientWidth)||window.innerWidth||900);
   const hostH=Math.max(1,(labelHost&&labelHost.clientHeight)||window.innerHeight||500);
-  const metaW=labelType==="WRAP"?274:0;
-  const metaH=labelType==="POT"?92:0;
-  const gap=labelType==="WRAP"?18:10;
-  const pad=26;
-  let maxByW=(hostW-metaW-gap-pad)/Math.max(1,s.w);
-  let maxByH=(hostH-metaH-gap-pad)/Math.max(1,s.h);
-  const hardMax=labelType==="WRAP"?1.08:1.18;
-  if(labelType==="POT"){
-    maxByW=(hostW-pad)/Math.max(1,s.w);
-    maxByH=(hostH-metaH-gap-pad)/Math.max(1,s.h);
-  }
-  const maxZ=Math.max(0.22,Math.min(hardMax,maxByW,maxByH));
-  const out=clamp(z,0.22,maxZ);
-  if($('zoom') && Number($('zoom').value)>maxZ) $('zoom').title=`Zoom is capped at ${maxZ.toFixed(2)} so the layout does not overlap or create extra scrollbars.`;
-  return out;
+  const metaW=236, gap=18;
+  let maxByW=(hostW-metaW-gap-18)/Math.max(1,s.w);
+  const maxByH=(hostH-18)/Math.max(1,s.h);
+  const hardMax=labelType==="WRAP"?1.04:1.22;
+  if(labelType==="POT") maxByW=(hostW-metaW-gap-8)/Math.max(1,s.w);
+  const maxZ=Math.max(0.25,Math.min(hardMax,maxByW,maxByH));
+  return clamp(z,0.25,maxZ);
 }
 
 function renderCanvas(){
@@ -890,7 +843,10 @@ function renderCanvas(){
     el.dataset.id=id;
     Object.assign(el.style,{left:o.x+"px",top:o.y+"px",width:o.w+"px",height:o.h+"px"});
     if(labelType==="WRAP"){
-      el.appendChild(makeWrapObjectInner(id,row,o));
+      if(id==="WO") el.appendChild(makeWrapWoInner(row));
+      else if(id==="ITEM") el.appendChild(makeWrapMainInner(row));
+      else if(id==="QR") el.appendChild(makeWrapQrInner(row));
+      else if(id==="WEEK") el.appendChild(makeWrapWarningInner());
     }else{
       if(id==="QR") renderQrInto(el,row.wo);
       else el.appendChild(makeTextInner(id,row,o));
@@ -1048,7 +1004,7 @@ function makeWrapWoInner(row){
   renderQrInto(qr,wrapLeftQrText(row));
   const t=document.createElement("div");
   t.className="wrapWoText";
-  t.innerHTML=`<div class="wo">${escapeHtml(cap(row.wo||""))}</div><div class="crop">${escapeHtml(cap(row.crop||""))}</div><div class="internal">${escapeHtml(cap(row.internalId||""))}</div>`;
+  t.innerHTML=`<div class="wo">${escapeHtml(capClean(row.wo||""))}</div><div class="crop">${escapeHtml(capClean(row.crop||""))}</div><div class="internal">${escapeHtml(capClean(row.internalId||""))}</div>`;
   c.appendChild(qr); c.appendChild(t);
   return c;
 }
@@ -1094,7 +1050,7 @@ function printWrapInner(id,row,o){
     const lotLine=wrapLotLine(row);
     const scionRoyalty=wrapScionRoyaltyText(row);
     const rootstockRoyalty=wrapRootstockRoyaltyText(row);
-    return `<div style="${outer}display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:2px 3px 1px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;line-height:.86;"><div style="font-size:15px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapScionText(row))}</div>${scionRoyalty?`<div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(scionRoyalty)}</div>`:""}<div style="font-size:15px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(wrapRootstockText(row))}</div>${rootstockRoyalty?`<div style="font-size:5px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(rootstockRoyalty)}</div>`:""}${lotLine?`<div style="font-size:4.7px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(lotLine)}</div>`:""}<div style="font-size:4.7px;line-height:.94;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(WRAP_ADDRESS)}</div></div>`;
+    return `<div style="${outer}display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:2px 3px 1px;font-family:'Times New Roman',Georgia,serif;text-transform:uppercase;font-weight:900;line-height:.86;"><div style="font-size:17px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(wrapScionText(row))}</div>${scionRoyalty?`<div style="font-size:4.8px;line-height:.90;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(scionRoyalty)}</div>`:""}<div style="font-size:17px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(wrapRootstockText(row))}</div>${rootstockRoyalty?`<div style="font-size:4.8px;line-height:.90;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(rootstockRoyalty)}</div>`:""}${lotLine?`<div style="font-size:4.3px;line-height:.88;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(lotLine)}</div>`:""}<div style="font-size:4.3px;line-height:.88;margin-top:0;white-space:normal;word-break:break-word;overflow-wrap:anywhere;max-width:100%;">${escapeHtml(WRAP_ADDRESS)}</div></div>`;
   }
   if(id==="QR") { const qrText=wrapRightQrText(row); return `<div style="${outer}display:flex;align-items:center;justify-content:center;gap:2px;padding:1px 1px;">${qrText?`<div style="width:34px;height:34px;flex:0 0 34px;"><img src="${qrUrl(qrText)}" style="width:100%;height:100%;image-rendering:pixelated"/></div>`:""}<div style="width:20px;height:20px;flex:0 0 20px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain;image-rendering:auto" onerror="this.outerHTML='SG'"/></div></div>`; }
   if(id==="WEEK") return `<div style="${outer}display:flex;align-items:center;justify-content:flex-start;padding:1px 2px;white-space:pre-line;text-align:left;text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:4.3px;line-height:.82;">${escapeHtml(WRAP_WARNING)}</div>`;
@@ -1130,23 +1086,46 @@ function wrapBlockFits(el){
 }
 function autoFitWrapPreview(){
   if(labelType!=="WRAP") return;
-  const ranges={
-    WO:[14,8], CROP:[11,7], INTERNAL:[10,7],
-    SCION:[24,7], ROOTSTOCK:[24,7],
-    SCION_ROYALTY:[5.4,3.5], ROOTSTOCK_ROYALTY:[5.4,3.5],
-    LOT:[4.8,3.2], ADDRESS:[4.8,3.2], WARNING:[4.5,3.2]
-  };
-  Object.entries(ranges).forEach(([id,range])=>{
-    const obj=document.querySelector(`.obj[data-id="${id}"]`);
-    const inner=obj&&obj.querySelector('.wrapTextInner');
-    if(!obj||!inner) return;
-    let fs=range[0], min=range[1];
-    for(; fs>=min; fs-=0.2){
-      inner.style.fontSize=fs.toFixed(1)+'px';
-      if(wrapBlockFits(obj)) break;
+  const wo=document.querySelector('.obj[data-id="WO"] .wrapWoText');
+  if(wo){
+    const a=wo.querySelector('.wo'), b=wo.querySelector('.crop'), c=wo.querySelector('.internal');
+    let main=17;
+    for(; main>=8; main--){
+      if(a) a.style.fontSize=main+'px';
+      if(b) b.style.fontSize=Math.max(7,Math.round(main*0.76))+'px';
+      if(c) c.style.fontSize=Math.max(7,Math.round(main*0.70))+'px';
+      if(wrapBlockFits(wo.parentElement)) break;
     }
-    if(layout&&layout.objects&&layout.objects[id]) layout.objects[id].fontSize=parseFloat(inner.style.fontSize)||layout.objects[id].fontSize;
-  });
+  }
+  const mainBlock=document.querySelector('.obj[data-id="ITEM"] .wrapMainBlock');
+  if(mainBlock){
+    const sLine=mainBlock.querySelector('.scionLine');
+    const rLine=mainBlock.querySelector('.rootLine');
+    const royalties=mainBlock.querySelectorAll('.royaltyLine');
+    const bLine=mainBlock.querySelector('.benchLine');
+    const aLine=mainBlock.querySelector('.addressLine');
+    const hasRoyalty=royalties.length>0;
+    let big=hasRoyalty?26:30;
+    const minBig=hasRoyalty?11:14;
+    mainBlock.style.lineHeight='.88';
+    for(; big>=minBig; big--){
+      if(sLine) sLine.style.fontSize=big+'px';
+      if(rLine) rLine.style.fontSize=big+'px';
+      royalties.forEach(x=>x.style.fontSize=Math.max(4.4,Math.round(big*0.22))+'px');
+      if(bLine) bLine.style.fontSize=Math.max(4,Math.round(big*0.18))+'px';
+      if(aLine) aLine.style.fontSize=Math.max(4,Math.round(big*0.18))+'px';
+      if(wrapBlockFits(mainBlock)) break;
+    }
+    if(!wrapBlockFits(mainBlock)) mainBlock.style.lineHeight='.78';
+  }
+  const warn=document.querySelector('.obj[data-id="WEEK"] .wrapWarningBlock');
+  if(warn){
+    let fs=4.8;
+    for(; fs>=3.5; fs-=0.1){
+      warn.style.fontSize=fs.toFixed(1)+'px';
+      if(wrapBlockFits(warn.parentElement)) break;
+    }
+  }
 }
 
 function attachObjectEvents(el){
@@ -1297,8 +1276,10 @@ function clampAllObjects(){Object.keys(layout.objects).forEach(clampObject)}
 
 function objectDisplayName(id){
   if(labelType==="WRAP"){
-    const names={WO_QR:"WO QR",WO:"WO",CROP:"Crop",INTERNAL:"Internal ID",SCION:"Scion",SCION_ROYALTY:"Scion Royalty",ROOTSTOCK:"Rootstock",ROOTSTOCK_ROYALTY:"Rootstock Royalty",LOT:"Lot",ADDRESS:"Address",LOT_QR:"Lot QR",LOGO:"SG Logo",WARNING:"Warning"};
-    return names[id]||id;
+    if(id==="WO") return "WO / Crop / Internal ID";
+    if(id==="ITEM") return "Scion / Rootstock / Royalties";
+    if(id==="QR") return "Lot QR / SG Logo";
+    if(id==="WEEK") return "Warning";
   }
   if(labelType==="POT"){
     if(id==="WO") return "Work Order";
@@ -1372,26 +1353,18 @@ function applyControls(){
 
 function centerSelected(axis){
   pushHistory();
-  const o=layout.objects[selectedId],b=labelBounds(),limH=activeBottomLimit();
+  const o=layout.objects[selectedId],b=labelBounds();
   if(axis==="h"||axis==="both")o.x=Math.round((b.w-o.w)/2);
-  if(axis==="v"||axis==="both")o.y=Math.round((limH-o.h)/2);
-  clampObject(selectedId);
+  if(axis==="v"||axis==="both")o.y=Math.round((b.h-o.h)/2);
   saveWorkingLayout();
   renderAll();
 }
 
 
 function cellText(v){ return escapeHtml(capClean(v)); }
-function isExcludedPotActivity(act){
-  const a=String(act||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
-  return /pres*ships*sorting/.test(a) || /shippings*request/.test(a) || /propagations*materials*processing/.test(a);
-}
-function potTableItemText(r){
-  return cleanDisplay(derivedRootstock(r)) || cleanDisplay(displayPotItem(r)) || cleanDisplay(derivedScion(r)) || cleanDisplay(r.crop);
-}
 function buildRowHtml(r){
   if(labelType==="POT"){
-    return `<td>${cellText(r.wo)}</td><td>${cellText(r.act)}</td><td>${cellText(potTableItemText(r))}</td><td>${cellText(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
+    return `<td>${cellText(r.wo)}</td><td>${cellText(r.act)}</td><td>${cellText(derivedRootstock(r)||displayPotItem(r)||"")}</td><td>${cellText(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
   }
   return `<td>${cellText(r.wo)}</td><td>${cellText(r.crop)}</td><td>${cellText(wrapScionText(r))}</td><td>${cellText(wrapRootstockText(r))}</td><td>${cellText(r.internalId)}</td><td>${cellText(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
 }
@@ -1420,11 +1393,11 @@ function renderRows(){
       if(cleanDisplay(r.scion)) return false;
       if(isExcludedPotActivity(r.act)) return false;
     }
-    return Object.values(r).join(" ").toLowerCase().includes(q);
+    return Object.values(r).map(cleanDisplay).join(" ").toLowerCase().includes(q);
   });
   if(currentRowIndex>=filteredRows.length)currentRowIndex=0;
   const headerHtml=labelType==="POT"
-    ? "<th style='width:14%'>WO</th><th style='width:22%'>Activity</th><th style='width:34%'>Item / Rootstock</th><th style='width:14%'>Color</th><th style='width:10%'>Labels</th><th style='width:6%'></th>"
+    ? "<th style='width:17%'>WO</th><th style='width:25%'>Activity</th><th style='width:28%'>Item / Rootstock</th><th style='width:14%'>Color</th><th style='width:10%'>Labels</th><th style='width:6%'></th>"
     : "<th style='width:12%'>WO</th><th style='width:12%'>Crop</th><th style='width:20%'>Scion</th><th style='width:20%'>Rootstock</th><th style='width:12%'>Internal ID</th><th style='width:10%'>Color</th><th style='width:8%'>Labels</th><th style='width:6%'></th>";
   const stageHead=$("stageRowsHead");
   if(stageHead) stageHead.innerHTML=headerHtml;
@@ -1537,7 +1510,7 @@ function renderPrintPage(row,b){
     if(!o||o.visible===false)continue;
     if(labelType!=="WRAP" && id==="WEEK"&&!row.week)continue;
     const outer=`position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
-    if(labelType==="WRAP") out+=`<div style="${outer}">${printWrapObjectInner(id,row,o)}</div>`;
+    if(labelType==="WRAP") out+=`<div style="${outer}">${printWrapInner(id,row,o)}</div>`;
     else if(id==="QR") out+=`<div style="${outer}"><img src="${qrUrl(row.wo)}" style="width:100%;height:100%;image-rendering:pixelated"/></div>`;
     else out+=`<div style="${outer}">${printTextInner(id,row,o)}</div>`;
   }
@@ -1593,9 +1566,6 @@ function bindDirectionalButtons(){
 
 function initEvents(){
   ensureModeTabs();
-  ensureStageShell();
-  hideLegacyDataSections();
-  ensureMainLayoutNoOverlap();
   ensureSettingsGroups();
   removeGitHubWorkflowText();
   bindDirectionalButtons();
@@ -1650,6 +1620,8 @@ function initEvents(){
 
 function boot(){
   removeGitHubWorkflowText();
+  ensureControlPanelLeft();
+  consolidateSettingsPanels();
   loadDefaults().then(()=>{
     layout=loadWorkingLayout(labelType);
     initEvents();
