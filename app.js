@@ -1,4 +1,4 @@
-const APP_VERSION = "6.9.0-pot-settings-wrap-individuals";
+const APP_VERSION = "6.9.1-pot-settings-wrap-menu-fixes";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
@@ -41,11 +41,11 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .stageMeta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;margin:0;padding:8px 10px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(18,26,44,.98);color:#e5e7eb}
     .stageStack{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;padding-top:8px}
     .labelPreviewRow{display:flex;align-items:center;justify-content:center;gap:18px;max-width:none;min-width:max-content;flex-wrap:nowrap;overflow:visible}
-    .labelPreviewRow .stageMeta{flex:0 0 154px;max-width:154px;align-self:center;display:flex;flex-direction:column;align-items:stretch;justify-content:center;position:relative;z-index:40}
-    .stageMeta .metaPill{display:flex;gap:6px;align-items:center;justify-content:space-between;padding:6px 9px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);font-size:12px;line-height:1.1;white-space:nowrap}
+    .labelPreviewRow .stageMeta{flex:0 0 220px;max-width:220px;align-self:center;display:flex;flex-direction:column;align-items:stretch;justify-content:center;position:relative;z-index:40}
+    .stageMeta .metaPill{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:7px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);font-size:12px;line-height:1.1;white-space:nowrap}
     .stageMeta .metaPill.colorPill{font-weight:700}
     .stageMeta b{color:#fff}
-    @media(max-width:980px){.labelPreviewRow{flex-direction:column;min-width:0}.labelPreviewRow .stageMeta{flex:0 0 auto;max-width:none;width:min(100%,360px);flex-direction:row;align-items:center}.stageMeta .metaPill{flex:1}}
+    @media(max-width:980px){.labelPreviewRow{flex-direction:column;min-width:0}.labelPreviewRow .stageMeta{flex:0 0 auto;max-width:none;width:min(100%,420px);flex-direction:row;align-items:center}.stageMeta .metaPill{flex:1}}
     .table thead th{position:sticky;top:0;z-index:8;background:#0f172a;box-shadow:0 1px 0 rgba(255,255,255,.08)}
     .table{border-collapse:separate;border-spacing:0}
 
@@ -107,7 +107,7 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     body.beinvt-label-pot #canvasHost{flex-direction:row!important;align-items:stretch!important;min-height:calc(100vh - 190px)!important}
     #stageDataWrap{width:100%;flex:0 0 300px;max-height:44vh;min-height:210px;background:#0f172a;border:1px solid rgba(255,255,255,.14);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,.25)}
     body.beinvt-label-pot #stageDataWrap{order:1;width:62%;max-width:none;min-width:460px;flex:1 1 62%;align-self:stretch;height:auto;max-height:none;min-height:calc(100vh - 210px)}
-    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(420px,64vh,640px);max-height:none;min-height:420px}
+    body.beinvt-label-wrap #stageDataWrap{flex:0 0 clamp(500px,72vh,760px);max-height:none;min-height:500px}
     #stageDataSearchRow{padding:8px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;gap:8px;align-items:center;background:#121a2c}
     #stageSearch{height:34px;width:100%;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:#0b1220;color:#e5e7eb;padding:7px 10px;font-size:13px}
     .stageTableScroll{flex:1;overflow:auto;background:#0f172a;position:relative}
@@ -125,9 +125,9 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .wrapMainBlock .rootLine .on{text-transform:none!important}
     .wrapMainBlock .benchLine:empty{display:none!important}
 
-    body.beinvt-label-wrap #stageLabelHost{align-items:flex-end!important;justify-content:center!important;min-height:96px!important;padding-bottom:2px!important}
-    body.beinvt-label-wrap #stageLabelHost .stageStack{justify-content:flex-end!important}
-    body.beinvt-label-wrap .wrapPreviewRow{align-items:flex-end!important}
+    body.beinvt-label-wrap #stageLabelHost{align-items:flex-start!important;justify-content:center!important;min-height:96px!important;padding-top:0!important;padding-bottom:0!important}
+    body.beinvt-label-wrap #stageLabelHost .stageStack{justify-content:flex-start!important}
+    body.beinvt-label-wrap .wrapPreviewRow{align-items:center!important;transform:translateY(-8px)}
     .wrapTextInner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:.86;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;padding:0 1px}
     .wrapTextInner.leftText{align-items:center;justify-content:flex-start;text-align:left}
     .wrapTextInner.smallText{line-height:.94}
@@ -136,6 +136,7 @@ const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTIN
     .objectBtn{min-width:0!important;white-space:normal!important;line-height:1.1!important}
     #objectPanel{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
     body.beinvt-label-wrap #objectPanel{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+    aside.panel,.panel.sidebar,.settingsPanel{order:-1!important}
     .settingsGroupTabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 10px 0;padding:8px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(15,23,42,.72);position:sticky;top:0;z-index:30}
     .settingsGroupTab{border:1px solid rgba(255,255,255,.16);border-radius:999px;background:rgba(255,255,255,.05);color:#e5e7eb;padding:7px 10px;font-size:12px;font-weight:800;cursor:pointer}
     .settingsGroupTab.active{border-color:#60a5fa;background:rgba(96,165,250,.20);color:#fff}
@@ -247,15 +248,15 @@ function fallbackLayout(t){
     gridPx:4,
     objects:{
       WO_QR:{x:2,y:5,w:38,h:38,rot:0,locked:false,visible:true},
-      WO:{x:42,y:2,w:68,h:14,rot:0,fontSize:14,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
-      CROP:{x:42,y:17,w:68,h:14,rot:0,fontSize:11,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
-      INTERNAL:{x:42,y:32,w:68,h:12,rot:0,fontSize:10,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
-      SCION:{x:114,y:1,w:238,h:15,rot:0,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      SCION_ROYALTY:{x:114,y:15,w:238,h:5,rot:0,fontSize:5,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ROOTSTOCK:{x:114,y:20,w:238,h:15,rot:0,fontSize:22,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ROOTSTOCK_ROYALTY:{x:114,y:34,w:238,h:5,rot:0,fontSize:5,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      LOT:{x:114,y:39,w:238,h:4,rot:0,fontSize:4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
-      ADDRESS:{x:114,y:43,w:238,h:4,rot:0,fontSize:4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      WO:{x:44,y:1,w:68,h:15,rot:0,fontSize:14,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
+      CROP:{x:44,y:17,w:68,h:14,rot:0,fontSize:11,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
+      INTERNAL:{x:44,y:32,w:68,h:13,rot:0,fontSize:10,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"},
+      SCION:{x:116,y:0,w:238,h:16,rot:0,fontSize:21,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      SCION_ROYALTY:{x:116,y:16,w:238,h:5,rot:0,fontSize:5,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ROOTSTOCK:{x:116,y:21,w:238,h:15,rot:0,fontSize:21,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ROOTSTOCK_ROYALTY:{x:116,y:36,w:238,h:4,rot:0,fontSize:4.5,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      LOT:{x:116,y:40,w:238,h:4,rot:0,fontSize:4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
+      ADDRESS:{x:116,y:44,w:238,h:4,rot:0,fontSize:4,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"center",alignV:"middle"},
       LOT_QR:{x:356,y:7,w:34,h:34,rot:0,locked:false,visible:true},
       LOGO:{x:393,y:14,w:20,h:20,rot:0,locked:false,visible:true},
       WARNING:{x:418,y:2,w:60,h:44,rot:0,fontSize:4.3,fontFamily:"Times New Roman",locked:false,visible:true,alignH:"left",alignV:"middle"}
@@ -587,9 +588,40 @@ let __potTightenPass=false;
 function tightenPotLayoutAfterFit(){ return false; }
 
 function settingsSectionTitle(sec,idx){
+  const ids=[...sec.querySelectorAll("[id]")].map(el=>el.id);
+  const has=(...names)=>names.some(n=>ids.includes(n));
+  const txt=String(sec.textContent||"").toLowerCase();
+  if(has("objectPanel","selectedName")||has("x","y","w","h","rot","fontSize")) return "Objects";
+  if(has("queueList","addCurrent","printQueue","clearQueue")) return "Queue";
+  if(has("presetSelect","savePreset","loadPreset","deletePreset")) return "Presets";
+  if(has("layoutJson","exportLayout","importLayout","downloadLayout","resetLayout")) return "Layout JSON";
+  if(has("printCalibration","saveCalibration","measuredW","measuredH")) return "Calibration";
+  if(has("safeToggle","gridToggle","snapToggle","snapGridToggle","snapPx","safeMargin","gridPx")) return "Guides";
+  if(has("printLabel","testMode")) return "Print";
+  if(has("zoom","labelType") || txt.includes("zoom") || txt.includes("label type")) return "Preview";
   const heading=sec.querySelector("h1,h2,h3,h4,.sectionTitle,.title");
-  const raw=(heading&&heading.textContent)||sec.getAttribute("aria-label")||`Settings ${idx+1}`;
-  return String(raw||"").trim().replace(/\s+/g," ").slice(0,28)||`Settings ${idx+1}`;
+  const raw=(heading&&heading.textContent)||sec.getAttribute("aria-label")||"";
+  const clean=String(raw||"").trim().replace(/\s+/g," ");
+  if(clean && !/^settings\s*\d+$/i.test(clean)) return clean.slice(0,28);
+  const fallback=["Objects","Guides","Presets","Layout JSON","Queue","Calibration","Print","Preview"];
+  return fallback[idx]||`Panel ${idx+1}`;
+}
+function refreshSettingsGroupLabels(){
+  const panel=document.querySelector("aside.panel")||document.querySelector(".panel.sidebar")||document.querySelector(".settingsPanel");
+  if(!panel) return;
+  const tabs=[...panel.querySelectorAll(".settingsGroupTab[data-settings-group]")];
+  if(!tabs.length) return;
+  const sections=[...panel.querySelectorAll(".section[data-settings-group]")];
+  tabs.forEach(btn=>{
+    const sec=sections.find(s=>s.dataset.settingsGroup===btn.dataset.settingsGroup);
+    if(sec) btn.textContent=settingsSectionTitle(sec,Number(btn.dataset.settingsGroup)||0);
+  });
+}
+function moveSettingsPanelLeft(){
+  const panel=document.querySelector("aside.panel")||document.querySelector(".panel.sidebar")||document.querySelector(".settingsPanel");
+  if(!panel||panel.dataset.beinvtLeftMenu==="1") return;
+  panel.dataset.beinvtLeftMenu="1";
+  panel.style.order="-1";
 }
 function activateSettingsGroup(idx){
   const tabs=document.querySelectorAll(".settingsGroupTab[data-settings-group]");
@@ -600,7 +632,9 @@ function activateSettingsGroup(idx){
 }
 function ensureSettingsGroups(){
   const panel=document.querySelector("aside.panel")||document.querySelector(".panel.sidebar")||document.querySelector(".settingsPanel");
-  if(!panel||panel.querySelector("#settingsGroupTabs")) return;
+  moveSettingsPanelLeft();
+  if(!panel) return;
+  if(panel.querySelector("#settingsGroupTabs")){ refreshSettingsGroupLabels(); return; }
   let sections=[];
   try{ sections=[...panel.querySelectorAll(":scope > .section")]; }catch(e){ sections=[...panel.querySelectorAll(".section")]; }
   sections=sections.filter(sec=>!sec.querySelector("#rowsBody")&&!sec.querySelector("#stageRowsTable")&&!sec.closest("#canvasHost"));
@@ -620,6 +654,7 @@ function ensureSettingsGroups(){
     tabs.appendChild(btn);
   });
   panel.insertBefore(tabs,sections[0]);
+  refreshSettingsGroupLabels();
   const saved=Number(localStorage.getItem("beinvtSettingsGroup")||0);
   activateSettingsGroup(Number.isFinite(saved)&&saved>=0&&saved<sections.length?saved:0);
 }
@@ -676,7 +711,7 @@ function effectiveStageZoom(requested,s,labelHost){
   if(!isFinite(z)||z<=0) z=1;
   const hostW=Math.max(1,(labelHost&&labelHost.clientWidth)||window.innerWidth||900);
   const hostH=Math.max(1,(labelHost&&labelHost.clientHeight)||window.innerHeight||500);
-  const metaW=labelType==="WRAP"?164:160;
+  const metaW=labelType==="WRAP"?230:230;
   const gap=18;
   let maxByW=(hostW-metaW-gap-18)/Math.max(1,s.w);
   const maxByH=(hostH-12)/Math.max(1,s.h);
@@ -992,7 +1027,7 @@ function autoFitWrapPreview(){
   if(labelType!=="WRAP") return;
   const ranges={
     WO:[14,8], CROP:[11,7], INTERNAL:[10,7],
-    SCION:[24,7], ROOTSTOCK:[24,7],
+    SCION:[21,9], ROOTSTOCK:[21,8],
     SCION_ROYALTY:[5.4,3.5], ROOTSTOCK_ROYALTY:[5.4,3.5],
     LOT:[4.8,3.2], ADDRESS:[4.8,3.2], WARNING:[4.5,3.2]
   };
@@ -1241,6 +1276,10 @@ function centerSelected(axis){
 
 
 function cellText(v){ return escapeHtml(capClean(v)); }
+function hiddenPotActivity(row){
+  const key=String((row&&row.act)||"").toLowerCase().replace(/[^a-z0-9]+/g,"");
+  return key.includes("preshipsorting") || key.includes("shippingrequest") || key.includes("propagationmaterialprocessing");
+}
 function buildRowHtml(r){
   if(labelType==="POT"){
     return `<td>${cellText(r.wo)}</td><td>${cellText(r.act)}</td><td>${cellText(derivedRootstock(r)||displayPotItem(r)||"")}</td><td>${cellText(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button>Add</button></td>`;
@@ -1269,6 +1308,7 @@ function renderRows(){
   if($("search") && $("stageSearch") && $("search").value!==$("stageSearch").value) $("search").value=$("stageSearch").value;
   filteredRows=rows.filter(r=>{
     if(labelType==="POT" && cleanDisplay(r.scion)) return false;
+    if(labelType==="POT" && hiddenPotActivity(r)) return false;
     return Object.values(r).join(" ").toLowerCase().includes(q);
   });
   if(currentRowIndex>=filteredRows.length)currentRowIndex=0;
