@@ -1,14 +1,15 @@
-const APP_VERSION = "8.6.21-hidden-pane-fixed-stage";
+const APP_VERSION = "8.6.23-field-labels-mode";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
-  WRAP: { widthIn: 5, heightIn: 0.5 }
+  WRAP: { widthIn: 5, heightIn: 0.5 },
+  FIELD: { widthIn: 5, heightIn: 0.5 }
 };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
 const GENEVA_SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=260263&c=11150895&h=NMkHvroppy8Yi93204J1rZiq_7V-dJBmcFNuScfEc2hRzqB9";
 const GENEVA_LOGO_SHIFT_Y = -1;
 const OUTER_CARD_EXTRA_WIDTH = 0;
-const TABLE_CARD_WIDTH_EXTRA_BY_LABEL = { POT: 196, WRAP: 194 }; // reference: target missing width; actual layout now fills to top menu right edge
+const TABLE_CARD_WIDTH_EXTRA_BY_LABEL = { POT: 196, WRAP: 194, FIELD: 194 }; // reference: target missing width; actual layout now fills to top menu right edge
 const DEBUG_LAYER_LABELS_DEFAULT = false;
 
 /*
@@ -30,6 +31,8 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - v8.6.19: hide-pane toggle now hides only the real left object/settings pane (.beinvtSettingsPanel), never table/label cards.
   - v8.6.20: stop using body.beinvt-left-pane-hidden; remove stale broad hide CSS and hide only .beinvtSettingsPanel directly.
   - v8.6.21: when objects pane is hidden, move stageWrap to a fixed full-width stage below the topbar so table/label cannot be squeezed by the old left-column flex layout.
+  - v8.6.22: wrap ties for olives/berries render scion-only center text; rootstock/on text is suppressed. Stage transform correction is disabled for stable table position.
+  - v8.6.23: add Field Labels mode next to Finished Trees; Field uses Wrap layout with Row text instead of left WO QR and table filtered to Field Planting activities.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -41,7 +44,7 @@ const OUTER_CARD_SIZE_CONFIG = {
   pageHeightScale: 0.95,
   // v8.6.15: A starts exactly after the left panel and ends at the top control card right edge.
   preserveCurrentWidthOnShift: false,
-  shiftRightFromLeftPanel: true,
+  shiftRightFromLeftPanel: false,
   manualWidth: 1600,
   fallbackWidth: 1600,
   extraWidth: 0,
@@ -52,7 +55,7 @@ const OUTER_CARD_SIZE_CONFIG = {
   minHeight: 520,
   bottomMargin: 14,
   capManualToAvailable: true,
-  applyTo: ["POT", "WRAP"]
+  applyTo: ["POT", "WRAP", "FIELD"]
 };
 const LAYER_DEBUG_CONFIG = {
   enabled: false,
@@ -146,13 +149,23 @@ function cleanDisplay(v) {
 function capClean(v) {
   return cap(cleanDisplay(v));
 }
+function isWrapLikeMode(type = labelType) {
+  return type === "WRAP" || type === "FIELD";
+}
+function isFieldMode(type = labelType) {
+  return type === "FIELD";
+}
+function isFieldPlantingRow(row) {
+  return /^field\s+planting\b/i.test(cleanDisplay(row && row.act));
+}
 function objectOrder(type = labelType) {
-  return type === "WRAP" ? WRAP_OBJECT_ORDER : POT_OBJECT_ORDER;
+  return isWrapLikeMode(type) ? WRAP_OBJECT_ORDER : POT_OBJECT_ORDER;
 }
 function defaultSelectedId(type = labelType) {
-  return type === "WRAP" ? "SCION" : "ITEM";
+  return isWrapLikeMode(type) ? "SCION" : "ITEM";
 }
 function isImageObject(id) {
+  if (isFieldMode() && id === "WO_QR") return false;
   return IMAGE_OBJECT_IDS.has(id);
 }
 function sizePx(type = labelType) {
@@ -164,6 +177,7 @@ function sizePx(type = labelType) {
   if (localStorage.getItem("beinvtAppVersion") !== APP_VERSION) {
     localStorage.removeItem("beinvtWorkingLayout_POT");
     localStorage.removeItem("beinvtWorkingLayout_WRAP");
+    localStorage.removeItem("beinvtWorkingLayout_FIELD");
     // Clear old debug-forced A sizes so the new 5% height trim and right-shift logic can apply.
     localStorage.removeItem("beinvtOuterCardDebugWidth_v8615");
     localStorage.removeItem("beinvtOuterCardDebugHeight_v8615");
@@ -694,8 +708,8 @@ function fallbackLayout(type) {
     };
   }
   return {
-    name: "Wrap Ties Clean Default",
-    labelType: "WRAP",
+    name: type === "FIELD" ? "Field Labels Clean Default" : "Finished Trees Clean Default",
+    labelType: type === "FIELD" ? "FIELD" : "WRAP",
     safeMarginPx: 3,
     gridPx: 4,
     snapPx: 5,
@@ -718,14 +732,15 @@ function fallbackLayout(type) {
 }
 
 function normalizeLayout(src) {
-  const type = (src && src.labelType) === "WRAP" ? "WRAP" : "POT";
+  const rawType = (src && src.labelType) === "FIELD" ? "FIELD" : ((src && src.labelType) === "WRAP" ? "WRAP" : "POT");
+  const type = rawType;
   const base = fallbackLayout(type);
   const out = Object.assign({}, base, src || {}, { labelType: type, objects: {} });
   const sourceObjects = (src && src.objects) || {};
   for (const id of objectOrder(type)) {
     out.objects[id] = Object.assign({}, base.objects[id] || {}, sourceObjects[id] || {});
   }
-  if (type === "WRAP" && sourceObjects.ITEM && !sourceObjects.SCION) {
+  if (isWrapLikeMode(type) && sourceObjects.ITEM && !sourceObjects.SCION) {
     out.objects = clone(base.objects);
   }
   return out;
@@ -733,6 +748,7 @@ function normalizeLayout(src) {
 function loadDefaults() {
   DEFAULT_LAYOUTS.POT = fallbackLayout("POT");
   DEFAULT_LAYOUTS.WRAP = fallbackLayout("WRAP");
+  DEFAULT_LAYOUTS.FIELD = fallbackLayout("FIELD");
 }
 function loadWorkingLayout(type) {
   try {
@@ -873,7 +889,7 @@ function currentRow() {
   if (testMode) {
     return {
       wo: "WO9999999999",
-      act: labelType === "WRAP" ? "SHIPPING REQUEST" : "POTTING UP - 120MM",
+      act: labelType === "FIELD" ? "FIELD PLANTING" : (labelType === "WRAP" ? "SHIPPING REQUEST" : "POTTING UP - 120MM"),
       crop: "PEACH (FREESTONE)",
       scion: "SUPER LONG GLEASON ELBERTA VARIETY NAME",
       rootstock: "EXTRA LONG KRYMSK 86 ROOTSTOCK NAME",
@@ -934,10 +950,20 @@ function displayPotItem(row) {
   if (/^platinum\s+pistachio\s+rootstock$/i.test(txt)) txt = "Platinum";
   return capClean(txt);
 }
+function isWrapScionOnlyCrop(row) {
+  /*
+    v8.6.22: Some wrap-tie crops are not rootstock/scion combinations.
+    For olives and berry crops, the wrap tie should show the scion/variety only.
+    Rootstock text and the literal "on" prefix are intentionally suppressed.
+  */
+  const crop = cleanDisplay(row && row.crop);
+  return /\b(olive|olives|blueberr(?:y|ies)|blackberr(?:y|ies)|raspberr(?:y|ies)|strawberr(?:y|ies)|boysenberr(?:y|ies)|loganberr(?:y|ies)|marionberr(?:y|ies)|cranberr(?:y|ies)|gooseberr(?:y|ies)|elderberr(?:y|ies)|huckleberr(?:y|ies)|mulberr(?:y|ies)|currant|berry|berries)\b/i.test(crop);
+}
 function wrapScionText(row) {
   return capClean(derivedScion(row) || row.crop || derivedRootstock(row) || "ITEM");
 }
 function wrapRootstockText(row) {
+  if (isWrapScionOnlyCrop(row)) return "";
   let txt = derivedRootstock(row) || derivedScion(row) || row.crop || "ROOTSTOCK";
   if (/^platinum\s+pistachio\s+rootstock$/i.test(txt)) txt = "Platinum";
   return capClean(txt);
@@ -992,10 +1018,12 @@ function labelText(id, row) {
   return "";
 }
 function wrapObjectText(id, row) {
+  const scionOnlyCrop = isWrapScionOnlyCrop(row);
   if (id === "WO") return capClean(row.wo);
   if (id === "CROP") return capClean(row.crop);
   if (id === "INTERNAL") return capClean(row.internalId);
   if (id === "SCION") return wrapScionText(row);
+  if (scionOnlyCrop && (id === "SCION_PATENT" || id === "ROOTSTOCK" || id === "ROOTSTOCK_PATENT" || id === "LOT")) return "";
   if (id === "SCION_PATENT") return capClean(row.scionPatent);
   if (id === "ROOTSTOCK") return wrapRootstockText(row);
   if (id === "ROOTSTOCK_PATENT") return capClean(row.rootstockPatent);
@@ -1006,8 +1034,10 @@ function wrapObjectText(id, row) {
 }
 
 function hasWrapObjectValue(id, row) {
-  if (labelType !== "WRAP") return true;
+  if (!isWrapLikeMode(labelType)) return true;
+  if (isWrapScionOnlyCrop(row) && (id === "SCION_PATENT" || id === "ROOTSTOCK" || id === "ROOTSTOCK_PATENT" || id === "LOT")) return false;
   if (id === "SCION_PATENT" || id === "ROOTSTOCK_PATENT") return !!cleanDisplay(wrapObjectText(id, row));
+  if (id === "ROOTSTOCK") return !!cleanDisplay(wrapObjectText(id, row));
   if (id === "LOT") return !!cleanDisplay(wrapObjectText(id, row));
   return true;
 }
@@ -1016,14 +1046,35 @@ function shouldRenderObject(id, row) {
   return hasWrapObjectValue(id, row);
 }
 function applyWrapDataAwareStack(row) {
-  if (labelType !== "WRAP" || !layout || !layout.objects) return;
+  if (!isWrapLikeMode(labelType) || !layout || !layout.objects) return;
   const o = layout.objects;
-  const hasScionPatent = !!cleanDisplay(wrapObjectText("SCION_PATENT", row));
-  const hasRootstockPatent = !!cleanDisplay(wrapObjectText("ROOTSTOCK_PATENT", row));
+  const scionOnlyCrop = isWrapScionOnlyCrop(row);
+  const hasScionPatent = !scionOnlyCrop && !!cleanDisplay(wrapObjectText("SCION_PATENT", row));
+  const hasRootstockPatent = !scionOnlyCrop && !!cleanDisplay(wrapObjectText("ROOTSTOCK_PATENT", row));
   const mainX = 119, mainW = 234;
   ["SCION", "SCION_PATENT", "ROOTSTOCK", "ROOTSTOCK_PATENT", "LOT", "ADDRESS"].forEach(id => {
     if (o[id]) { o[id].x = mainX; o[id].w = mainW; o[id].rot = 0; o[id].alignH = "center"; o[id].alignV = "middle"; }
   });
+  if (scionOnlyCrop) {
+    if (o.SCION) {
+      o.SCION.y = 10;
+      o.SCION.h = 29;
+      o.SCION.alignH = "center";
+      o.SCION.alignV = "middle";
+    }
+    ["SCION_PATENT", "ROOTSTOCK", "ROOTSTOCK_PATENT", "LOT"].forEach(id => {
+      if (o[id]) {
+        o[id].y = 0;
+        o[id].h = 0;
+      }
+    });
+    if (o.ADDRESS) {
+      o.ADDRESS.y = 43;
+      o.ADDRESS.h = 5;
+    }
+    clampAllObjects();
+    return;
+  }
   let y = 1;
   if (o.SCION) {
     o.SCION.y = y;
@@ -1090,7 +1141,8 @@ function removeGitHubWorkflowText() {
 }
 function applyModeClass() {
   document.body.classList.toggle("beinvt-label-pot", labelType === "POT");
-  document.body.classList.toggle("beinvt-label-wrap", labelType === "WRAP");
+  document.body.classList.toggle("beinvt-label-wrap", isWrapLikeMode(labelType));
+  document.body.classList.toggle("beinvt-label-field", labelType === "FIELD");
   document.body.classList.toggle("beinvt-hide-object-guides", !showObjectGuides);
   // v8.6.20: never use the old broad hide class. It can trigger stale CSS from older script runs.
   document.body.classList.remove("beinvt-left-pane-hidden");
@@ -1252,6 +1304,12 @@ function ensureTopbarUtilityButtons(anchor) {
 function ensureModeTabs() {
   const sel = $("labelType");
   if (!sel) return;
+  if (sel && !sel.querySelector('option[value="FIELD"]')) {
+    const opt = document.createElement("option");
+    opt.value = "FIELD";
+    opt.textContent = "Field Labels";
+    sel.appendChild(opt);
+  }
   if ($("modeTabs")) {
     ensureTopbarUtilityButtons($("modeTabs"));
     updateTopbarUtilityButtons();
@@ -1261,7 +1319,7 @@ function ensureModeTabs() {
   const tabs = document.createElement("div");
   tabs.id = "modeTabs";
   tabs.className = "modeTabs";
-  tabs.innerHTML = '<button type="button" class="modeTab" data-mode="POT">Pot Stakes</button><button type="button" class="modeTab" data-mode="WRAP">Wrap Ties</button>';
+  tabs.innerHTML = '<button type="button" class="modeTab" data-mode="POT">Pot Stakes</button><button type="button" class="modeTab" data-mode="WRAP">Finished Trees</button><button type="button" class="modeTab" data-mode="FIELD">Field Labels</button>';
   sel.parentNode.insertBefore(tabs, sel.nextSibling);
   ensureTopbarUtilityButtons(tabs);
   tabs.addEventListener("click", ev => {
@@ -1406,7 +1464,7 @@ function rectLooksLikeTopControlBar(el) {
   if (r.height < 26 || r.height > 104) return false;
   if (r.top < -4 || r.top > 96 || r.bottom > 132) return false;
   const txt = String(el.textContent || "").toLowerCase();
-  const hasControls = txt.includes("beinvt label designer") || txt.includes("pot stakes") || txt.includes("wrap ties") || txt.includes("zoom") || txt.includes("print current") || txt.includes("print queue") || txt.includes("worst-case");
+  const hasControls = txt.includes("beinvt label designer") || txt.includes("pot stakes") || txt.includes("finished trees") || txt.includes("wrap ties") || txt.includes("field labels") || txt.includes("zoom") || txt.includes("print current") || txt.includes("print queue") || txt.includes("worst-case");
   return hasControls || !!el.querySelector("#modeTabs,#labelType,#zoom,#printLabel,#printQueue,#testMode,.modeTab,button");
 }
 function scoreTopControlBarCandidate(el) {
@@ -1414,7 +1472,7 @@ function scoreTopControlBarCandidate(el) {
   let score = Math.round(r.width * 10) - Math.round(r.top * 4) - Math.abs(Math.round(r.height) - 48);
   const txt = String(el.textContent || "").toLowerCase();
   if (txt.includes("beinvt label designer")) score += 9000;
-  if (txt.includes("pot stakes") && txt.includes("wrap ties")) score += 9000;
+  if (txt.includes("pot stakes") && (txt.includes("finished trees") || txt.includes("wrap ties") || txt.includes("field labels"))) score += 9000;
   if (txt.includes("zoom")) score += 3000;
   if (txt.includes("print current") || txt.includes("print queue")) score += 2200;
   if (txt.includes("worst-case")) score += 1200;
@@ -1539,8 +1597,11 @@ function outerCardLayoutMetrics(stage) {
 
   // v8.6.15: allow a small negative OR positive correction so A lines up to the left panel's right edge.
   // Previous versions only shifted right, which left unused space on the right and made C impossible to widen.
-  const correction = cfg.shiftRightFromLeftPanel === false ? 0 : Math.round(desiredLeft - naturalLeft);
-  const actualLeft = naturalLeft + correction;
+  // v8.6.22: Keep A visually stable. The stage/table was shifting left/right because
+  // transform-based correction was recalculated during renders. Let the flex layout own
+  // the physical left edge and only size A to the remaining top-menu width.
+  const correction = 0;
+  const actualLeft = naturalLeft;
   const rightLimit = outerCardRightLimit();
 
   // v8.6.15: width is anchored to actualLeft, not naturalLeft.
@@ -1649,12 +1710,12 @@ function forceOuterCardSize() {
   stage.dataset.beinvtOuterCardWidthMode = String(outerCardSizeRuntimeConfig().widthMode || "fitTopMenu");
   stage.dataset.beinvtOuterCardLeft = String(metrics.actualLeft);
   stage.dataset.beinvtOuterCardRightLimit = String(metrics.rightLimit);
-  stage.dataset.beinvtOuterCardShiftX = String(metrics.correction || 0);
+  stage.dataset.beinvtOuterCardShiftX = "0";
 
   stage.style.setProperty("box-sizing", "border-box", "important");
   stage.style.setProperty("position", "relative", "important");
-  stage.style.setProperty("transform", "translateX(" + (metrics.correction || 0) + "px)", "important");
-  stage.style.setProperty("will-change", "transform", "important");
+  stage.style.setProperty("transform", "none", "important");
+  stage.style.setProperty("will-change", "auto", "important");
   stage.style.setProperty("width", width + "px", "important");
   stage.style.setProperty("min-width", width + "px", "important");
   stage.style.setProperty("max-width", width + "px", "important");
@@ -1732,11 +1793,11 @@ function dockStageAwayFromLeftPanel() {
   const width = Math.max(300, metrics.availableWidth + Number(window.BEINVT_OUTER_CARD_EXTRA_WIDTH ?? OUTER_CARD_EXTRA_WIDTH ?? 0));
   const height = outerCardTargetHeight(stage);
 
-  stage.dataset.beinvtOuterCardShiftX = String(metrics.correction || 0);
+  stage.dataset.beinvtOuterCardShiftX = "0";
   stage.style.setProperty("box-sizing", "border-box", "important");
   stage.style.setProperty("position", "relative", "important");
-  stage.style.setProperty("transform", "translateX(" + (metrics.correction || 0) + "px)", "important");
-  stage.style.setProperty("will-change", "transform", "important");
+  stage.style.setProperty("transform", "none", "important");
+  stage.style.setProperty("will-change", "auto", "important");
   stage.style.setProperty("margin-left", "0px", "important");
   stage.style.setProperty("margin-right", "0px", "important");
   stage.style.setProperty("min-width", width + "px", "important");
@@ -2228,7 +2289,7 @@ function removeDuplicateRightMenuControls() {
 }
 
 function objectDisplayName(id) {
-  if (labelType === "WRAP") {
+  if (isWrapLikeMode(labelType)) {
     return {
       WO_QR: "WO QR", WO: "WO", CROP: "Crop", INTERNAL: "Internal ID", SCION: "Scion", SCION_PATENT: "Scion Patent",
       ROOTSTOCK: "Rootstock", ROOTSTOCK_PATENT: "Rootstock Patent", LOT: "Lot", ADDRESS: "Address", LOT_QR: "Lot QR", LOGO: "SG Logo", WARNING: "Warning"
@@ -2241,7 +2302,7 @@ function renderObjectPanel() {
   if (!panel || !layout || !layout.objects) return;
   if (!layout.objects[selectedId]) selectedId = defaultSelectedId(labelType);
   panel.innerHTML = "";
-  if ($("objectsModeNote")) $("objectsModeNote").textContent = labelType === "WRAP" ? "Wrap Tie" : "Pot Stake";
+  if ($("objectsModeNote")) $("objectsModeNote").textContent = labelType === "FIELD" ? "Field Label" : (labelType === "WRAP" ? "Finished Tree" : "Pot Stake");
   for (const id of objectOrder()) {
     const o = layout.objects[id];
     if (!o) continue;
@@ -2313,13 +2374,13 @@ function applyZoomSliderCap(labelHost) {
   const host = labelHost || $("stageLabelHost");
   const hostW = Math.max(1, (host && host.clientWidth) || window.innerWidth || 900);
   const hostH = Math.max(1, (host && host.clientHeight) || window.innerHeight || 500);
-  const metaW = labelType === "WRAP" ? 200 : 0;
+  const metaW = isWrapLikeMode(labelType) ? 200 : 0;
   const metaH = labelType === "POT" ? 112 : 0;
-  const availableW = labelType === "WRAP" ? hostW - metaW - 22 : hostW - 12;
+  const availableW = isWrapLikeMode(labelType) ? hostW - metaW - 22 : hostW - 12;
   const availableH = labelType === "POT" ? hostH - metaH - 16 : hostH - 12;
   const maxByW = availableW / Math.max(1, s.w);
   const maxByH = availableH / Math.max(1, s.h);
-  const hardMax = labelType === "WRAP" ? 5.0 : 2.15;
+  const hardMax = isWrapLikeMode(labelType) ? 5.0 : 2.15;
   const max = clamp(Math.min(maxByW, maxByH, hardMax), 0.35, hardMax);
 
   if (zoomInput) {
@@ -2394,6 +2455,7 @@ function renderRows() {
       if (cleanDisplay(r.scion)) return false;
       if (POT_EXCLUDED_ACTIVITIES.some(rx => rx.test(cleanDisplay(r.act)))) return false;
     }
+    if (labelType === "FIELD" && !isFieldPlantingRow(r)) return false;
     return Object.values(r).join(" ").toLowerCase().includes(q);
   }));
   if (currentRowIndex >= filteredRows.length) currentRowIndex = 0;
@@ -2473,7 +2535,7 @@ function renderCanvas() {
   if (!labelHost || !layout) return;
   labelHost.innerHTML = "";
   if (labelType === "POT") syncPotAutoLayout();
-  if (labelType === "WRAP") applyWrapDataAwareStack(currentRow());
+  if (isWrapLikeMode(labelType)) applyWrapDataAwareStack(currentRow());
   const s = sizePx();
   const zoom = applyZoomSliderCap(labelHost);
   const row = currentRow();
@@ -2508,8 +2570,8 @@ function renderCanvas() {
     const obj = document.createElement("div");
     obj.className = "obj" + (selectedId === id ? " selected" : "") + (o.locked ? " locked" : "");
     obj.dataset.id = id;
-    Object.assign(obj.style, { left: o.x + "px", top: (labelType === "WRAP" && id === "LOGO" ? logoTopForRow(o, row) : o.y) + "px", width: o.w + "px", height: o.h + "px" });
-    if (labelType === "WRAP") obj.appendChild(makeWrapObjectInner(id, row, o));
+    Object.assign(obj.style, { left: o.x + "px", top: (isWrapLikeMode(labelType) && id === "LOGO" ? logoTopForRow(o, row) : o.y) + "px", width: o.w + "px", height: o.h + "px" });
+    if (isWrapLikeMode(labelType)) obj.appendChild(makeWrapObjectInner(id, row, o));
     else if (id === "QR") renderQrInto(obj, row.wo);
     else obj.appendChild(makeTextInner(id, row, o));
     canvas.appendChild(obj);
@@ -2576,12 +2638,35 @@ function renderQrInto(el, text) {
   };
   el.appendChild(img);
 }
+function makeFieldRowInner(holder) {
+  const inner = document.createElement("div");
+  inner.className = "wrapTextInner fieldRowText";
+  inner.dataset.textId = "ROW";
+  inner.textContent = "Row";
+  inner.style.position = "absolute";
+  inner.style.left = "0";
+  inner.style.top = "0";
+  inner.style.width = "100%";
+  inner.style.height = "100%";
+  inner.style.display = "flex";
+  inner.style.alignItems = "center";
+  inner.style.justifyContent = "center";
+  inner.style.textAlign = "center";
+  inner.style.fontFamily = "Times New Roman, Georgia, serif";
+  inner.style.fontWeight = "900";
+  inner.style.fontSize = "16px";
+  inner.style.lineHeight = ".9";
+  inner.style.textTransform = "uppercase";
+  inner.style.transform = "rotate(-90deg)";
+  holder.appendChild(inner);
+  return holder;
+}
 function makeWrapObjectInner(id, row, o) {
   const holder = document.createElement("div");
   holder.style.position = "absolute";
   holder.style.inset = "0";
   holder.style.overflow = "hidden";
-  if (id === "WO_QR") { renderQrInto(holder, wrapLeftQrText(row)); return holder; }
+  if (id === "WO_QR") { if (isFieldMode()) return makeFieldRowInner(holder); renderQrInto(holder, wrapLeftQrText(row)); return holder; }
   if (id === "LOT_QR") { const txt = wrapRightQrText(row); if (txt) renderQrInto(holder, txt); return holder; }
   if (id === "LOGO") return makeLogoInner(row);
   const text = wrapObjectText(id, row);
@@ -2592,8 +2677,10 @@ function makeWrapObjectInner(id, row, o) {
   inner.style.justifyContent = alignH(o.alignH);
   inner.style.alignItems = alignV(o.alignV);
   inner.style.textAlign = o.alignH === "left" ? "left" : o.alignH === "right" ? "right" : "center";
-  if (id === "ROOTSTOCK") inner.innerHTML = `<span class="wrapOn">on</span>${escapeHtml(wrapRootstockText(row))}`;
-  else inner.textContent = text;
+  if (id === "ROOTSTOCK") {
+    const rootText = wrapRootstockText(row);
+    inner.innerHTML = rootText ? `<span class="wrapOn">on</span>${escapeHtml(rootText)}` : "";
+  } else inner.textContent = text;
   if (!text && !["ADDRESS", "WARNING"].includes(id)) holder.parentElement?.classList?.add("emptyText");
   holder.appendChild(inner);
   return holder;
@@ -3000,15 +3087,15 @@ function printRows(items) {
   win.document.close();
 }
 function renderPrintPage(row) {
-  if (labelType === "WRAP") applyWrapDataAwareStack(row);
+  if (isWrapLikeMode(labelType)) applyWrapDataAwareStack(row);
   let out = '<div class="page">';
   for (const id of objectOrder()) {
     const o = layout.objects[id];
     if (!shouldRenderObject(id, row)) continue;
-    if (labelType !== "WRAP" && id === "WEEK" && !row.week) continue;
-    const top = labelType === "WRAP" && id === "LOGO" ? logoTopForRow(o, row) : o.y;
+    if (!isWrapLikeMode(labelType) && id === "WEEK" && !row.week) continue;
+    const top = isWrapLikeMode(labelType) && id === "LOGO" ? logoTopForRow(o, row) : o.y;
     const outer = `position:absolute;left:${o.x}px;top:${top}px;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
-    if (labelType === "WRAP") out += `<div style="${outer}">${printWrapObjectInner(id, row, o)}</div>`;
+    if (isWrapLikeMode(labelType)) out += `<div style="${outer}">${printWrapObjectInner(id, row, o)}</div>`;
     else if (id === "QR") out += `<div style="${outer}"><img src="${qrUrl(row.wo)}" style="width:100%;height:100%;image-rendering:pixelated"></div>`;
     else out += `<div style="${outer}">${printTextInner(id, row, o)}</div>`;
   }
@@ -3025,6 +3112,7 @@ function printTextInner(id, row, o) {
   return `<div style="position:absolute;left:${left}px;top:${top}px;width:${w}px;height:${h}px;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:center;${wrap}text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize || 16}px;transform-origin:center center;transform:rotate(${o.rot || 0}deg);">${escapeHtml(labelText(id, row))}</div>`;
 }
 function printWrapObjectInner(id, row, o) {
+  if (id === "WO_QR" && isFieldMode()) return `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:16px;line-height:.9;text-transform:uppercase;transform:rotate(-90deg);color:#000;">Row</div>`;
   if (id === "WO_QR") return `<img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;image-rendering:pixelated">`;
   if (id === "LOT_QR") { const txt = wrapRightQrText(row); return txt ? `<img src="${qrUrl(txt)}" style="width:100%;height:100%;image-rendering:pixelated">` : ""; }
   if (id === "LOGO") {
@@ -3037,7 +3125,7 @@ function printWrapObjectInner(id, row, o) {
   }
   const textAlign = o.alignH === "left" ? "left" : o.alignH === "right" ? "right" : "center";
   const base = `position:absolute;inset:0;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:${textAlign};white-space:normal;word-break:normal;overflow-wrap:normal;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize || 8}px;line-height:.86;padding:0 1px;color:#000;`;
-  if (id === "ROOTSTOCK") return `<div style="${base}text-transform:uppercase"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(wrapRootstockText(row))}</div>`;
+  if (id === "ROOTSTOCK") { const rootText = wrapRootstockText(row); return rootText ? `<div style="${base}text-transform:uppercase"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(rootText)}</div>` : ""; }
   if (id === "WARNING") return `<div style="${base}white-space:pre-line;line-height:1.05;text-transform:uppercase;align-items:center;">${escapeHtml(WRAP_WARNING)}</div>`;
   return `<div style="${base}text-transform:uppercase;">${escapeHtml(wrapObjectText(id, row))}</div>`;
 }
