@@ -1,4 +1,4 @@
-const APP_VERSION = "7.3.0-zoom-objects-table-guides";
+const APP_VERSION = "7.4.0-visible-objects-guides-compact-position";
 const INCH = 96;
 const LABEL_SIZES = { POT:{widthIn:.75,heightIn:5}, WRAP:{widthIn:5,heightIn:.5} };
 const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=154769&c=11150895&h=gz_jC4_Zsi8evEFt-sGPjDNJhRvthM-3uNCqvPr8uc5CrgD1&fcts=20251229204334&whence=";
@@ -2623,6 +2623,297 @@ function scheduleWrapAutoFit(){
     ensureSettingsGroups();
     renderObjectPanel();
     renderRows();
+    normalizeZoomSliderNow();
+    scheduleWrapAutoFit();
+  });
+})();
+
+
+/* --------------------------------------------------------------------------
+   v7.4.0 final override layer
+   Latest fixes:
+   - Objects panel is always visible and large enough to use at the top left.
+   - Position / Size is compacted so it does not consume the whole left panel.
+   - Guides / Snap / Safe Zone controls are pinned visible with safe zone included.
+   - Remaining settings stay grouped behind properly named tabs.
+   -------------------------------------------------------------------------- */
+(function injectV740Css(){
+  const old=document.querySelector('style[data-beinvt-v740-css]');
+  if(old) old.remove();
+  const css = `
+    .beinvt-main-shell{grid-template-columns:minmax(500px,570px) minmax(0,1fr)!important;gap:10px!important;padding:6px 10px 10px!important;height:calc(100vh - var(--beinvt-top-offset,96px))!important;min-height:0!important;overflow:hidden!important}
+    .beinvt-main-shell > aside.panel,.beinvt-left-settings-panel{height:100%!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;min-width:0!important;width:100%!important;padding:8px!important;box-sizing:border-box!important}
+
+    .beinvt-pinned-objects-section{display:block!important;visibility:visible!important;opacity:1!important;border:1px solid rgba(96,165,250,.45)!important;border-radius:12px!important;background:rgba(15,23,42,.92)!important;padding:8px!important;margin:0 0 8px 0!important;position:relative!important;z-index:120!important;min-height:128px!important;max-height:240px!important;overflow:auto!important;box-sizing:border-box!important}
+    body.beinvt-label-wrap .beinvt-pinned-objects-section{min-height:168px!important;max-height:245px!important}
+    .beinvt-pinned-objects-section h1,.beinvt-pinned-objects-section h2,.beinvt-pinned-objects-section h3,.beinvt-pinned-objects-section h4,.beinvt-pinned-objects-section .sectionTitle,.beinvt-pinned-objects-section .title{margin:0 0 7px 0!important;color:#fff!important;font-size:15px!important;line-height:1.1!important;display:block!important}
+    #objectPanel{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important;width:100%!important;min-height:88px!important;max-height:none!important;overflow:visible!important}
+    body.beinvt-label-wrap #objectPanel{grid-template-columns:repeat(3,minmax(0,1fr))!important;min-height:132px!important}
+    .objectBtn{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;gap:2px!important;min-height:34px!important;padding:5px 7px!important;border-radius:9px!important;white-space:normal!important;overflow:hidden!important;font-size:11px!important;line-height:1.05!important}
+    .objectBtn span:first-child{display:block!important;width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;line-height:1.08!important;color:#fff!important}
+    .objectBtn .badge{font-size:8px!important;line-height:1!important;opacity:.75!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important}
+
+    .beinvt-position-size-section{display:block!important;visibility:visible!important;opacity:1!important;border:1px solid rgba(255,255,255,.14)!important;border-radius:12px!important;background:rgba(15,23,42,.70)!important;padding:8px!important;margin:0 0 8px 0!important;min-height:0!important;max-height:176px!important;overflow:hidden!important;box-sizing:border-box!important}
+    .beinvt-position-size-section h1,.beinvt-position-size-section h2,.beinvt-position-size-section h3,.beinvt-position-size-section h4,.beinvt-position-size-section .sectionTitle,.beinvt-position-size-section .title{margin:0 0 6px 0!important;font-size:14px!important;line-height:1.1!important;color:#fff!important}
+    .beinvt-position-size-section label,.beinvt-position-size-section .field,.beinvt-position-size-section .control,.beinvt-position-size-section .formRow,.beinvt-position-size-section .row{margin-top:3px!important;margin-bottom:3px!important;gap:5px!important;font-size:11px!important;line-height:1.05!important}
+    .beinvt-position-size-section input[type='number'],.beinvt-position-size-section input[type='text']{height:27px!important;min-height:27px!important;padding:4px 7px!important;font-size:12px!important}
+    .beinvt-position-size-section input[type='checkbox']{width:14px!important;height:14px!important}
+    .beinvt-position-size-section button{min-height:26px!important;padding:4px 8px!important;font-size:11px!important}
+    #centerH,#centerV,#centerBoth{display:none!important}
+
+    .beinvt-pinned-guides-section{display:block!important;visibility:visible!important;opacity:1!important;border:1px solid rgba(34,197,94,.32)!important;border-radius:12px!important;background:rgba(15,23,42,.78)!important;padding:8px!important;margin:0 0 8px 0!important;min-height:92px!important;max-height:152px!important;overflow:hidden!important;box-sizing:border-box!important}
+    .beinvt-pinned-guides-section h1,.beinvt-pinned-guides-section h2,.beinvt-pinned-guides-section h3,.beinvt-pinned-guides-section h4,.beinvt-pinned-guides-section .sectionTitle,.beinvt-pinned-guides-section .title{margin:0 0 6px 0!important;font-size:14px!important;line-height:1.1!important;color:#fff!important}
+    .beinvt-guide-toggles{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important;margin:4px 0 6px 0!important}
+    .beinvt-guide-numbers{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin:0!important}
+    .beinvt-control-card{border:1px solid rgba(255,255,255,.12)!important;border-radius:9px!important;background:rgba(255,255,255,.04)!important;padding:5px 6px!important;display:flex!important;align-items:center!important;gap:5px!important;min-height:30px!important;overflow:hidden!important;font-size:11px!important;line-height:1.05!important;box-sizing:border-box!important}
+    .beinvt-control-card input[type='number'],.beinvt-control-card input[type='text']{height:26px!important;min-height:26px!important;width:100%!important;min-width:0!important;padding:3px 6px!important;font-size:12px!important}
+    .beinvt-control-card input[type='checkbox']{width:14px!important;height:14px!important;flex:0 0 auto!important}
+    .beinvt-control-card span,.beinvt-control-card label{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+
+    .settingsGroupTabs{display:flex!important;flex-wrap:wrap!important;gap:6px!important;margin:2px 0 8px 0!important;padding:7px!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:12px!important;background:rgba(15,23,42,.95)!important;position:relative!important;top:auto!important;z-index:40!important;box-sizing:border-box!important}
+    .settingsGroupTab{border:1px solid rgba(255,255,255,.16)!important;border-radius:999px!important;background:rgba(255,255,255,.05)!important;color:#e5e7eb!important;padding:6px 9px!important;font-size:11px!important;font-weight:800!important;cursor:pointer!important;max-width:160px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+    .settingsGroupTab.active{border-color:#60a5fa!important;background:rgba(96,165,250,.22)!important;color:#fff!important}
+    .beinvt-settings-compact .section[data-settings-group].beinvt-hidden-section:not(.beinvt-pinned-objects-section):not(.beinvt-position-size-section):not(.beinvt-pinned-guides-section){display:none!important}
+    .beinvt-settings-compact .beinvt-pinned-objects-section,.beinvt-settings-compact .beinvt-position-size-section,.beinvt-settings-compact .beinvt-pinned-guides-section{display:block!important;visibility:visible!important;opacity:1!important}
+    .beinvt-settings-compact .section[data-settings-group]{margin-bottom:8px!important;position:relative!important;z-index:1!important}
+
+    #stageRowsTable th,#stageRowsTable td{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    input#zoom{max-width:220px!important;min-width:160px!important;accent-color:#7c5cff!important}
+    @media(max-width:1180px){.beinvt-main-shell{grid-template-columns:1fr!important;height:auto!important;min-height:0!important;overflow:auto!important}.beinvt-main-shell > aside.panel,.beinvt-left-settings-panel{max-height:520px!important}.beinvt-pinned-objects-section{max-height:210px!important}.beinvt-main-shell > .stageWrap,.beinvt-stage-main{height:calc(100vh - 560px)!important;min-height:540px!important}.beinvt-guide-toggles{grid-template-columns:repeat(2,minmax(0,1fr))!important}.beinvt-guide-numbers{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+  `;
+  const tag=document.createElement('style');
+  tag.setAttribute('data-beinvt-v740-css','1');
+  tag.textContent=css;
+  document.head.appendChild(tag);
+})();
+
+function v740PanelHost(){
+  return document.querySelector('.beinvt-left-settings-panel') || document.querySelector('aside.panel') || document.querySelector('.panel.sidebar') || document.querySelector('.settingsPanel');
+}
+function v740SectionWithIds(ids){
+  const panel=v740PanelHost();
+  if(!panel) return null;
+  const secs=[];
+  try{ secs.push(...panel.querySelectorAll(':scope > .section')); }
+  catch(e){ secs.push(...[...panel.querySelectorAll('.section')].filter(sec=>sec.parentElement===panel)); }
+  return secs.find(sec=>ids.some(id=>sec.querySelector('#'+id))) || null;
+}
+function v740EnsureHeading(sec,title){
+  if(!sec) return null;
+  let h=sec.querySelector('h1,h2,h3,h4,.sectionTitle,.title');
+  if(!h){ h=document.createElement('h3'); sec.insertBefore(h,sec.firstChild); }
+  h.textContent=title;
+  return h;
+}
+function pinObjectsSection(){
+  const panel=v740PanelHost();
+  if(!panel) return;
+  let objPanel=document.getElementById('objectPanel');
+  let objSection=objPanel && objPanel.closest('.section');
+  if(!objSection){
+    objSection=document.createElement('div');
+    objSection.className='section beinvt-created-objects-section';
+    objSection.innerHTML='<h3>Objects</h3><div id="objectPanel"></div>';
+    objPanel=objSection.querySelector('#objectPanel');
+  }
+  objSection.classList.add('beinvt-pinned-objects-section');
+  objSection.classList.remove('beinvt-hidden-section');
+  objSection.removeAttribute('data-settings-group');
+  objSection.style.display='block';
+  objSection.style.visibility='visible';
+  objSection.style.opacity='1';
+  v740EnsureHeading(objSection,'Objects');
+  if(objSection.parentElement!==panel || panel.firstElementChild!==objSection){
+    panel.insertBefore(objSection,panel.firstChild);
+  }
+}
+function compactPositionSection(){
+  const panel=v740PanelHost();
+  if(!panel) return null;
+  const pos=v740SectionWithIds(['x','y','w','h','rot','fontSize','selectedName']);
+  if(!pos) return null;
+  pos.classList.add('beinvt-position-size-section');
+  pos.classList.remove('beinvt-hidden-section');
+  pos.removeAttribute('data-settings-group');
+  pos.style.display='block';
+  pos.style.visibility='visible';
+  pos.style.opacity='1';
+  v740EnsureHeading(pos,'Position / Size');
+  const after=panel.querySelector('.beinvt-pinned-objects-section');
+  if(after && pos.previousElementSibling!==after){
+    panel.insertBefore(pos,after.nextSibling);
+  }else if(!after && panel.firstElementChild!==pos){
+    panel.insertBefore(pos,panel.firstChild);
+  }
+  return pos;
+}
+function fieldForControl(id){
+  const el=$(id);
+  if(!el) return null;
+  return el.closest('label') || el.closest('.field') || el.closest('.control') || el.closest('.formRow') || el.closest('.row') || el.parentElement;
+}
+function makeControlCard(node){
+  if(!node) return null;
+  node.classList.add('beinvt-control-card');
+  return node;
+}
+function ensureGuideControlLayout(){
+  const panel=v740PanelHost();
+  if(!panel) return;
+  let guideSec=v740SectionWithIds(['safeToggle','gridToggle','snapToggle','snapGridToggle','gridPx','snapPx','safeMargin']);
+  if(!guideSec){
+    guideSec=document.createElement('div');
+    guideSec.className='section';
+    guideSec.innerHTML='<h3>Guides / Snap / Safe Zone</h3>';
+    panel.appendChild(guideSec);
+  }
+  guideSec.classList.add('beinvt-pinned-guides-section');
+  guideSec.classList.remove('beinvt-hidden-section');
+  guideSec.removeAttribute('data-settings-group');
+  guideSec.style.display='block';
+  guideSec.style.visibility='visible';
+  guideSec.style.opacity='1';
+  const h=v740EnsureHeading(guideSec,'Guides / Snap / Safe Zone');
+  let toggles=guideSec.querySelector('#beinvtGuideToggles');
+  if(!toggles){
+    toggles=document.createElement('div');
+    toggles.id='beinvtGuideToggles';
+    toggles.className='beinvt-guide-toggles';
+    h.insertAdjacentElement('afterend',toggles);
+  }
+  ['safeToggle','gridToggle','snapToggle','snapGridToggle'].forEach(id=>{
+    const field=fieldForControl(id);
+    if(field) toggles.appendChild(makeControlCard(field));
+  });
+  let nums=guideSec.querySelector('#beinvtGuideNumbers');
+  if(!nums){
+    nums=document.createElement('div');
+    nums.id='beinvtGuideNumbers';
+    nums.className='beinvt-guide-numbers';
+    toggles.insertAdjacentElement('afterend',nums);
+  }
+  ['safeMargin','gridPx','snapPx'].forEach(id=>{
+    const field=fieldForControl(id);
+    if(field) nums.appendChild(makeControlCard(field));
+  });
+  ['centerH','centerV','centerBoth'].forEach(id=>{ const el=$(id); if(el) el.style.display='none'; });
+  const pos=panel.querySelector('.beinvt-position-size-section');
+  const anchor=pos || panel.querySelector('.beinvt-pinned-objects-section');
+  if(anchor && guideSec.previousElementSibling!==anchor){
+    panel.insertBefore(guideSec,anchor.nextSibling);
+  }
+}
+function settingsSectionTitle(sec,idx){
+  if(!sec) return `Settings ${idx+1}`;
+  if(sec.classList.contains('beinvt-pinned-objects-section') || hasAnyId(sec,['objectPanel','selectedName'])) return 'Objects';
+  if(sec.classList.contains('beinvt-position-size-section') || hasAnyId(sec,['x','y','w','h','rot','fontSize'])) return 'Position & Size';
+  if(sec.classList.contains('beinvt-pinned-guides-section') || hasAnyId(sec,['safeToggle','gridToggle','gridPx','safeMargin','snapToggle','snapPx','snapGridToggle'])) return 'Guides & Snap';
+  if(hasAnyId(sec,['queueList','addCurrent','clearQueue','printQueue'])) return 'Queue & Print';
+  if(hasAnyId(sec,['presetSelect','savePreset','loadPreset','deletePreset','layoutJson','exportLayout','importLayout','downloadLayout','resetLayout'])) return 'Presets & Layout';
+  if(hasAnyId(sec,['printCalibration','saveCalibration','measuredW','measuredH','calStatus'])) return 'Calibration';
+  if(hasAnyId(sec,['testMode','printLabel'])) return 'Actions';
+  const heading=sec.querySelector('h1,h2,h3,h4,.sectionTitle,.title');
+  const raw=(heading&&heading.textContent)||sec.getAttribute('aria-label')||'';
+  const cleaned=String(raw||'').trim().replace(/settings\s*\d+/ig,'').replace(/\s+/g,' ');
+  const fallbacks=['Presets & Layout','Calibration','Queue & Print','Actions','Advanced'];
+  return cleaned ? cleaned.slice(0,32) : (fallbacks[idx] || 'More Options');
+}
+function activateSettingsGroup(idx){
+  const tabs=document.querySelectorAll('.settingsGroupTab[data-settings-group]');
+  const secs=document.querySelectorAll('.section[data-settings-group]');
+  tabs.forEach(t=>t.classList.toggle('active',t.dataset.settingsGroup===String(idx)));
+  secs.forEach(sec=>{
+    if(sec.classList.contains('beinvt-pinned-objects-section') || sec.classList.contains('beinvt-position-size-section') || sec.classList.contains('beinvt-pinned-guides-section')){
+      sec.classList.remove('beinvt-hidden-section');
+      sec.style.display='block';
+      return;
+    }
+    sec.classList.toggle('beinvt-hidden-section',sec.dataset.settingsGroup!==String(idx));
+  });
+  localStorage.setItem('beinvtSettingsGroup',String(idx));
+}
+function ensureSettingsGroups(){
+  hideLegacyDataSections();
+  const panel=v740PanelHost();
+  if(!panel) return;
+  panel.classList.add('beinvt-settings-compact');
+  pinObjectsSection();
+  compactPositionSection();
+  ensureGuideControlLayout();
+  let tabs=panel.querySelector('#settingsGroupTabs');
+  if(!tabs){
+    tabs=document.createElement('div');
+    tabs.id='settingsGroupTabs';
+    tabs.className='settingsGroupTabs';
+  }
+  const guide=panel.querySelector('.beinvt-pinned-guides-section');
+  if(guide && tabs.previousElementSibling!==guide){
+    panel.insertBefore(tabs,guide.nextSibling);
+  }else if(!guide && panel.firstElementChild!==tabs){
+    panel.insertBefore(tabs,panel.firstChild);
+  }
+  let sections=[];
+  try{ sections=[...panel.querySelectorAll(':scope > .section')]; }
+  catch(e){ sections=[...panel.querySelectorAll('.section')].filter(sec=>sec.parentElement===panel); }
+  sections=sections.filter(sec=>
+    !sec.classList.contains('beinvt-pinned-objects-section') &&
+    !sec.classList.contains('beinvt-position-size-section') &&
+    !sec.classList.contains('beinvt-pinned-guides-section') &&
+    !isLegacyDataSection(sec) &&
+    !sec.classList.contains('beinvt-legacy-data-section') &&
+    !sec.querySelector('#stageRowsTable') &&
+    !sec.closest('#canvasHost')
+  );
+  tabs.innerHTML='';
+  sections.forEach((sec,idx)=>{
+    sec.dataset.settingsGroup=String(idx);
+    sec.classList.remove('beinvt-hidden-section');
+    const title=settingsSectionTitle(sec,idx);
+    sec.dataset.settingsTitle=title;
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='settingsGroupTab';
+    btn.dataset.settingsGroup=String(idx);
+    btn.textContent=title;
+    btn.onclick=()=>activateSettingsGroup(idx);
+    tabs.appendChild(btn);
+  });
+  const saved=Number(localStorage.getItem('beinvtSettingsGroup')||0);
+  const target=(Number.isFinite(saved)&&saved>=0&&saved<sections.length)?saved:0;
+  if(sections.length) activateSettingsGroup(target);
+  pinObjectsSection();
+  compactPositionSection();
+  ensureGuideControlLayout();
+}
+function v740RefreshLeftPanel(){
+  pinObjectsSection();
+  compactPositionSection();
+  ensureGuideControlLayout();
+  ensureSettingsGroups();
+}
+(function installV740RuntimeFixes(){
+  const prevRenderCanvas=renderCanvas;
+  renderCanvas=function(){
+    prevRenderCanvas();
+    v740RefreshLeftPanel();
+  };
+  const prevRenderObjectPanel=renderObjectPanel;
+  renderObjectPanel=function(){
+    pinObjectsSection();
+    prevRenderObjectPanel();
+    pinObjectsSection();
+  };
+  const prevRenderAll=renderAll;
+  renderAll=function(){
+    prevRenderAll();
+    v740RefreshLeftPanel();
+    renderObjectPanel();
+    normalizeZoomSliderNow();
+    scheduleWrapAutoFit();
+  };
+  requestAnimationFrame(()=>{
+    v740RefreshLeftPanel();
+    renderObjectPanel();
     normalizeZoomSliderNow();
     scheduleWrapAutoFit();
   });
