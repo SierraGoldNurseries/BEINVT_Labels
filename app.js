@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.17-left-panel-730-smaller-pills";
+const APP_VERSION = "8.6.18-hide-guides-left-pane-toggle";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -26,6 +26,7 @@ const DEBUG_LAYER_LABELS_DEFAULT = false;
   - v8.6.16: width authority is T top menu minus L left panel; top-menu right edge is no longer clipped to viewport.
   - v8.6.16: debug panel stops auto-refresh while interacting, so Set buttons cannot be destroyed before click.
   - v8.6.17: left settings panel is 730px wide in both templates; preview meta pills are 10% smaller.
+  - v8.6.18: add topbar/left-panel toggles for object guide lines and hiding the left pane; hidden pane lets A use full T width.
 */
 const OUTER_CARD_SIZE_CONFIG = {
   enabled: true,
@@ -82,6 +83,8 @@ let selectedId = "ITEM";
 let layout = null;
 let showSafeZone = true;
 let showGrid = false;
+let showObjectGuides = readJson("beinvtShowObjectGuides", true) !== false;
+let leftPaneHidden = readJson("beinvtLeftPaneHidden", false) === true;
 let testMode = false;
 let calibration = readJson("beinvtCalibration", { scaleX: 1, scaleY: 1 });
 let presets = readJson("beinvtLayoutPresets", {});
@@ -529,6 +532,64 @@ function sizePx(type = labelType) {
   document.head.appendChild(tag);
 })();
 
+(function injectGuideAndLeftPaneToggleV8618Css(){
+  const css = `
+    /* v8.6.18: hide yellow object guide lines and support full-width mode when left pane is hidden. */
+    .modeTab.utilityTab{
+      margin-left:4px!important;
+      padding:7px 11px!important;
+      border-radius:999px!important;
+      white-space:nowrap!important;
+    }
+    .modeTab.utilityTab.good{
+      border-color:#22c55e!important;
+      background:rgba(34,197,94,.18)!important;
+      color:#dcfce7!important;
+    }
+    body.beinvt-hide-object-guides .labelCanvas .obj{
+      border-color:transparent!important;
+      background:transparent!important;
+      box-shadow:none!important;
+    }
+    body.beinvt-hide-object-guides .labelCanvas .obj.selected{
+      border-color:transparent!important;
+      background:transparent!important;
+      box-shadow:none!important;
+      outline:none!important;
+    }
+    body.beinvt-hide-object-guides .labelCanvas .obj.selected .handle{
+      display:none!important;
+    }
+    body.beinvt-hide-object-guides .labelCanvas .safeZone,
+    body.beinvt-hide-object-guides .labelCanvas .gridOverlay,
+    body.beinvt-hide-object-guides .labelCanvas .guide{
+      display:none!important;
+    }
+    body.beinvt-left-pane-hidden aside.panel,
+    body.beinvt-left-pane-hidden .panel.sidebar,
+    body.beinvt-left-pane-hidden .settingsPanel,
+    body.beinvt-left-pane-hidden .beinvtSettingsPanel{
+      display:none!important;
+      width:0!important;
+      min-width:0!important;
+      max-width:0!important;
+      flex:0 0 0px!important;
+      flex-basis:0!important;
+      padding:0!important;
+      margin:0!important;
+      border:0!important;
+      overflow:hidden!important;
+    }
+    body.beinvt-left-pane-hidden .stageWrap{
+      margin-left:0!important;
+    }
+  `;
+  const tag = document.createElement("style");
+  tag.setAttribute("data-beinvt-v8618-guide-left-pane-toggle-css", "1");
+  tag.textContent = css;
+  document.head.appendChild(tag);
+})();
+
 function fallbackLayout(type) {
   if (type === "POT") {
     return {
@@ -943,16 +1004,80 @@ function removeGitHubWorkflowText() {
 function applyModeClass() {
   document.body.classList.toggle("beinvt-label-pot", labelType === "POT");
   document.body.classList.toggle("beinvt-label-wrap", labelType === "WRAP");
+  document.body.classList.toggle("beinvt-hide-object-guides", !showObjectGuides);
+  document.body.classList.toggle("beinvt-left-pane-hidden", !!leftPaneHidden);
+  updateTopbarUtilityButtons();
+}
+function persistPreviewUiPrefs() {
+  localStorage.setItem("beinvtShowObjectGuides", JSON.stringify(!!showObjectGuides));
+  localStorage.setItem("beinvtLeftPaneHidden", JSON.stringify(!!leftPaneHidden));
+}
+function setObjectGuidesVisible(on) {
+  showObjectGuides = !!on;
+  persistPreviewUiPrefs();
+  applyModeClass();
+  syncControls();
+  renderCanvas();
+}
+function setLeftPaneHidden(on) {
+  leftPaneHidden = !!on;
+  persistPreviewUiPrefs();
+  applyModeClass();
+  forceOuterCardSize();
+  dockStageAwayFromLeftPanel();
+  renderCanvas();
+  refreshDebugLayerLabelsSoon();
+}
+function updateTopbarUtilityButtons() {
+  const leftBtn = $("leftPaneToggleBtn");
+  if (leftBtn) {
+    leftBtn.textContent = leftPaneHidden ? "Show Left Pane" : "Hide Left Pane";
+    leftBtn.classList.toggle("good", !!leftPaneHidden);
+  }
+  const guidesBtn = $("objectGuidesTopBtn");
+  if (guidesBtn) {
+    guidesBtn.textContent = showObjectGuides ? "Hide Guides" : "Show Guides";
+    guidesBtn.classList.toggle("good", !showObjectGuides);
+  }
+}
+function ensureTopbarUtilityButtons(anchor) {
+  const parent = anchor && anchor.parentNode;
+  if (!parent) return;
+  let leftBtn = $("leftPaneToggleBtn");
+  if (!leftBtn) {
+    leftBtn = document.createElement("button");
+    leftBtn.id = "leftPaneToggleBtn";
+    leftBtn.type = "button";
+    leftBtn.className = "modeTab utilityTab";
+    leftBtn.onclick = () => setLeftPaneHidden(!leftPaneHidden);
+    parent.insertBefore(leftBtn, anchor.nextSibling);
+  }
+  let guidesBtn = $("objectGuidesTopBtn");
+  if (!guidesBtn) {
+    guidesBtn = document.createElement("button");
+    guidesBtn.id = "objectGuidesTopBtn";
+    guidesBtn.type = "button";
+    guidesBtn.className = "modeTab utilityTab";
+    guidesBtn.onclick = () => setObjectGuidesVisible(!showObjectGuides);
+    parent.insertBefore(guidesBtn, leftBtn.nextSibling);
+  }
+  updateTopbarUtilityButtons();
 }
 function ensureModeTabs() {
   const sel = $("labelType");
-  if (!sel || $("modeTabs")) return;
+  if (!sel) return;
+  if ($("modeTabs")) {
+    ensureTopbarUtilityButtons($("modeTabs"));
+    updateTopbarUtilityButtons();
+    return;
+  }
   sel.style.display = "none";
   const tabs = document.createElement("div");
   tabs.id = "modeTabs";
   tabs.className = "modeTabs";
   tabs.innerHTML = '<button type="button" class="modeTab" data-mode="POT">Pot Stakes</button><button type="button" class="modeTab" data-mode="WRAP">Wrap Ties</button>';
   sel.parentNode.insertBefore(tabs, sel.nextSibling);
+  ensureTopbarUtilityButtons(tabs);
   tabs.addEventListener("click", ev => {
     const btn = ev.target.closest("[data-mode]");
     if (!btn) return;
@@ -1016,6 +1141,7 @@ function ensureLeftPanel() {
       <div class="beinvtCardBody">
         <div class="checkRow">
           <label class="checkItem"><input id="safeToggle" type="checkbox"> Show Safe Zone</label>
+          <label class="checkItem"><input id="objectGuidesToggle" type="checkbox"> Show Object Guides</label>
           <label class="checkItem"><input id="gridToggle" type="checkbox"> Show Grid</label>
           <label class="checkItem"><input id="snapToggle" type="checkbox"> Snap Guides</label>
           <label class="checkItem"><input id="snapGridToggle" type="checkbox"> Snap Grid</label>
@@ -1166,11 +1292,13 @@ function measureTopMenuBarWidth() {
 function outerCardDesiredLeft() {
   const cfg = outerCardSizeRuntimeConfig();
   const gap = Math.max(0, Number(cfg.leftGap || 0));
+  const top = topMenuBounds();
+  if (leftPaneHidden) return Math.max(0, Math.round((top && top.left) || 0) + gap);
   const panel = findSettingsPanel();
   if (panel) return Math.ceil(panel.getBoundingClientRect().right + gap);
   const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
   if (stage) return Math.max(0, Math.ceil(stage.getBoundingClientRect().left));
-  return 0;
+  return Math.max(0, Math.round((top && top.left) || 0) + gap);
 }
 function outerCardTargetLeft() {
   return outerCardDesiredLeft();
@@ -1186,6 +1314,7 @@ function outerCardRightLimit() {
   return Math.max(300, Math.round(right - rightMargin));
 }
 function leftPanelWidthForTopMenuSum() {
+  if (leftPaneHidden) return 0;
   const panel = findSettingsPanel();
   if (!panel) return 0;
   const r = panel.getBoundingClientRect();
@@ -2535,6 +2664,7 @@ function syncControls() {
   if ($("lockToggle")) $("lockToggle").checked = !!o.locked;
   if ($("visibleToggle")) $("visibleToggle").checked = o.visible !== false;
   if ($("safeToggle")) $("safeToggle").checked = showSafeZone;
+  if ($("objectGuidesToggle")) $("objectGuidesToggle").checked = showObjectGuides;
   if ($("gridToggle")) $("gridToggle").checked = showGrid;
   if ($("safeMargin")) $("safeMargin").value = Number(layout.safeMarginPx || 0);
   if ($("safeValue")) $("safeValue").textContent = "";
@@ -2744,6 +2874,7 @@ function initEvents() {
   if ($("zoom")) $("zoom").oninput = function() { this.dataset.beinvtManualZoom = "1"; this.dataset.beinvtZoomMode = labelType; renderCanvas(); };
   if ($("search")) $("search").oninput = function () { if ($("stageSearch")) $("stageSearch").value = this.value; currentRowIndex = 0; renderRows(); renderCanvas(); };
   if ($("safeToggle")) $("safeToggle").onchange = ev => { showSafeZone = ev.target.checked; renderCanvas(); };
+  if ($("objectGuidesToggle")) $("objectGuidesToggle").onchange = ev => { setObjectGuidesVisible(ev.target.checked); };
   if ($("gridToggle")) $("gridToggle").onchange = ev => { showGrid = ev.target.checked; renderCanvas(); };
   if ($("gridPx")) $("gridPx").onchange = applyControls;
   if ($("snapPx")) $("snapPx").onchange = applyControls;
