@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.7-debug-layer-labels";
+const APP_VERSION = "8.6.8-outer-card-1970x1193-debug-config";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -8,7 +8,29 @@ const SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=15
 const GENEVA_SG_LOGO_URL = "https://11150895.app.netsuite.com/core/media/media.nl?id=260263&c=11150895&h=NMkHvroppy8Yi93204J1rZiq_7V-dJBmcFNuScfEc2hRzqB9";
 const GENEVA_LOGO_SHIFT_Y = -1;
 const OUTER_CARD_EXTRA_WIDTH = 260;
-const DEBUG_LAYER_LABELS_DEFAULT = true;
+const DEBUG_LAYER_LABELS_DEFAULT = false;
+
+/*
+  v8.6.8 config:
+  - A = outer dark card (.stageWrap).
+  - Keep layer debug code installed, but OFF by default.
+  - Change LAYER_DEBUG_CONFIG.enabled from false to true to show/debug/move labels.
+  - Debug panel position can be dragged anywhere on screen; position is remembered.
+*/
+const OUTER_CARD_SIZE_CONFIG = {
+  enabled: true,
+  width: 1970,
+  height: 1193,
+  applyTo: ["POT", "WRAP"]
+};
+const LAYER_DEBUG_CONFIG = {
+  enabled: false,
+  movable: true,
+  rememberPosition: true,
+  defaultLeft: 18,
+  defaultTop: 70,
+  showShortcut: true
+};
 const WRAP_ADDRESS = "SIERRA GOLD NURSERIES YUBA CITY, CA 95991";
 const WRAP_WARNING = "WARNING: ASEXUAL\nREPRODUCTION OF SCIONS,\nBUDS, OR CUTTINGS\nWHETHER FOR SALE\nOR OWN USE IS\nPROHIBITED UNDER\nU.S. PLANT PATENT LAWS.\nSALES OUTSIDE THE\nU.S. ARE PROHIBITED.";
 
@@ -140,7 +162,7 @@ function sizePx(type = labelType) {
     .beinvtDuplicateSettings{display:none!important}
     .beinvtSettingsPanel .beinvtCard{display:block!important}
 
-    .stageWrap{display:flex!important;flex-direction:column!important;height:calc(100vh - 86px)!important;min-height:0!important;overflow:hidden!important;padding:3px!important;gap:3px!important;background:radial-gradient(circle at center,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;min-width:0!important;max-width:100vw!important}
+    .stageWrap{display:flex!important;flex-direction:column!important;height:1193px!important;min-height:0!important;overflow:hidden!important;padding:3px!important;gap:3px!important;background:radial-gradient(circle at center,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;min-width:0!important;max-width:100vw!important}
     #canvasHost{width:100%!important;height:100%!important;min-height:0!important;display:flex!important;gap:4px!important;align-items:stretch!important;justify-content:stretch!important;overflow:hidden!important}
     body.beinvt-label-pot #canvasHost{flex-direction:row!important}
     body.beinvt-label-wrap #canvasHost{flex-direction:column!important}
@@ -290,7 +312,7 @@ function sizePx(type = labelType) {
     .beinvtLayerDebugRoot{position:fixed;inset:0;z-index:999997;pointer-events:none!important;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important}
     .beinvtLayerDebugBox{position:fixed;pointer-events:none!important;border:2px dashed currentColor;border-radius:8px;box-shadow:0 0 0 1px rgba(0,0,0,.55),0 0 18px rgba(255,255,255,.15);background:rgba(255,255,255,.035)}
     .beinvtLayerDebugTag{position:fixed;pointer-events:none!important;z-index:999998;padding:3px 6px;border-radius:7px;border:1px solid currentColor;background:rgba(3,7,18,.92);color:currentColor;font-size:11px;font-weight:950;line-height:1.2;text-shadow:0 1px 1px #000;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.35)}
-    .beinvtLayerDebugPanel{position:fixed;right:10px;top:58px;z-index:999999;width:392px;max-height:calc(100vh - 75px);overflow:auto;border:1px solid rgba(255,255,255,.28);border-radius:13px;background:rgba(7,10,28,.96);color:#eef2ff;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.25;box-shadow:0 16px 45px rgba(0,0,0,.45)}
+    .beinvtLayerDebugPanel{position:fixed;left:18px;top:70px;right:auto;z-index:999999;width:392px;max-height:calc(100vh - 75px);overflow:auto;border:1px solid rgba(255,255,255,.28);border-radius:13px;background:rgba(7,10,28,.96);color:#eef2ff;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.25;box-shadow:0 16px 45px rgba(0,0,0,.45);cursor:grab;user-select:none}
     .beinvtLayerDebugPanel b{font-size:13px;color:#fff}.beinvtLayerDebugPanel .muted{color:#aeb7d5}.beinvtLayerDebugPanel .row{display:grid;grid-template-columns:22px 1fr 92px 86px;gap:6px;align-items:center;border-top:1px solid rgba(255,255,255,.10);padding:6px 0}.beinvtLayerDebugPanel .key{font-weight:950}.beinvtLayerDebugPanel .name{font-weight:850;color:#fff;overflow:hidden;text-overflow:ellipsis}.beinvtLayerDebugPanel .size{color:#dbeafe;text-align:right}.beinvtLayerDebugPanel button{border:1px solid rgba(255,255,255,.22);background:#10142d;color:#fff;border-radius:7px;padding:4px 6px;font-size:10px;font-weight:900;cursor:pointer}.beinvtLayerDebugPanel button:hover{background:#1b2250}.beinvtLayerDebugPanel .btns{display:flex;gap:4px;justify-content:flex-end}.beinvtLayerDebugPanel .topBtns{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.beinvtLayerDebugPanel code{color:#fde68a}
     @media print{.beinvtLayerDebugRoot,.beinvtLayerDebugPanel{display:none!important}}
   `;
@@ -810,6 +832,52 @@ function ensureLeftPanel() {
   `;
 }
 
+
+function outerCardSizeRuntimeConfig() {
+  const override = window.BEINVT_OUTER_CARD_SIZE_CONFIG && typeof window.BEINVT_OUTER_CARD_SIZE_CONFIG === "object" ? window.BEINVT_OUTER_CARD_SIZE_CONFIG : {};
+  return Object.assign({}, OUTER_CARD_SIZE_CONFIG, override);
+}
+function shouldForceOuterCardSize() {
+  const cfg = outerCardSizeRuntimeConfig();
+  if (!cfg.enabled) return false;
+  const allowed = Array.isArray(cfg.applyTo) ? cfg.applyTo : ["POT", "WRAP"];
+  return allowed.includes(labelType);
+}
+function forceOuterCardSize() {
+  if (!shouldForceOuterCardSize()) return;
+  const cfg = outerCardSizeRuntimeConfig();
+  const width = Math.max(300, Number(cfg.width || 1970));
+  const height = Math.max(200, Number(cfg.height || 1193));
+  const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
+  if (!stage) return;
+
+  // Make the page able to scroll if the fixed debug/card size is wider/taller than the viewport.
+  document.documentElement.style.setProperty("overflow-x", "auto", "important");
+  document.documentElement.style.setProperty("overflow-y", "auto", "important");
+  document.body.style.setProperty("overflow-x", "auto", "important");
+  document.body.style.setProperty("overflow-y", "auto", "important");
+
+  stage.style.setProperty("box-sizing", "border-box", "important");
+  stage.style.setProperty("width", width + "px", "important");
+  stage.style.setProperty("min-width", width + "px", "important");
+  stage.style.setProperty("max-width", width + "px", "important");
+  stage.style.setProperty("flex-basis", width + "px", "important");
+  stage.style.setProperty("height", height + "px", "important");
+  stage.style.setProperty("min-height", height + "px", "important");
+  stage.style.setProperty("max-height", height + "px", "important");
+  stage.style.setProperty("overflow", "visible", "important");
+
+  const host = $("canvasHost");
+  if (host) {
+    host.style.setProperty("width", "100%", "important");
+    host.style.setProperty("height", "100%", "important");
+    host.style.setProperty("min-width", "100%", "important");
+    host.style.setProperty("min-height", "0", "important");
+    host.style.setProperty("max-width", "100%", "important");
+    host.style.setProperty("max-height", "100%", "important");
+  }
+}
+
 function dockStageAwayFromLeftPanel() {
   const panel = findSettingsPanel();
   const stage = document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
@@ -838,10 +906,12 @@ function dockStageAwayFromLeftPanel() {
   if (correction > 0) stage.style.setProperty("margin-left", correction + "px", "important");
 
   const desiredWidth = Math.max(700, pageRight - targetLeft + 1 + extraWidth);
-  stage.style.setProperty("width", desiredWidth + "px", "important");
-  stage.style.setProperty("min-width", desiredWidth + "px", "important");
-  stage.style.setProperty("max-width", desiredWidth + "px", "important");
-  stage.style.setProperty("flex-basis", desiredWidth + "px", "important");
+  if (!shouldForceOuterCardSize()) {
+    stage.style.setProperty("width", desiredWidth + "px", "important");
+    stage.style.setProperty("min-width", desiredWidth + "px", "important");
+    stage.style.setProperty("max-width", desiredWidth + "px", "important");
+    stage.style.setProperty("flex-basis", desiredWidth + "px", "important");
+  }
 
   const host = $("canvasHost");
   if (host) {
@@ -849,6 +919,7 @@ function dockStageAwayFromLeftPanel() {
     host.style.setProperty("min-width", "100%", "important");
     host.style.setProperty("max-width", "100%", "important");
   }
+  forceOuterCardSize();
 }
 
 
@@ -870,9 +941,78 @@ function debugLayerTargets() {
     { key: "L", color: "#a3e635", name: "LEFT PANEL settings", selector: "aside.panel,.panel.sidebar,.settingsPanel", note: "left controls panel" }
   ];
 }
+
+function layerDebugRuntimeConfig() {
+  const override = window.BEINVT_LAYER_DEBUG_CONFIG && typeof window.BEINVT_LAYER_DEBUG_CONFIG === "object" ? window.BEINVT_LAYER_DEBUG_CONFIG : {};
+  return Object.assign({}, LAYER_DEBUG_CONFIG, override);
+}
+function isLayerDebugConfigEnabled() {
+  return !!layerDebugRuntimeConfig().enabled;
+}
+function debugPanelSavedPosition() {
+  const cfg = layerDebugRuntimeConfig();
+  if (!cfg.rememberPosition) return null;
+  try {
+    const raw = localStorage.getItem("beinvtLayerDebugPanelPosition");
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+function saveDebugPanelPosition(left, top) {
+  const cfg = layerDebugRuntimeConfig();
+  if (!cfg.rememberPosition) return;
+  try { localStorage.setItem("beinvtLayerDebugPanelPosition", JSON.stringify({ left: Math.round(left), top: Math.round(top) })); } catch (e) {}
+}
+function positionDebugPanel(panel) {
+  if (!panel || panel.dataset.beinvtPositioned === "1") return;
+  const cfg = layerDebugRuntimeConfig();
+  const saved = debugPanelSavedPosition();
+  const left = saved && Number.isFinite(Number(saved.left)) ? Number(saved.left) : Number(cfg.defaultLeft || 18);
+  const top = saved && Number.isFinite(Number(saved.top)) ? Number(saved.top) : Number(cfg.defaultTop || 70);
+  panel.style.setProperty("left", Math.max(0, left) + "px", "important");
+  panel.style.setProperty("top", Math.max(0, top) + "px", "important");
+  panel.style.setProperty("right", "auto", "important");
+  panel.dataset.beinvtPositioned = "1";
+}
+function makeDebugPanelMovable(panel) {
+  const cfg = layerDebugRuntimeConfig();
+  if (!panel || !cfg.movable || panel.dataset.beinvtMovable === "1") return;
+  panel.dataset.beinvtMovable = "1";
+  let drag = null;
+  panel.addEventListener("pointerdown", ev => {
+    if (!isDebugLayerLabelsOn()) return;
+    if (ev.button !== 0) return;
+    if (ev.target && ev.target.closest && ev.target.closest("button,input,textarea,select,a")) return;
+    const r = panel.getBoundingClientRect();
+    drag = { dx: ev.clientX - r.left, dy: ev.clientY - r.top };
+    panel.setPointerCapture && panel.setPointerCapture(ev.pointerId);
+    panel.style.cursor = "grabbing";
+    ev.preventDefault();
+  });
+  panel.addEventListener("pointermove", ev => {
+    if (!drag) return;
+    const nextLeft = Math.max(0, Math.min(window.innerWidth - 80, ev.clientX - drag.dx));
+    const nextTop = Math.max(0, Math.min(window.innerHeight - 40, ev.clientY - drag.dy));
+    panel.style.setProperty("left", nextLeft + "px", "important");
+    panel.style.setProperty("top", nextTop + "px", "important");
+    panel.style.setProperty("right", "auto", "important");
+  });
+  function endDrag(ev) {
+    if (!drag) return;
+    const r = panel.getBoundingClientRect();
+    saveDebugPanelPosition(r.left, r.top);
+    drag = null;
+    panel.style.cursor = "grab";
+    try { panel.releasePointerCapture && panel.releasePointerCapture(ev.pointerId); } catch (e) {}
+  }
+  panel.addEventListener("pointerup", endDrag);
+  panel.addEventListener("pointercancel", endDrag);
+}
+
 function isDebugLayerLabelsOn() {
+  // Config gate: debug code stays installed, but nothing appears unless enabled is true.
+  if (!isLayerDebugConfigEnabled()) return false;
   const raw = localStorage.getItem("beinvtDebugLayerLabels");
-  if (raw === null) return !!DEBUG_LAYER_LABELS_DEFAULT;
+  if (raw === null) return !!DEBUG_LAYER_LABELS_DEFAULT || !!layerDebugRuntimeConfig().enabled;
   return raw === "1" || raw === "true";
 }
 function setDebugLayerLabels(on) {
@@ -903,6 +1043,8 @@ function ensureDebugLayerPanel() {
     panel.className = "beinvtLayerDebugPanel";
     document.body.appendChild(panel);
   }
+  positionDebugPanel(panel);
+  makeDebugPanelMovable(panel);
   return panel;
 }
 function debugLayerElement(target) {
@@ -920,9 +1062,15 @@ function updateDebugLayerLabels() {
   const on = isDebugLayerLabelsOn();
   const root = ensureDebugLayerRoot();
   const panel = ensureDebugLayerPanel();
+  if (!isLayerDebugConfigEnabled()) {
+    root.style.display = "none";
+    panel.style.display = "none";
+    return;
+  }
+  panel.style.display = "block";
   if (!on) {
     root.style.display = "none";
-    panel.innerHTML = `<b>Layer Debug: OFF</b><div class="topBtns"><button type="button" id="beinvtDebugOnBtn">Turn labels ON</button></div><div class="muted">Shortcut: Alt+D</div>`;
+    panel.innerHTML = `<b>Layer Debug: OFF</b><div class="muted">Set <code>LAYER_DEBUG_CONFIG.enabled</code> to <code>true</code> to show labels. Drag this panel by any empty area.</div><div class="topBtns"><button type="button" id="beinvtDebugOnBtn">Turn labels ON</button></div>`;
     const onBtn = document.getElementById("beinvtDebugOnBtn");
     if (onBtn) onBtn.onclick = () => setDebugLayerLabels(true);
     return;
@@ -952,7 +1100,7 @@ function updateDebugLayerLabels() {
     const size = t.rect ? `${t.rect.width}x${t.rect.height}` : (t.found ? "0x0" : "not found");
     return `<div class="row" title="${escapeHtml(t.note)}"><div class="key" style="color:${escapeHtml(t.color)}">${escapeHtml(t.key)}</div><div class="name">${escapeHtml(t.name)}</div><div class="size">${escapeHtml(size)}</div><div class="btns"><button type="button" data-debug-grow="${escapeHtml(t.key)}" data-delta="80">+80</button><button type="button" data-debug-grow="${escapeHtml(t.key)}" data-delta="-80">-80</button></div></div>`;
   }).join("");
-  panel.innerHTML = `<b>Layer Debug: ON</b> <span class="muted">reply with the letter for the layer you mean</span><div class="muted">Alt+D toggles. Buttons are temporary width tests only.</div><div class="topBtns"><button type="button" id="beinvtDebugOffBtn">Hide labels</button><button type="button" id="beinvtDebugRefreshBtn">Refresh</button><button type="button" id="beinvtDebugClearBtn">Clear width tests</button><button type="button" id="beinvtDebugCopyBtn">Copy sizes</button></div><div class="muted">Likely choices: <code>A</code> outer dark card, <code>D</code> preview area, <code>H</code> white printable label, <code>J</code> selected object.</div>${rows}`;
+  panel.innerHTML = `<b>Layer Debug: ON</b> <span class="muted">drag this panel anywhere</span><div class="muted">Config is ON. A outer card is forced to <code>1970x1193</code> for Pot Stakes and Wrap Ties. Buttons are temporary width tests only.</div><div class="topBtns"><button type="button" id="beinvtDebugOffBtn">Hide labels</button><button type="button" id="beinvtDebugRefreshBtn">Refresh</button><button type="button" id="beinvtDebugClearBtn">Clear width tests</button><button type="button" id="beinvtDebugCopyBtn">Copy sizes</button></div><div class="muted">Likely choices: <code>A</code> outer dark card, <code>D</code> preview area, <code>H</code> white printable label, <code>J</code> selected object.</div>${rows}`;
   const offBtn = document.getElementById("beinvtDebugOffBtn");
   const refreshBtn = document.getElementById("beinvtDebugRefreshBtn");
   const clearBtn = document.getElementById("beinvtDebugClearBtn");
@@ -998,14 +1146,17 @@ function copyDebugLayerSizes() {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).catch(() => {});
 }
 function installDebugLayerLabels() {
-  window.BEINVT_DEBUG_LAYERS = { update: updateDebugLayerLabels, snapshot: debugLayerSnapshot, widen: widenDebugLayer, clear: clearDebugWidthTests, copySizes: copyDebugLayerSizes, on: () => setDebugLayerLabels(true), off: () => setDebugLayerLabels(false) };
-  if (!window.beinvtLayerDebugInterval) window.beinvtLayerDebugInterval = window.setInterval(updateDebugLayerLabels, 650);
+  window.BEINVT_DEBUG_LAYERS = { update: updateDebugLayerLabels, snapshot: debugLayerSnapshot, widen: widenDebugLayer, clear: clearDebugWidthTests, copySizes: copyDebugLayerSizes, on: () => setDebugLayerLabels(true), off: () => setDebugLayerLabels(false), config: LAYER_DEBUG_CONFIG };
+  window.BEINVT_OUTER_CARD_SIZE = { apply: forceOuterCardSize, config: OUTER_CARD_SIZE_CONFIG };
+  if (!window.beinvtLayerDebugInterval) window.beinvtLayerDebugInterval = window.setInterval(() => { forceOuterCardSize(); updateDebugLayerLabels(); }, 650);
   document.addEventListener("keydown", ev => {
-    if (ev.altKey && ev.key && ev.key.toLowerCase() === "d") {
+    if (layerDebugRuntimeConfig().showShortcut && ev.altKey && ev.key && ev.key.toLowerCase() === "d") {
       ev.preventDefault();
+      if (!isLayerDebugConfigEnabled()) return;
       setDebugLayerLabels(!isDebugLayerLabelsOn());
     }
   });
+  forceOuterCardSize();
   refreshDebugLayerLabelsSoon();
 }
 
