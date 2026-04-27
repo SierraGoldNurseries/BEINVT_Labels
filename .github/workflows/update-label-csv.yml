@@ -3,8 +3,8 @@ name: Update label CSV
 on:
   workflow_dispatch:
   schedule:
-    # Every 5 minutes
-    - cron: "*/5 * * * *"
+    # GitHub backup schedule. cron-job.org can still trigger every 5 minutes.
+    - cron: "7,22,37,52 * * * *"
 
 permissions:
   contents: write
@@ -21,7 +21,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Download NetSuite CSV
+      - name: Download NetSuite source
         env:
           NETSUITE_LABELS_URL: ${{ secrets.NETSUITE_LABELS_URL }}
         run: |
@@ -29,15 +29,195 @@ jobs:
 
           curl -L --fail --silent --show-error --retry 3 --retry-delay 5 \
             "$NETSUITE_LABELS_URL" \
-            -o data/labels.csv
+            -o data/labels_source.html
+
+          test -s data/labels_source.html
+
+          echo "Downloaded source preview:"
+          head -n 5 data/labels_source.html
+
+      - name: Convert NetSuite HTML table to real CSV
+        run: |
+          python3 <<'PY'
+          import csv
+          import html
+          import re
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          source_path = Path("data/labels_source.html")
+          output_path = Path("data/labels.csv")
+
+          raw = source_path.read_text(encoding="utf-8", errors="replace")
+          raw_lstrip = raw.lstrip()
+          raw_lower = raw_lstrip[:1000].lower()
+
+          class FirstTableParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.in_table = False
+                  self.done_table = False
+                  self.table_depth = 0
+
+                  self.in_row = False
+                  self.in_cell = False
+
+                  self.current_cell = []
+                  self.current_row = []
+                  self.rows = []
+
+              def handle_starttag(self, tag, attrs):
+                  tag = tag.lower()
+
+                  if self.done_table:
+                      return
+
+                  if tag == "table":
+                      if not self.in_table:
+                          self.in_table = True
+                          self.table_depth = 1
+                      else:
+                          self.table_depth += 1
+                      return
+
+                  if not self.in_table:
+                      return
+
+                  if tag == "tr":
+                      self.in_row = True
+                      self.current_row = []
+                      return
+
+                  if tag in ("th", "td") and self.in_row:
+                      self.in_cell = True
+                      self.current_cell = []
+                      return
+
+                  if tag == "br" and self.in_cell:
+                      self.current_cell.append(" ")
+
+              def handle_endtag(self, tag):
+                  tag = tag.lower()
+
+                  if self.done_table:
+                      return
+
+                  if tag == "table" and self.in_table:
+                      self.table_depth -= 1
+                      if self.table_depth <= 0:
+                          self.in_table = False
+                          self.done_table = True
+                      return
+
+                  if not self.in_table:
+                      return
+
+                  if tag in ("th", "td") and self.in_cell:
+                      value = "".join(self.current_cell)
+                      value = html.unescape(value)
+                      value = re.sub(r"\s+", " ", value).strip()
+                      self.current_row.append(value)
+
+                      self.current_cell = []
+                      self.in_cell = False
+                      return
+
+                  if tag == "tr" and self.in_row:
+                      if self.current_row:
+                          self.rows.append(self.current_row)
+
+                      self.current_row = []
+                      self.in_row = False
+                      return
+
+              def handle_data(self, data):
+                  if self.in_cell:
+                      self.current_cell.append(data)
+
+              def handle_entityref(self, name):
+                  if self.in_cell:
+                      self.current_cell.append(f"&{name};")
+
+              def handle_charref(self, name):
+                  if self.in_cell:
+                      self.current_cell.append(f"&#{name};")
+
+          looks_like_html = (
+              raw_lower.startswith("<!doctype")
+              or raw_lower.startswith("<html")
+              or "<table" in raw.lower()
+          )
+
+          if not looks_like_html:
+              print("Source does not look like HTML. Saving as CSV directly.")
+              output_path.write_text(raw, encoding="utf-8")
+              raise SystemExit(0)
+
+          parser = FirstTableParser()
+          parser.feed(raw)
+
+          rows = parser.rows
+
+          if not rows:
+              raise SystemExit("ERROR: HTML was downloaded, but no table rows were found.")
+
+          header = rows[0]
+          header_len = len(header)
+
+          if header_len < 5:
+              raise SystemExit(f"ERROR: Table header only has {header_len} columns. Expected label table.")
+
+          if "Work Order" not in header:
+              raise SystemExit(f"ERROR: First table does not look like label data. Headers found: {header}")
+
+          normalized_rows = []
+
+          for row in rows:
+              if len(row) < header_len:
+                  row = row + [""] * (header_len - len(row))
+              elif len(row) > header_len:
+                  row = row[:header_len]
+
+              normalized_rows.append(row)
+
+          data_count = len(normalized_rows) - 1
+
+          if data_count < 1:
+              raise SystemExit("ERROR: No data rows found after header.")
+
+          with output_path.open("w", newline="", encoding="utf-8-sig") as f:
+              writer = csv.writer(f)
+              writer.writerows(normalized_rows)
+
+          print(f"Converted NetSuite HTML table to CSV.")
+          print(f"Columns: {header_len}")
+          print(f"Data rows: {data_count}")
+          print("Headers:")
+          for h in header:
+              print(f"- {h}")
+          PY
 
           test -s data/labels.csv
+
+          echo "Final CSV preview:"
           head -n 5 data/labels.csv
+
+          if head -n 1 data/labels.csv | grep -qi "<!DOCTYPE\|<html"; then
+            echo "ERROR: data/labels.csv is still HTML."
+            exit 1
+          fi
+
+          if ! head -n 1 data/labels.csv | grep -q "Work Order"; then
+            echo "ERROR: data/labels.csv does not look like BEINVT label CSV."
+            exit 1
+          fi
 
       - name: Commit updated CSV
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
+
+          rm -f data/labels_source.html
 
           if git diff --quiet -- data/labels.csv; then
             echo "No CSV changes to commit."
