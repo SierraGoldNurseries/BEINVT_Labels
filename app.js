@@ -1,5 +1,5 @@
-const APP_VERSION = "8.6.53_no_qz";
-const WRAP_QR_BALANCE_VERSION = "8.6.44";
+const APP_VERSION = "8.6.54_dense_wrap_like_labels";
+const WRAP_QR_BALANCE_VERSION = "8.6.54";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -344,10 +344,40 @@ function wrapLikeQrBalanceKey(size) {
   return `${WRAP_QR_BALANCE_VERSION}|${widthIn}x${heightIn}`;
 }
 function wrapLikeQrSidePx(labelHeightPx, type, role) {
-  const baseRatio = role === "single" ? 0.76 : 0.72;
-  const preferred = Math.round(Number(labelHeightPx || 48) * baseRatio);
-  // Keep QR readable as wrap-like labels get taller, but always leave a small top/bottom margin.
-  return clamp(preferred, 34, Math.max(34, Math.round(Number(labelHeightPx || 48) - 8)));
+  const h = Math.max(36, Number(labelHeightPx || 48));
+  // v8.6.54: use almost the full wrap-like label height so QR boxes print larger and less blurry.
+  // The QR image itself now uses a high-resolution SVG with a tiny quiet zone, so the visible code
+  // fills the object box instead of leaving the large white border seen before.
+  const ratio = role === "single" ? 0.94 : 0.92;
+  const preferred = Math.round(h * ratio);
+  return clamp(preferred, 38, Math.max(38, Math.round(h - 4)));
+}
+function setWrapDefaultFont(o, id, px) {
+  if (!o || !o[id] || o[id].manualFontSize) return;
+  o[id].fontSize = Number(Math.max(2, px).toFixed(1));
+}
+function stackLeftInfoObjects(o, type, labelH, leftX, leftW, margin, gap, sy) {
+  const ids = type === "SHIP" ? ["CROP", "INTERNAL"] : ["WO", "CROP", "INTERNAL"];
+  const top = margin;
+  const availableH = Math.max(12, labelH - (margin * 2) - (gap * Math.max(0, ids.length - 1)));
+  const weights = ids.length === 2 ? [0.50, 0.50] : [0.32, 0.32, 0.36];
+  let y = top;
+  ids.forEach((id, idx) => {
+    if (!o[id]) return;
+    const last = idx === ids.length - 1;
+    const h = last ? Math.max(4, labelH - margin - y) : Math.max(4, Math.round(availableH * weights[idx]));
+    o[id].x = leftX;
+    o[id].y = y;
+    o[id].w = leftW;
+    o[id].h = h;
+    o[id].alignH = "left";
+    o[id].alignV = "middle";
+    y += h + gap;
+  });
+  if (o.WO && type === "SHIP") { o.WO.y = 0; o.WO.h = 0; }
+  setWrapDefaultFont(o, "WO", 14.8 * sy);
+  setWrapDefaultFont(o, "CROP", (type === "SHIP" ? 13.6 : 12.8) * sy);
+  setWrapDefaultFont(o, "INTERNAL", (type === "SHIP" ? 14.6 : 13.8) * sy);
 }
 function rebalanceWrapLikeQrLayout(layoutObj, type) {
   if (!layoutObj || !layoutObj.objects || !isWrapLikeMode(type)) return layoutObj;
@@ -357,16 +387,37 @@ function rebalanceWrapLikeQrLayout(layoutObj, type) {
   const sx = labelW / Math.max(1, 5 * INCH);
   const sy = labelH / Math.max(1, 0.5 * INCH);
   const o = layoutObj.objects;
-  const margin = Math.max(4, Math.round(4 * sx));
-  const gap = Math.max(6, Math.round(6 * Math.min(sx, sy)));
-  const centerX = Math.round(119 * sx);
-  const defaultRightEdge = Math.round(353 * sx);
-  const rightAnchor = Math.max(centerX + 110, Math.min(
-    Number((o.LOGO && o.LOGO.x) || (390 * sx)),
-    Number((o.WARNING && o.WARNING.x) || (420 * sx))
+  const margin = Math.max(2, Math.round(2 * Math.min(sx, sy)));
+  const gap = Math.max(2, Math.round(3 * Math.min(sx, sy)));
+  const centerX = Math.round((type === "FIELD" ? 118 : 124) * sx);
+
+  const logoW = Math.max(Math.round(30 * sx), Math.round(28 * Math.min(sx, sy)));
+  const warningW = Math.max(Math.round(58 * sx), Math.round(54 * sx));
+  if (o.LOGO) {
+    o.LOGO.x = Math.max(centerX + 142, Math.round(labelW - warningW - logoW - gap - margin));
+    o.LOGO.y = margin;
+    o.LOGO.w = logoW;
+    o.LOGO.h = Math.max(20, labelH - (margin * 2));
+  }
+  if (o.WARNING) {
+    o.WARNING.x = Math.min(labelW - margin - 34, Math.round(Number((o.LOGO && o.LOGO.x) || (labelW - warningW - margin)) + Number((o.LOGO && o.LOGO.w) || logoW) + gap));
+    o.WARNING.y = margin;
+    o.WARNING.w = Math.max(34, labelW - o.WARNING.x - margin);
+    o.WARNING.h = Math.max(20, labelH - (margin * 2));
+  }
+
+  const rightAnchor = Math.max(centerX + 135, Math.min(
+    Number((o.LOGO && o.LOGO.x) || (labelW - warningW - logoW - gap - margin)),
+    Number((o.WARNING && o.WARNING.x) || (labelW - warningW - margin))
   ));
 
-  if (o.WO_QR && type !== "FIELD" && o.WO_QR.visible !== false) {
+  if (o.WO_QR && type === "FIELD") {
+    o.WO_QR.x = margin;
+    o.WO_QR.y = margin;
+    o.WO_QR.w = Math.max(22, Math.round(28 * sx));
+    o.WO_QR.h = Math.max(34, labelH - (margin * 2));
+    if (!o.WO_QR.manualFontSize) o.WO_QR.fontSize = Number(Math.max(10, 13.5 * sy).toFixed(1));
+  } else if (o.WO_QR && o.WO_QR.visible !== false) {
     const side = wrapLikeQrSidePx(labelH, type, type === "SHIP" ? "single" : "left");
     o.WO_QR.w = side;
     o.WO_QR.h = side;
@@ -378,29 +429,32 @@ function rebalanceWrapLikeQrLayout(layoutObj, type) {
     const side = wrapLikeQrSidePx(labelH, type, type === "FIELD" ? "single" : "right");
     o.LOT_QR.w = side;
     o.LOT_QR.h = side;
-    o.LOT_QR.x = Math.max(centerX + 92, Math.round(rightAnchor - gap - side));
+    o.LOT_QR.x = Math.max(centerX + Math.round(112 * sx), Math.round(rightAnchor - gap - side));
     o.LOT_QR.y = Math.max(0, Math.round((labelH - side) / 2));
   }
 
   const leftTextStart = o.WO_QR && type !== "FIELD" && o.WO_QR.visible !== false
     ? Math.round(Number(o.WO_QR.x || 0) + Number(o.WO_QR.w || 0) + gap)
-    : Math.round(42 * sx);
-  const leftTextWidth = Math.max(38, centerX - leftTextStart - gap);
-  ["WO", "CROP", "INTERNAL"].forEach(id => {
-    if (!o[id]) return;
-    o[id].x = leftTextStart;
-    o[id].w = leftTextWidth;
-  });
+    : Math.round(Number((o.WO_QR && o.WO_QR.x) || margin) + Number((o.WO_QR && o.WO_QR.w) || (34 * sx)) + gap);
+  const leftTextWidth = Math.max(32, centerX - leftTextStart - gap);
+  stackLeftInfoObjects(o, type, labelH, leftTextStart, leftTextWidth, margin, gap, sy);
 
   const rightTextEdge = o.LOT_QR && type !== "SHIP" && o.LOT_QR.visible !== false
-    ? Math.max(centerX + 140, Math.round(Number(o.LOT_QR.x || defaultRightEdge) - gap))
-    : defaultRightEdge;
-  const centerWidth = Math.max(140, rightTextEdge - centerX);
+    ? Math.max(centerX + Math.round(100 * sx), Math.round(Number(o.LOT_QR.x || rightAnchor) - gap))
+    : Math.round(rightAnchor - gap);
+  const centerWidth = Math.max(110, rightTextEdge - centerX);
   ["SCION", "SCION_PATENT", "ROOTSTOCK", "ROOTSTOCK_PATENT", "LOT", "ADDRESS"].forEach(id => {
     if (!o[id]) return;
     o[id].x = centerX;
     o[id].w = centerWidth;
   });
+  setWrapDefaultFont(o, "SCION", 22.5 * sy);
+  setWrapDefaultFont(o, "ROOTSTOCK", 22.5 * sy);
+  setWrapDefaultFont(o, "SCION_PATENT", 5.2 * sy);
+  setWrapDefaultFont(o, "ROOTSTOCK_PATENT", 5.0 * sy);
+  setWrapDefaultFont(o, "LOT", 6.6 * sy);
+  setWrapDefaultFont(o, "ADDRESS", 5.1 * sy);
+  setWrapDefaultFont(o, "WARNING", 3.65 * sy);
 
   layoutObj.__wrapQrBalanceKey = wrapLikeQrBalanceKey(size);
   return layoutObj;
@@ -583,7 +637,7 @@ function sizePx(type = labelType) {
     .inner{position:absolute;display:flex;overflow:hidden;align-items:center;justify-content:center;text-align:center;line-height:.94;text-transform:uppercase;font-family:"Times New Roman",Georgia,serif;font-weight:900;transform-origin:center center;color:#000}
     .potItemInner{white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:manual;line-height:.9;padding:0;text-wrap:wrap}
     .obj img,.obj canvas{width:100%;height:100%;display:block;image-rendering:pixelated}
-    .obj[data-id="QR"] img,.obj[data-id="WO_QR"] img,.obj[data-id="LOT_QR"] img{object-fit:contain!important}
+    .obj[data-id="QR"] img,.obj[data-id="WO_QR"] img,.obj[data-id="LOT_QR"] img{object-fit:fill!important}
     .handle{display:none;position:absolute;width:11px;height:11px;background:#facc15;border:1px solid #111827;border-radius:3px;z-index:40}
     .obj.selected .handle{display:block}
     .handle.n{top:-7px;left:50%;margin-left:-5px;cursor:ns-resize}.handle.s{bottom:-7px;left:50%;margin-left:-5px;cursor:ns-resize}.handle.e{right:-7px;top:50%;margin-top:-5px;cursor:ew-resize}.handle.w{left:-7px;top:50%;margin-top:-5px;cursor:ew-resize}.handle.ne{right:-7px;top:-7px;cursor:nesw-resize}.handle.nw{left:-7px;top:-7px;cursor:nwse-resize}.handle.se{right:-7px;bottom:-7px;cursor:nwse-resize}.handle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}
@@ -1423,7 +1477,7 @@ function sizePx(type = labelType) {
     body.beinvt-label-wrap .obj[data-id="LOT_QR"] img{
       width:100%!important;
       height:100%!important;
-      object-fit:contain!important;
+      object-fit:fill!important;
       image-rendering:pixelated!important;
     }
   `;
@@ -1457,19 +1511,19 @@ function fallbackLayout(type) {
     gridPx: 4,
     snapPx: 5,
     objects: {
-      WO_QR: { x: type === "FIELD" ? WRAP_LIKE_PREVIEW_CONFIG.fieldRowX : 4, y: type === "FIELD" ? 2 : 7, w: 34, h: type === "FIELD" ? 44 : 34, rot: 0, fontSize: type === "FIELD" ? 13 : undefined, locked: false, visible: true },
-      WO: { x: 42, y: type === "SHIP" ? 0 : 2, w: 72, h: type === "SHIP" ? 0 : 13, rot: 0, fontSize: 13, fontFamily: "Times New Roman", locked: false, visible: type !== "SHIP", alignH: "left", alignV: "middle" },
-      CROP: { x: 42, y: type === "SHIP" ? 7 : 16, w: 72, h: type === "SHIP" ? 15 : 11, rot: 0, fontSize: type === "SHIP" ? 11 : 9, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
-      INTERNAL: { x: 42, y: type === "SHIP" ? 24 : 29, w: 72, h: type === "SHIP" ? 15 : 12, rot: 0, fontSize: type === "SHIP" ? 11 : 10, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
-      SCION: { x: 119, y: 1, w: 234, h: 18, rot: 0, fontSize: 20, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
-      SCION_PATENT: { x: 119, y: 16, w: 234, h: 5, rot: 0, fontSize: 4.5, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
-      ROOTSTOCK: { x: 119, y: 19, w: 234, h: 18, rot: 0, fontSize: 20, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
-      ROOTSTOCK_PATENT: { x: 119, y: 36, w: 234, h: 5, rot: 0, fontSize: 4.2, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
-      LOT: { x: 119, y: 37, w: 234, h: 6, rot: 0, fontSize: 5, fontFamily: "Times New Roman", locked: false, visible: type !== "SHIP", alignH: "center", alignV: "middle" },
-      ADDRESS: { x: 119, y: 43, w: 234, h: 5, rot: 0, fontSize: 4.6, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
-      LOT_QR: { x: 359, y: 7, w: 34, h: 34, rot: 0, locked: false, visible: type !== "SHIP" },
+      WO_QR: { x: type === "FIELD" ? WRAP_LIKE_PREVIEW_CONFIG.fieldRowX : 2, y: type === "FIELD" ? 2 : 2, w: 44, h: type === "FIELD" ? 44 : 44, rot: 0, fontSize: type === "FIELD" ? 13.5 : undefined, locked: false, visible: true },
+      WO: { x: 50, y: type === "SHIP" ? 0 : 1, w: 72, h: type === "SHIP" ? 0 : 15, rot: 0, fontSize: 14.8, fontFamily: "Times New Roman", locked: false, visible: type !== "SHIP", alignH: "left", alignV: "middle" },
+      CROP: { x: 50, y: type === "SHIP" ? 3 : 17, w: 72, h: type === "SHIP" ? 21 : 14, rot: 0, fontSize: type === "SHIP" ? 13.6 : 12.8, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
+      INTERNAL: { x: 50, y: type === "SHIP" ? 25 : 32, w: 72, h: type === "SHIP" ? 21 : 15, rot: 0, fontSize: type === "SHIP" ? 14.6 : 13.8, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
+      SCION: { x: 124, y: 1, w: 224, h: 18, rot: 0, fontSize: 22.5, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
+      SCION_PATENT: { x: 124, y: 16, w: 224, h: 5, rot: 0, fontSize: 5.2, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
+      ROOTSTOCK: { x: 124, y: 19, w: 224, h: 18, rot: 0, fontSize: 22.5, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
+      ROOTSTOCK_PATENT: { x: 124, y: 36, w: 224, h: 5, rot: 0, fontSize: 5.0, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
+      LOT: { x: 124, y: 37, w: 224, h: 6, rot: 0, fontSize: 6.6, fontFamily: "Times New Roman", locked: false, visible: type !== "SHIP", alignH: "center", alignV: "middle" },
+      ADDRESS: { x: 124, y: 43, w: 224, h: 5, rot: 0, fontSize: 5.1, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
+      LOT_QR: { x: 344, y: 2, w: 44, h: 44, rot: 0, locked: false, visible: type !== "SHIP" },
       LOGO: { x: WRAP_LIKE_PREVIEW_CONFIG.logoX, y: WRAP_LIKE_PREVIEW_CONFIG.logoY, w: WRAP_LIKE_PREVIEW_CONFIG.logoWidth, h: WRAP_LIKE_PREVIEW_CONFIG.logoHeight, rot: 0, locked: false, visible: true },
-      WARNING: { x: 420, y: 2, w: 58, h: 44, rot: 0, fontSize: 3.2, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" }
+      WARNING: { x: 420, y: 2, w: 58, h: 44, rot: 0, fontSize: 3.65, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" }
     }
   };
   return scaleDefaultLayoutForCurrentSize(wrapLayout, wrapLayout.labelType);
@@ -1489,11 +1543,12 @@ function normalizeLayout(src) {
   }
   const scale = labelSizeScaleFactors(type);
   if (type === "FIELD" && out.objects && out.objects.WO_QR) {
-    out.objects.WO_QR.x = Number((WRAP_LIKE_PREVIEW_CONFIG.fieldRowX * scale.sx).toFixed(1));
+    const labelH = Math.round(labelSizeInches(type).heightIn * INCH);
+    out.objects.WO_QR.x = Number((2 * scale.sx).toFixed(1));
     out.objects.WO_QR.y = Number((2 * scale.sy).toFixed(1));
-    out.objects.WO_QR.w = Number((34 * scale.sx).toFixed(1));
-    out.objects.WO_QR.h = Number((44 * scale.sy).toFixed(1));
-    out.objects.WO_QR.fontSize = Number((13 * scale.sy).toFixed(1));
+    out.objects.WO_QR.w = Number((28 * scale.sx).toFixed(1));
+    out.objects.WO_QR.h = Math.max(34, Number((labelH - 4 * scale.sy).toFixed(1)));
+    if (!out.objects.WO_QR.manualFontSize) out.objects.WO_QR.fontSize = Number((13.5 * scale.sy).toFixed(1));
     out.objects.WO_QR.rot = 0;
     out.objects.WO_QR.visible = true;
   }
@@ -1998,7 +2053,9 @@ function applyWrapDataAwareStack(row) {
   clampAllObjects();
 }
 function qrUrl(text) {
-  return "https://quickchart.io/qr?size=220&text=" + encodeURIComponent(text || " ");
+  const value = text || " ";
+  // v8.6.54: SVG + larger size + tiny margin gives a sharp printed QR while filling the object box.
+  return "https://quickchart.io/qr?format=svg&size=700&margin=1&ecLevel=M&text=" + encodeURIComponent(value);
 }
 function colorConfigKey(name) {
   return cleanDisplay(name).toUpperCase().replace(/\s+/g, " ").trim();
@@ -3927,9 +3984,9 @@ function autoFitWrapText() {
   // v8.6.48: Use the user's saved font size as the maximum and only shrink the
   // rendered DOM when needed. Do not overwrite o.fontSize.
   const ranges = {
-    WO: [16, 5], CROP: [11, 4.2], INTERNAL: [11, 4.2],
-    SCION: [30, 3.2], ROOTSTOCK: [30, 3.2],
-    SCION_PATENT: [6, 2.6], ROOTSTOCK_PATENT: [6, 2.6], LOT: [6.5, 2.8], ADDRESS: [5.6, 2.6], WARNING: [3.6, 2.1]
+    WO: [28, 5], CROP: [24, 4.2], INTERNAL: [26, 4.2],
+    SCION: [42, 3.2], ROOTSTOCK: [42, 3.2],
+    SCION_PATENT: [10, 2.6], ROOTSTOCK_PATENT: [10, 2.6], LOT: [11, 2.8], ADDRESS: [9, 2.6], WARNING: [6, 2.1]
   };
   for (const [id, range] of Object.entries(ranges)) {
     const obj = document.querySelector(`.obj[data-id="${id}"]`);
@@ -4317,7 +4374,10 @@ function printRows(items) {
   win.document.close();
 }
 function renderPrintPage(row) {
-  if (isWrapLikeMode(labelType)) applyWrapDataAwareStack(row);
+  if (isWrapLikeMode(labelType)) {
+    applyWrapDataAwareStack(row);
+    enforceWrapQrTextClearance(row);
+  }
   let out = '<div class="page">';
   for (const id of objectOrder()) {
     const o = layout.objects[id];
@@ -4326,7 +4386,7 @@ function renderPrintPage(row) {
     const top = isWrapLikeMode(labelType) && id === "LOGO" ? logoTopForRow(o, row) : o.y;
     const outer = `position:absolute;left:${o.x}px;top:${top}px;width:${o.w}px;height:${o.h}px;overflow:hidden;`;
     if (isWrapLikeMode(labelType)) out += `<div style="${outer}">${printWrapObjectInner(id, row, o)}</div>`;
-    else if (id === "QR") out += `<div style="${outer}"><img src="${qrUrl(row.wo)}" style="width:100%;height:100%;object-fit:contain;image-rendering:pixelated"></div>`;
+    else if (id === "QR") out += `<div style="${outer}"><img src="${qrUrl(row.wo)}" style="width:100%;height:100%;object-fit:fill;image-rendering:pixelated"></div>`;
     else out += `<div style="${outer}">${printTextInner(id, row, o)}</div>`;
   }
   return out + "</div>";
@@ -4350,8 +4410,8 @@ function printWrapObjectInner(id, row, o) {
     const top = (boxH - boxW) / 2;
     return `<div style="position:absolute;left:${left}px;top:${top}px;width:${boxH}px;height:${boxW}px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${fs}px;line-height:1;text-transform:uppercase;white-space:nowrap;writing-mode:horizontal-tb;text-orientation:mixed;color:#000;transform-origin:center center;transform:rotate(-90deg);">ROW</div>`;
   }
-  if (id === "WO_QR") return `<img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;object-fit:contain;image-rendering:pixelated">`;
-  if (id === "LOT_QR") { const txt = wrapRightQrText(row); return txt ? `<img src="${qrUrl(txt)}" style="width:100%;height:100%;object-fit:contain;image-rendering:pixelated">` : ""; }
+  if (id === "WO_QR") return `<img src="${qrUrl(wrapLeftQrText(row))}" style="width:100%;height:100%;object-fit:fill;image-rendering:pixelated">`;
+  if (id === "LOT_QR") { const txt = wrapRightQrText(row); return txt ? `<img src="${qrUrl(txt)}" style="width:100%;height:100%;object-fit:fill;image-rendering:pixelated">` : ""; }
   if (id === "LOGO") {
     const urls = logoUrlsForRow(row);
     if (urls.length > 1) {
