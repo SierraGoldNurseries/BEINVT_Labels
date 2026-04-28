@@ -1,5 +1,5 @@
-const APP_VERSION = "8.6.54_dense_wrap_like_labels";
-const WRAP_QR_BALANCE_VERSION = "8.6.54";
+const APP_VERSION = "8.6.55_flush_left_info_bigger";
+const WRAP_QR_BALANCE_VERSION = "8.6.55";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -359,8 +359,11 @@ function setWrapDefaultFont(o, id, px) {
 function stackLeftInfoObjects(o, type, labelH, leftX, leftW, margin, gap, sy) {
   const ids = type === "SHIP" ? ["CROP", "INTERNAL"] : ["WO", "CROP", "INTERNAL"];
   const top = margin;
-  const availableH = Math.max(12, labelH - (margin * 2) - (gap * Math.max(0, ids.length - 1)));
-  const weights = ids.length === 2 ? [0.50, 0.50] : [0.32, 0.32, 0.36];
+  // v8.6.55: keep the WO/Crop/Internal ID blocks tight so the left border sits
+  // directly against the QR box and the vertical space can be used for larger text.
+  const stackGap = Math.max(0, Math.round(0.6 * sy));
+  const availableH = Math.max(12, labelH - (margin * 2) - (stackGap * Math.max(0, ids.length - 1)));
+  const weights = ids.length === 2 ? [0.50, 0.50] : [0.35, 0.30, 0.35];
   let y = top;
   ids.forEach((id, idx) => {
     if (!o[id]) return;
@@ -372,12 +375,12 @@ function stackLeftInfoObjects(o, type, labelH, leftX, leftW, margin, gap, sy) {
     o[id].h = h;
     o[id].alignH = "left";
     o[id].alignV = "middle";
-    y += h + gap;
+    y += h + stackGap;
   });
   if (o.WO && type === "SHIP") { o.WO.y = 0; o.WO.h = 0; }
-  setWrapDefaultFont(o, "WO", 14.8 * sy);
-  setWrapDefaultFont(o, "CROP", (type === "SHIP" ? 13.6 : 12.8) * sy);
-  setWrapDefaultFont(o, "INTERNAL", (type === "SHIP" ? 14.6 : 13.8) * sy);
+  setWrapDefaultFont(o, "WO", 17.4 * sy);
+  setWrapDefaultFont(o, "CROP", (type === "SHIP" ? 16.2 : 15.8) * sy);
+  setWrapDefaultFont(o, "INTERNAL", (type === "SHIP" ? 17.2 : 16.8) * sy);
 }
 function rebalanceWrapLikeQrLayout(layoutObj, type) {
   if (!layoutObj || !layoutObj.objects || !isWrapLikeMode(type)) return layoutObj;
@@ -434,8 +437,8 @@ function rebalanceWrapLikeQrLayout(layoutObj, type) {
   }
 
   const leftTextStart = o.WO_QR && type !== "FIELD" && o.WO_QR.visible !== false
-    ? Math.round(Number(o.WO_QR.x || 0) + Number(o.WO_QR.w || 0) + gap)
-    : Math.round(Number((o.WO_QR && o.WO_QR.x) || margin) + Number((o.WO_QR && o.WO_QR.w) || (34 * sx)) + gap);
+    ? Math.round(Number(o.WO_QR.x || 0) + Number(o.WO_QR.w || 0))
+    : Math.round(Number((o.WO_QR && o.WO_QR.x) || margin) + Number((o.WO_QR && o.WO_QR.w) || (34 * sx)));
   const leftTextWidth = Math.max(32, centerX - leftTextStart - gap);
   stackLeftInfoObjects(o, type, labelH, leftTextStart, leftTextWidth, margin, gap, sy);
 
@@ -465,11 +468,12 @@ function enforceWrapQrTextClearance(row) {
   // Re-apply QR clearance after that stack so big QR codes never overlap the names.
   rebalanceWrapLikeQrLayout(layout, labelType);
   const o = layout.objects;
-  const gap = Math.max(6, Math.round(6 * Math.min(labelSizeScaleFactors(labelType).sx, labelSizeScaleFactors(labelType).sy)));
+  const gap = Math.max(2, Math.round(2 * Math.min(labelSizeScaleFactors(labelType).sx, labelSizeScaleFactors(labelType).sy)));
+  const leftFlushGap = 0;
   const leftQr = o.WO_QR && labelType !== "FIELD" && shouldRenderObject("WO_QR", row) ? o.WO_QR : null;
   const rightQr = o.LOT_QR && labelType !== "SHIP" && shouldRenderObject("LOT_QR", row) ? o.LOT_QR : null;
   if (leftQr) {
-    const minLeft = Math.round(Number(leftQr.x || 0) + Number(leftQr.w || 0) + gap);
+    const minLeft = Math.round(Number(leftQr.x || 0) + Number(leftQr.w || 0) + leftFlushGap);
     ["WO", "CROP", "INTERNAL"].forEach(id => {
       if (!o[id]) return;
       const oldRight = Number(o[id].x || 0) + Number(o[id].w || 0);
@@ -1512,9 +1516,9 @@ function fallbackLayout(type) {
     snapPx: 5,
     objects: {
       WO_QR: { x: type === "FIELD" ? WRAP_LIKE_PREVIEW_CONFIG.fieldRowX : 2, y: type === "FIELD" ? 2 : 2, w: 44, h: type === "FIELD" ? 44 : 44, rot: 0, fontSize: type === "FIELD" ? 13.5 : undefined, locked: false, visible: true },
-      WO: { x: 50, y: type === "SHIP" ? 0 : 1, w: 72, h: type === "SHIP" ? 0 : 15, rot: 0, fontSize: 14.8, fontFamily: "Times New Roman", locked: false, visible: type !== "SHIP", alignH: "left", alignV: "middle" },
-      CROP: { x: 50, y: type === "SHIP" ? 3 : 17, w: 72, h: type === "SHIP" ? 21 : 14, rot: 0, fontSize: type === "SHIP" ? 13.6 : 12.8, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
-      INTERNAL: { x: 50, y: type === "SHIP" ? 25 : 32, w: 72, h: type === "SHIP" ? 21 : 15, rot: 0, fontSize: type === "SHIP" ? 14.6 : 13.8, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
+      WO: { x: 46, y: type === "SHIP" ? 0 : 1, w: 76, h: type === "SHIP" ? 0 : 16, rot: 0, fontSize: 17.4, fontFamily: "Times New Roman", locked: false, visible: type !== "SHIP", alignH: "left", alignV: "middle" },
+      CROP: { x: 46, y: type === "SHIP" ? 3 : 17, w: 76, h: type === "SHIP" ? 22 : 14, rot: 0, fontSize: type === "SHIP" ? 16.2 : 15.8, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
+      INTERNAL: { x: 46, y: type === "SHIP" ? 25 : 32, w: 76, h: type === "SHIP" ? 22 : 16, rot: 0, fontSize: type === "SHIP" ? 17.2 : 16.8, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
       SCION: { x: 124, y: 1, w: 224, h: 18, rot: 0, fontSize: 22.5, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       SCION_PATENT: { x: 124, y: 16, w: 224, h: 5, rot: 0, fontSize: 5.2, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       ROOTSTOCK: { x: 124, y: 19, w: 224, h: 18, rot: 0, fontSize: 22.5, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
@@ -3984,7 +3988,7 @@ function autoFitWrapText() {
   // v8.6.48: Use the user's saved font size as the maximum and only shrink the
   // rendered DOM when needed. Do not overwrite o.fontSize.
   const ranges = {
-    WO: [28, 5], CROP: [24, 4.2], INTERNAL: [26, 4.2],
+    WO: [36, 5], CROP: [34, 4.2], INTERNAL: [36, 4.2],
     SCION: [42, 3.2], ROOTSTOCK: [42, 3.2],
     SCION_PATENT: [10, 2.6], ROOTSTOCK_PATENT: [10, 2.6], LOT: [11, 2.8], ADDRESS: [9, 2.6], WARNING: [6, 2.1]
   };
