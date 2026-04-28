@@ -5927,3 +5927,118 @@ boot();
   observer.observe(document.documentElement, { childList: true, subtree: true });
   setTimeout(cleanupQzModal, 0);
 })();
+
+/* v8.6.50 QZ sensor setting restore.
+   Keeps Label Template hidden, restores Sensor + Threshold fields in the QZ popup.
+   Note: for QZ pixel/image mode, the Windows printer driver may still control final media sensing.
+   These values are saved so they are available when raw TPCL/sensor commands are used. */
+(function installQzSensorRestoreV8650(){
+  const QZ_SETTINGS_KEY = "beinvtQzTpclSettings_v8647";
+
+  function readSettings(){
+    try { return JSON.parse(localStorage.getItem(QZ_SETTINGS_KEY) || "{}") || {}; }
+    catch(e) { return {}; }
+  }
+
+  function saveSettings(patch){
+    try {
+      const next = Object.assign(readSettings(), patch || {});
+      localStorage.setItem(QZ_SETTINGS_KEY, JSON.stringify(next));
+    } catch(e) {}
+  }
+
+  function removeLabelTemplateField(root){
+    const scope = root || document;
+    Array.from(scope.querySelectorAll(".beinvtQzModal label")).forEach(label => {
+      const text = (label.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
+      if (text === "label template" || text.includes("label template")) {
+        const field = label.closest(".full") || label.closest(".beinvtQzField") || label.parentElement;
+        if (field) field.remove();
+      }
+    });
+  }
+
+  function ensureSensorFields(root){
+    const overlay = root || document.getElementById("beinvtQzOverlay");
+    if (!overlay) return;
+    const grid = overlay.querySelector(".beinvtQzGrid");
+    if (!grid) return;
+    if (overlay.querySelector("#beinvtQzSensor")) return;
+
+    const settings = readSettings();
+    const sensor = String(settings.sensor || "transmissive");
+    const threshold = String(settings.threshold || "auto");
+
+    const sensorField = document.createElement("div");
+    sensorField.className = "beinvtQzField";
+    sensorField.innerHTML = '<label>Sensor</label><select id="beinvtQzSensor">' +
+      '<option value="transmissive">Transmissive / Gap, notch, hole</option>' +
+      '<option value="reflective">Reflective / Black mark</option>' +
+      '<option value="continuous">Continuous / No sensor</option>' +
+      '</select>';
+
+    const thresholdField = document.createElement("div");
+    thresholdField.className = "beinvtQzField";
+    thresholdField.innerHTML = '<label>Threshold</label><select id="beinvtQzThreshold">' +
+      '<option value="auto">Auto / Default</option>' +
+      '<option value="1">1 - very light</option>' +
+      '<option value="2">2</option>' +
+      '<option value="3">3</option>' +
+      '<option value="4">4</option>' +
+      '<option value="5">5 - middle</option>' +
+      '<option value="6">6</option>' +
+      '<option value="7">7</option>' +
+      '<option value="8">8</option>' +
+      '<option value="9">9 - very dark</option>' +
+      '</select><div class="beinvtQzThresholdHint">Sensor cutoff only. Leave Auto/Default unless gap or mark detection fails.</div>';
+
+    grid.appendChild(sensorField);
+    grid.appendChild(thresholdField);
+
+    const sensorEl = overlay.querySelector("#beinvtQzSensor");
+    const thresholdEl = overlay.querySelector("#beinvtQzThreshold");
+    if (sensorEl) sensorEl.value = sensor;
+    if (thresholdEl) thresholdEl.value = threshold;
+
+    if (sensorEl) sensorEl.addEventListener("change", () => saveSettings({ sensor: sensorEl.value }));
+    if (thresholdEl) thresholdEl.addEventListener("change", () => saveSettings({ threshold: thresholdEl.value }));
+  }
+
+  function patchStatus(root){
+    const status = (root || document).querySelector("#beinvtQzStatus");
+    if (!status) return;
+    const text = String(status.textContent || "");
+    if (text.includes("Sensor setting restored")) return;
+    if (text.includes("Ready.")) {
+      status.textContent = text + "\nSensor setting restored. For orange hole stock, use Transmissive and Auto/Default threshold.";
+    }
+  }
+
+  function cleanup(){
+    const overlay = document.getElementById("beinvtQzOverlay");
+    if (!overlay) return;
+    removeLabelTemplateField(overlay);
+    ensureSensorFields(overlay);
+    patchStatus(overlay);
+  }
+
+  if (!document.getElementById("beinvtQzSensorRestoreCssV8650")) {
+    const style = document.createElement("style");
+    style.id = "beinvtQzSensorRestoreCssV8650";
+    style.textContent = ".beinvtQzThresholdHint{margin-top:4px;font-size:11px;line-height:1.25;color:#94a3b8}.beinvt-theme-light .beinvtQzThresholdHint{color:#64748b}";
+    document.head.appendChild(style);
+  }
+
+  document.addEventListener("click", ev => {
+    const target = ev.target;
+    if (target && (target.id === "printWithQz" || (target.closest && target.closest("#printWithQz")))) {
+      setTimeout(cleanup, 0);
+      setTimeout(cleanup, 50);
+      setTimeout(cleanup, 250);
+    }
+  }, true);
+
+  const observer = new MutationObserver(cleanup);
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  setTimeout(cleanup, 0);
+})();
