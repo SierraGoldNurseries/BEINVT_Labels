@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.49_qz_raw_tpcl_image";
+const APP_VERSION = "8.6.47_qz_tray_tpcl";
 const WRAP_QR_BALANCE_VERSION = "8.6.44";
 const INCH = 96;
 const LABEL_SIZES = {
@@ -5865,121 +5865,65 @@ boot();
   setTimeout(qzPatchButton, 0);
 })();
 
-/* --------------------------------------------------------------------------
-   v8.6.49 QZ Tray raw TPCL raster-image printing support.
-   Replaces QZ pixel-driver output with native Toshiba/TEC TPCL SG graphics.
-   -------------------------------------------------------------------------- */
-(function installQzRawTpclImageSupportV8649(){
-  const QZ_DEFAULT_PRINTER = "\\\\sgnfs01\\TEC B-ONE";
-  const QZ_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/qz-tray@2.2.6/qz-tray.js";
-  const HTML2CANVAS_URL = "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js";
-  const QZ_SETTINGS_KEY = "beinvtQzRawTpclImageSettings_v8649";
-  const QZ_OLD_SETTINGS_KEY = "beinvtQzTpclSettings_v8647";
-  const QZ_IMAGE_DPI = 305;
-  const ESC = "\x1B";
-  const END = "\x0A\x00";
-  const byId = id => document.getElementById(id);
-  const qzCleanStr = v => typeof cleanDisplay === "function" ? cleanDisplay(v) : String(v == null ? "" : v).trim();
-  const qzEsc = v => typeof escapeHtml === "function" ? escapeHtml(v) : String(v == null ? "" : v).replace(/[&<>\"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
-  const qzClone = v => typeof clone === "function" ? clone(v) : JSON.parse(JSON.stringify(v));
-  function qzInt(v, min, max, fb){ const n = parseInt(String(v == null ? "" : v).replace(/[^\-0-9]/g, ""), 10); return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fb; }
-  function qzFloat(v, min, max, fb){ const n = parseFloat(String(v == null ? "" : v).replace(/[^0-9.]/g, "")); return Number.isFinite(n) && n > 0 ? Math.max(min, Math.min(max, n)) : fb; }
-  const qzPad = (n,w=4) => String(Math.max(0, Math.round(Number(n || 0)))).padStart(w,"0");
-  const qzInToMm10 = inches => Math.max(1, Math.round(Number(inches || 0) * 25.4 * 10));
-  const qzCurrentType = () => { try { return labelType || "POT"; } catch(e) { return "POT"; } };
-  function qzTypeLabel(type){ return type === "POT" ? "Pot Stake" : type === "WRAP" ? "Wrap Tie" : type === "FIELD" ? "Field Label" : type === "SHIP" ? "Shipping Label" : "Current Template"; }
-  function qzSizeForType(type){ const t = type && type !== "CURRENT" ? type : qzCurrentType(); try { return labelSizeInches(t); } catch(e) { return { widthIn: 5, heightIn: 0.75 }; } }
-  function qzDefaultSettings(){ const cur = qzSizeForType("CURRENT"); return { printerName: QZ_DEFAULT_PRINTER, engine: "raw-tpcl-image", labelType: "CURRENT", widthIn: String(cur.widthIn || 5), heightIn: String(cur.heightIn || 0.75), sensor: "2", speed: "3", darkness: "0", threshold: "170", quantity: "1" }; }
-  function qzSettings(){
-    const d = qzDefaultSettings(); let old = {}, cur = {};
-    try { old = JSON.parse(localStorage.getItem(QZ_OLD_SETTINGS_KEY) || "{}"); } catch(e) {}
-    try { cur = JSON.parse(localStorage.getItem(QZ_SETTINGS_KEY) || "{}"); } catch(e) {}
-    return Object.assign(d, old || {}, cur || {});
-  }
-  function qzSave(s){ try { localStorage.setItem(QZ_SETTINGS_KEY, JSON.stringify(Object.assign({}, qzSettings(), s || {}))); } catch(e) {} }
-  const qzSelectedType = settings => ((settings && settings.labelType) || "CURRENT") === "CURRENT" ? qzCurrentType() : settings.labelType;
-  function qzSelectedSize(settings){ const base = qzSizeForType(qzSelectedType(settings)); return { widthIn: Number(qzFloat(settings && settings.widthIn, 0.2, 12, base.widthIn || 5).toFixed(2)), heightIn: Number(qzFloat(settings && settings.heightIn, 0.2, 12, base.heightIn || 0.75).toFixed(2)) }; }
-  function qzStatus(msg){ const el = byId("beinvtQzStatus"); if (el) el.textContent = String(msg || ""); }
-  function qzSetBusy(isBusy){ ["beinvtQzConnect","beinvtQzTest","beinvtQzFeed","beinvtQzPrintCurrent","beinvtQzPrintQueue"].forEach(id => { const b = byId(id); if (b) b.disabled = !!isBusy; }); }
-  function qzSensorName(code){ return String(code) === "0" ? "Continuous / no sensor" : String(code) === "1" ? "Reflective / black mark" : String(code) === "3" ? "Transmissive manual threshold" : String(code) === "4" ? "Reflective manual threshold" : "Transmissive / gap, notch, hole"; }
-
-  function qzCss(){
-    let style = byId("beinvtQzCss");
-    if (!style) { style = document.createElement("style"); style.id = "beinvtQzCss"; document.head.appendChild(style); }
-    style.textContent = `.beinvtQzOverlay{position:fixed;inset:0;background:rgba(3,7,18,.62);backdrop-filter:blur(7px);z-index:99999;display:none;align-items:center;justify-content:center;padding:18px}.beinvtQzOverlay.open{display:flex}.beinvtQzModal{width:min(760px,96vw);max-height:92vh;overflow:auto;border:1px solid rgba(148,163,184,.35);border-radius:22px;background:#111827;color:#e5e7eb;box-shadow:0 24px 80px rgba(0,0,0,.45);padding:18px}.beinvtQzHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.beinvtQzTitle{font-size:18px;font-weight:950}.beinvtQzSub{font-size:12px;color:#9ca3af;margin-top:3px;line-height:1.35}.beinvtQzClose{border:1px solid rgba(148,163,184,.35);background:rgba(255,255,255,.06);color:#e5e7eb;border-radius:12px;padding:7px 10px;cursor:pointer}.beinvtQzGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.beinvtQzGrid .full{grid-column:1/-1}.beinvtQzGrid .span2{grid-column:span 2}.beinvtQzModal label{display:block;font-size:12px;font-weight:800;color:#cbd5e1;margin:0 0 5px}.beinvtQzModal input,.beinvtQzModal select{width:100%;border:1px solid rgba(148,163,184,.35);border-radius:12px;background:#0b1220;color:#e5e7eb;padding:10px 11px;font-size:14px;outline:none}.beinvtQzNote{grid-column:1/-1;font-size:11px;line-height:1.35;color:#a5b4fc;background:rgba(37,99,235,.12);border:1px solid rgba(96,165,250,.28);border-radius:12px;padding:8px 10px}.beinvtQzActions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.beinvtQzActions button{border:1px solid rgba(148,163,184,.35);border-radius:14px;background:#1f2937;color:#f8fafc;padding:10px 12px;font-weight:900;cursor:pointer}.beinvtQzActions button.primary{background:#2563eb;border-color:#60a5fa}.beinvtQzActions button.good{background:#15803d;border-color:#4ade80}.beinvtQzActions button.warn{background:#92400e;border-color:#f59e0b}.beinvtQzActions button:disabled{opacity:.55;cursor:wait}.beinvtQzStatus{margin-top:12px;border-radius:14px;background:#0b1220;border:1px solid rgba(148,163,184,.25);padding:10px;white-space:pre-wrap;font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#d1d5db;max-height:210px;overflow:auto}body.beinvt-theme-light .beinvtQzModal{background:#fff;color:#111827}body.beinvt-theme-light .beinvtQzSub{color:#64748b}body.beinvt-theme-light .beinvtQzModal label{color:#334155}body.beinvt-theme-light .beinvtQzModal input,body.beinvt-theme-light .beinvtQzModal select,body.beinvt-theme-light .beinvtQzStatus{background:#f8fafc;color:#111827;border-color:#cbd5e1}body.beinvt-theme-light .beinvtQzClose,body.beinvt-theme-light .beinvtQzActions button{background:#e5e7eb;color:#111827;border-color:#cbd5e1}body.beinvt-theme-light .beinvtQzActions button.primary{background:#2563eb;color:#fff}body.beinvt-theme-light .beinvtQzActions button.good{background:#15803d;color:#fff}body.beinvt-theme-light .beinvtQzActions button.warn{background:#f59e0b;color:#111827}`;
+/* v8.6.49 QZ modal cleanup.
+   Removes the optional Label Template selector from the QZ preview/print modal.
+   Threshold stays available because it is a printer sensor setting, not a label template setting. */
+(function installQzModalCleanupV8649(){
+  function removeQzLabelTemplateField(root){
+    const scope = root || document;
+    const labels = Array.from(scope.querySelectorAll(".beinvtQzModal label"));
+    labels.forEach(label => {
+      const text = (label.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
+      if (text === "label template" || text.includes("label template")) {
+        let field = label.closest(".full") || label.closest(".beinvtQzField") || label.parentElement;
+        if (field) field.remove();
+      }
+    });
   }
 
-  function qzModal(){
-    qzCss();
-    const old = byId("beinvtQzOverlay");
-    if (old && old.dataset.beinvtQzMode !== "raw-tpcl-image") old.remove();
-    let o = byId("beinvtQzOverlay"); if (o) return o;
-    const s = qzSettings(), size = qzSelectedSize(s), currentType = qzCurrentType(), selectedType = s.labelType || "CURRENT";
-    const darknessOpts = Array.from({length:21},(_,i)=>i-10).map(n => `<option value="${n}"${String(s.darkness)===String(n)?" selected":""}>${n===0?"0 - default":n>0?"+"+n+" darker":n+" lighter"}</option>`).join("");
-    const typeOpts = [["CURRENT",`Current (${qzTypeLabel(currentType)})`],["POT","Pot Stake"],["WRAP","Wrap Tie"],["FIELD","Field Label"],["SHIP","Shipping Label"]].map(([val,text]) => `<option value="${val}"${selectedType===val?" selected":""}>${text}</option>`).join("");
-    o = document.createElement("div"); o.id = "beinvtQzOverlay"; o.className = "beinvtQzOverlay"; o.dataset.beinvtQzMode = "raw-tpcl-image";
-    o.innerHTML = `<div class="beinvtQzModal" role="dialog" aria-modal="true"><div class="beinvtQzHead"><div><div class="beinvtQzTitle">Print with QZ - TEC Image</div><div class="beinvtQzSub">Renders the preview to a 1-bit image, then sends native Toshiba/TEC TPCL graphics commands through QZ. Chrome print buttons stay unchanged.</div></div><button type="button" class="beinvtQzClose" id="beinvtQzClose">Close</button></div><div class="beinvtQzGrid"><div class="full"><label>Printer name</label><input id="beinvtQzPrinter" value="${qzEsc(s.printerName || QZ_DEFAULT_PRINTER)}" spellcheck="false"></div><div class="span2"><label>Print engine</label><select id="beinvtQzEngine"><option value="raw-tpcl-image"${s.engine!=="pixel"?" selected":""}>Raw TPCL raster image - recommended for TEC</option><option value="pixel"${s.engine==="pixel"?" selected":""}>QZ pixel PNG through Windows driver</option></select></div><div><label>Label template</label><select id="beinvtQzLabelType">${typeOpts}</select></div><div><label>Width inches</label><input id="beinvtQzWidth" type="number" min="0.2" max="12" step="0.01" value="${qzEsc(size.widthIn)}"></div><div><label>Height inches</label><input id="beinvtQzHeight" type="number" min="0.2" max="12" step="0.01" value="${qzEsc(size.heightIn)}"></div><div><label>Sensor</label><select id="beinvtQzSensor"><option value="2"${String(s.sensor)==="2"?" selected":""}>Transmissive / Gap, notch, hole</option><option value="1"${String(s.sensor)==="1"?" selected":""}>Reflective / Black mark</option><option value="0"${String(s.sensor)==="0"?" selected":""}>Continuous / no sensor</option><option value="3"${String(s.sensor)==="3"?" selected":""}>Transmissive manual threshold</option><option value="4"${String(s.sensor)==="4"?" selected":""}>Reflective manual threshold</option></select></div><div><label>Speed</label><select id="beinvtQzSpeed"><option value="3"${s.speed==="3"?" selected":""}>3 ips</option><option value="5"${s.speed==="5"?" selected":""}>5 ips</option><option value="8"${s.speed==="8"?" selected":""}>8 ips</option></select></div><div><label>Darkness</label><select id="beinvtQzDarkness">${darknessOpts}</select></div><div><label>Threshold</label><input id="beinvtQzThreshold" type="number" min="40" max="240" step="1" value="${qzEsc(s.threshold || "170")}"></div><div><label>Quantity multiplier</label><input id="beinvtQzQuantity" type="number" min="1" max="9999" step="1" value="${qzEsc(s.quantity || "1")}"></div><div class="beinvtQzNote">For orange wrap/tie stock with holes, start with <b>Transmissive / Gap, notch, hole</b>. Use <b>Reflective / Black mark</b> only if the stock has a black mark read by the bottom sensor.</div></div><div class="beinvtQzActions"><button type="button" id="beinvtQzConnect">Connect + List Printers</button><button type="button" class="warn" id="beinvtQzFeed">Feed / Sensor Test</button><button type="button" id="beinvtQzTest">Send Raw Image Test</button><button type="button" class="primary" id="beinvtQzPrintCurrent">Print Current</button><button type="button" class="good" id="beinvtQzPrintQueue">Print Queue</button></div><div class="beinvtQzStatus" id="beinvtQzStatus">Ready. Raw TPCL image mode is selected.</div></div>`;
-    document.body.appendChild(o);
-    o.addEventListener("click", ev => { if (ev.target === o) qzClose(); });
-    byId("beinvtQzClose").onclick = qzClose; byId("beinvtQzConnect").onclick = qzList; byId("beinvtQzFeed").onclick = qzFeedTest; byId("beinvtQzTest").onclick = qzTest; byId("beinvtQzPrintCurrent").onclick = qzPrintCurrent; byId("beinvtQzPrintQueue").onclick = qzPrintQueue;
-    byId("beinvtQzLabelType").addEventListener("change", () => { const typeVal = byId("beinvtQzLabelType").value || "CURRENT"; const sz = qzSizeForType(typeVal === "CURRENT" ? qzCurrentType() : typeVal); byId("beinvtQzWidth").value = sz.widthIn; byId("beinvtQzHeight").value = sz.heightIn; qzSave(qzReadModal(false)); });
-    ["beinvtQzPrinter","beinvtQzEngine","beinvtQzWidth","beinvtQzHeight","beinvtQzSensor","beinvtQzSpeed","beinvtQzDarkness","beinvtQzThreshold","beinvtQzQuantity"].forEach(id => { const el = byId(id); if (el) el.addEventListener("change", () => qzSave(qzReadModal(false))); });
-    return o;
+  function addQzThresholdHint(root){
+    const scope = root || document;
+    const labels = Array.from(scope.querySelectorAll(".beinvtQzModal label"));
+    labels.forEach(label => {
+      const text = (label.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
+      if (text === "threshold" || text.includes("threshold")) {
+        const field = label.closest(".full") || label.closest(".beinvtQzField") || label.parentElement;
+        if (field && !field.querySelector(".beinvtQzThresholdHint")) {
+          const hint = document.createElement("div");
+          hint.className = "beinvtQzThresholdHint";
+          hint.textContent = "Sensor cutoff only. Leave Auto/Default unless gap or mark detection fails.";
+          field.appendChild(hint);
+        }
+      }
+    });
   }
 
-  function qzReadModal(saveSize){
-    const currentSize = qzSizeForType(qzCurrentType());
-    const s = { printerName: qzCleanStr(byId("beinvtQzPrinter") && byId("beinvtQzPrinter").value) || QZ_DEFAULT_PRINTER, engine: qzCleanStr(byId("beinvtQzEngine") && byId("beinvtQzEngine").value) || "raw-tpcl-image", labelType: qzCleanStr(byId("beinvtQzLabelType") && byId("beinvtQzLabelType").value) || "CURRENT", widthIn: String(Number(qzFloat(byId("beinvtQzWidth") && byId("beinvtQzWidth").value, 0.2, 12, currentSize.widthIn).toFixed(2))), heightIn: String(Number(qzFloat(byId("beinvtQzHeight") && byId("beinvtQzHeight").value, 0.2, 12, currentSize.heightIn).toFixed(2))), sensor: String(qzInt(byId("beinvtQzSensor") && byId("beinvtQzSensor").value, 0, 4, 2)), speed: qzCleanStr(byId("beinvtQzSpeed") && byId("beinvtQzSpeed").value) || "3", darkness: String(qzInt(byId("beinvtQzDarkness") && byId("beinvtQzDarkness").value, -10, 10, 0)), threshold: String(qzInt(byId("beinvtQzThreshold") && byId("beinvtQzThreshold").value, 40, 240, 170)), quantity: String(qzInt(byId("beinvtQzQuantity") && byId("beinvtQzQuantity").value, 1, 9999, 1)) };
-    qzSave(s);
-    if (saveSize) { const t = qzSelectedType(s), sz = qzSelectedSize(s); try { saveLabelSizeInches(t, sz); } catch(e) {} try { if (t === qzCurrentType()) renderAll(); } catch(e) {} }
-    return s;
+  function cleanupQzModal(){
+    const overlay = document.getElementById("beinvtQzOverlay");
+    if (!overlay) return;
+    removeQzLabelTemplateField(overlay);
+    addQzThresholdHint(overlay);
   }
-  function qzOpen(){ const o = qzModal(); o.classList.add("open"); const s = qzSettings(), size = qzSelectedSize(s); qzStatus("Ready. Printer default: " + QZ_DEFAULT_PRINTER + "\nMode: raw TPCL raster image via SG graphics.\nSize: " + size.widthIn + "in x " + size.heightIn + "in\nSensor: " + qzSensorName(s.sensor) + "\nDPI: " + QZ_IMAGE_DPI + "\nTry Feed / Sensor Test first, then Send Raw Image Test."); }
-  function qzClose(){ const o = byId("beinvtQzOverlay"); if (o) o.classList.remove("open"); }
-  function loadScriptOnce(url, attrName, globalName){ if (globalName && window[globalName]) return Promise.resolve(window[globalName]); const selector = `script[${attrName}="1"]`; const existing = document.querySelector(selector); if (existing && existing.dataset.loaded === "1") return Promise.resolve(globalName ? window[globalName] : true); return new Promise((resolve, reject) => { const script = existing || document.createElement("script"); script.src = url; script.async = true; script.setAttribute(attrName, "1"); script.onload = () => { script.dataset.loaded = "1"; resolve(globalName ? window[globalName] : true); }; script.onerror = () => reject(new Error("Could not load " + url)); if (!existing) document.head.appendChild(script); }); }
-  async function qzLoad(){ await loadScriptOnce(QZ_SCRIPT_URL, "data-beinvt-qz-tray", "qz"); if (!window.qz) throw new Error("QZ Tray library loaded, but window.qz was not found."); return window.qz; }
-  async function html2canvasLoad(){ await loadScriptOnce(HTML2CANVAS_URL, "data-beinvt-html2canvas", "html2canvas"); if (!window.html2canvas) throw new Error("html2canvas loaded, but window.html2canvas was not found."); return window.html2canvas; }
-  async function qzConnect(){ await qzLoad(); if (qz.websocket && qz.websocket.isActive && qz.websocket.isActive()) return; await qz.websocket.connect({ retries: 3, delay: 1 }); }
-  async function qzList(){ try { qzSetBusy(true); qzStatus("Connecting to QZ Tray..."); await qzConnect(); const printers = await qz.printers.find(); const s = qzReadModal(false); const match = printers.find(p => String(p).toLowerCase() === String(s.printerName).toLowerCase()); qzStatus(`Connected to QZ Tray ${qz.version || ""}.\n\nPrinters found:\n${printers.map(p=>"- "+p).join("\n") || "(none returned)"}\n\nSelected printer ${match ? "matched" : "not found exactly"}: ${s.printerName}`); } catch(e) { qzStatus("QZ connect/list failed:\n" + (e && e.message ? e.message : e)); } finally { qzSetBusy(false); } }
 
-  const qzIssueCommand = (qty, s) => `${ESC}XS; I, ${qzPad(qzInt(qty,1,9999,1),4)}, 000${qzInt(s&&s.sensor,0,4,2)}C${qzInt(s&&s.speed,1,9,3)}200${END}`;
-  const qzFeedCommand = s => `${ESC}T${qzInt(s&&s.sensor,0,4,2)}0C${qzInt(s&&s.speed,1,9,3)}0${END}`;
-  const qzLabelSizeCommand = size => `${ESC}D${qzPad(qzInToMm10(size.heightIn),4)}, ${qzPad(qzInToMm10(size.widthIn),4)}, ${qzPad(qzInToMm10(size.heightIn),4)}${END}`;
-  function qzDensityCommand(darkness){ const n = qzInt(darkness, -10, 10, 0); return `${ESC}AY; ${n >= 0 ? "+" : "-"}${qzPad(Math.abs(n),2)}, 0${END}`; }
-  function bytesToBase64(bytes){ let out = ""; const chunk = 0x8000; for (let i=0; i<bytes.length; i+=chunk) out += String.fromCharCode.apply(null, bytes.subarray(i, i+chunk)); return btoa(out); }
-  function stringToBytes(str){ const bytes = new Uint8Array(str.length); for (let i=0; i<str.length; i++) bytes[i] = str.charCodeAt(i) & 255; return bytes; }
-  async function qzSendRawCommandString(command, settings, label){ await qzConnect(); const cfg = qz.configs.create(settings.printerName || QZ_DEFAULT_PRINTER, { forceRaw: true, jobName: label || "BEINVT TPCL Raw Image", encoding: "ISO-8859-1" }); await qz.print(cfg, [{ type: "raw", format: "command", flavor: "base64", data: bytesToBase64(stringToBytes(command)) }]); }
-  async function qzFeedTest(){ const s = qzReadModal(true), size = qzSelectedSize(s); try { qzSetBusy(true); qzStatus("Sending sensor feed command...\nSensor: " + qzSensorName(s.sensor) + "\nSize: " + size.widthIn + "in x " + size.heightIn + "in"); await qzSendRawCommandString(qzLabelSizeCommand(size) + `${ESC}C${END}` + qzFeedCommand(s), s, "BEINVT Sensor Feed Test"); qzStatus("Feed / Sensor Test sent. If it stops at the next hole/gap, keep this sensor. If it keeps feeding or errors, try Reflective or Continuous."); } catch(e) { qzStatus("Feed / Sensor Test failed:\n" + (e && e.message ? e.message : e)); } finally { qzSetBusy(false); } }
+  function injectCleanupCss(){
+    if (document.getElementById("beinvtQzCleanupCssV8649")) return;
+    const style = document.createElement("style");
+    style.id = "beinvtQzCleanupCssV8649";
+    style.textContent = ".beinvtQzThresholdHint{margin-top:4px;font-size:11px;line-height:1.25;color:#94a3b8}.beinvt-theme-light .beinvtQzThresholdHint{color:#64748b}";
+    document.head.appendChild(style);
+  }
 
-  function qzPreparePrintLayout(row){ try { if (qzCurrentType() === "POT" && typeof applyPotAutoStack === "function") applyPotAutoStack(); } catch(e) {} try { if (typeof isWrapLikeMode === "function" && isWrapLikeMode(qzCurrentType())) { if (typeof applyWrapDataAwareStack === "function") applyWrapDataAwareStack(row); if (typeof enforceWrapQrTextClearance === "function") enforceWrapQrTextClearance(row); } } catch(e) {} try { if (typeof autoFitAllText === "function") autoFitAllText(); } catch(e) {} }
-  function qzPageHtmlForCurrentType(row){ qzPreparePrintLayout(row); const s = labelSizeInches(qzCurrentType()), b = sizePx(qzCurrentType()), page = renderPrintPage(row); return { size: qzClone(s), px: qzClone(b), html: `<!doctype html><html><head><meta charset="utf-8"><style>@page{size:${s.widthIn}in ${s.heightIn}in;margin:0}html,body{margin:0;padding:0;background:#fff}.page{position:relative;width:${b.w}px;height:${b.h}px;overflow:hidden;background:#fff;color:#000;box-sizing:border-box}*{box-sizing:border-box}</style></head><body>${page}</body></html>` }; }
-  async function qzInlineImages(root){ const imgs = Array.from(root.querySelectorAll("img")), warnings = []; await Promise.all(imgs.map(async img => { const src = img.getAttribute("src") || ""; if (!src || /^data:/i.test(src)) return; try { const res = await fetch(src, { mode: "cors", credentials: "omit", cache: "force-cache" }); if (!res.ok) throw new Error("HTTP " + res.status); const blob = await res.blob(); const dataUrl = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result || "")); reader.onerror = reject; reader.readAsDataURL(blob); }); if (dataUrl) img.setAttribute("src", dataUrl); } catch(e) { warnings.push(src); try { img.crossOrigin = "anonymous"; } catch(_) {} } })); return warnings; }
-  async function qzWaitForImages(root, timeoutMs){ const imgs = Array.from(root.querySelectorAll("img")); await Promise.all(imgs.map(img => new Promise(resolve => { if (img.complete) return resolve(); const done = () => resolve(); img.onload = done; img.onerror = done; setTimeout(done, timeoutMs || 2500); }))); }
-  async function qzRenderPageToCanvas(pageInfo){ const html2canvas = await html2canvasLoad(); const host = document.createElement("div"); host.style.cssText = "position:fixed;left:-100000px;top:0;width:" + pageInfo.px.w + "px;height:" + pageInfo.px.h + "px;overflow:hidden;background:#fff;z-index:-1;opacity:1;pointer-events:none;"; host.innerHTML = pageInfo.html; document.body.appendChild(host); try { const page = host.querySelector(".page") || host.firstElementChild; if (!page) throw new Error("Could not find rendered label page."); page.style.cssText += `;position:relative;width:${pageInfo.px.w}px;height:${pageInfo.px.h}px;overflow:hidden;background:#fff;color:#000`; const warnings = await qzInlineImages(page); await qzWaitForImages(page, 3500); if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch(e) {} } const canvas = await html2canvas(page, { backgroundColor: "#ffffff", scale: QZ_IMAGE_DPI / INCH, useCORS: true, allowTaint: false, logging: false, width: pageInfo.px.w, height: pageInfo.px.h, scrollX: 0, scrollY: 0, windowWidth: Math.max(document.documentElement.clientWidth || 0, pageInfo.px.w + 20), windowHeight: Math.max(document.documentElement.clientHeight || 0, pageInfo.px.h + 20) }); return { canvas, warnings }; } finally { host.remove(); } }
-  async function qzWithType(type, size, fn){ const oldType = labelType, oldLayout = layout, oldSelected = selectedId, oldSize = size ? labelSizeInches(type) : null; try { if (size) saveLabelSizeInches(type, size); labelType = type; selectedId = defaultSelectedId(type); layout = loadWorkingLayout(type); layout.labelSize = labelSizeInches(type); if (typeof isWrapLikeMode === "function" && isWrapLikeMode(type) && typeof rebalanceWrapLikeQrLayout === "function") rebalanceWrapLikeQrLayout(layout, type); return await fn(); } finally { if (oldSize) saveLabelSizeInches(type, oldSize); labelType = oldType; layout = oldLayout; selectedId = oldSelected; } }
-  async function qzBuildCanvasForRow(row, type, size){ return qzWithType(type, size, async () => { const pageInfo = qzPageHtmlForCurrentType(row); const rendered = await qzRenderPageToCanvas(pageInfo); return { canvas: rendered.canvas, size: pageInfo.size, warnings: rendered.warnings || [] }; }); }
-
-  function qzCanvasToTpclCommand(canvas, size, settings, copies){
-    const w = canvas.width, h = canvas.height, threshold = qzInt(settings && settings.threshold, 40, 240, 170), ctx = canvas.getContext("2d", { willReadFrequently: true }), data = ctx.getImageData(0,0,w,h).data, bytesPerRow = Math.ceil(w/8), stripHeight = 48;
-    let out = qzLabelSizeCommand(size) + qzDensityCommand(settings && settings.darkness) + `${ESC}C${END}`;
-    for (let y0=0; y0<h; y0+=stripHeight) {
-      const sh = Math.min(stripHeight, h-y0); let hex = "";
-      for (let y=0; y<sh; y++) { const yy = y0 + y; for (let bx=0; bx<bytesPerRow; bx++) { let b = 0; for (let bit=0; bit<8; bit++) { const x = bx*8 + bit; if (x >= w) continue; const i = (yy*w+x)*4, r=data[i], g=data[i+1], bl=data[i+2], a=data[i+3], lum = 0.299*r + 0.587*g + 0.114*bl; if (a > 20 && lum < threshold) b |= (0x80 >> bit); } hex += b.toString(16).padStart(2,"0").toUpperCase(); } }
-      out += `${ESC}SG; 0000D, ${qzPad(y0,4)}D, ${qzPad(w,4)}, ${qzPad(sh,4)}, 1, ${hex}${END}`;
+  injectCleanupCss();
+  document.addEventListener("click", ev => {
+    const target = ev.target;
+    if (target && (target.id === "printWithQz" || target.closest && target.closest("#printWithQz"))) {
+      setTimeout(cleanupQzModal, 0);
+      setTimeout(cleanupQzModal, 50);
+      setTimeout(cleanupQzModal, 250);
     }
-    out += qzIssueCommand(copies, settings);
-    return out;
-  }
-  function qzBuildTestCanvas(size){ const w = Math.max(1, Math.round(Number(size.widthIn || 1) * QZ_IMAGE_DPI)), h = Math.max(1, Math.round(Number(size.heightIn || 1) * QZ_IMAGE_DPI)), canvas = document.createElement("canvas"), ctx = canvas.getContext("2d"); canvas.width = w; canvas.height = h; ctx.fillStyle = "#fff"; ctx.fillRect(0,0,w,h); ctx.strokeStyle = "#000"; ctx.lineWidth = Math.max(4, Math.round(QZ_IMAGE_DPI/45)); ctx.strokeRect(ctx.lineWidth, ctx.lineWidth, w - ctx.lineWidth*2, h - ctx.lineWidth*2); ctx.beginPath(); ctx.moveTo(w*.08,h*.18); ctx.lineTo(w*.92,h*.18); ctx.moveTo(w*.08,h*.82); ctx.lineTo(w*.92,h*.82); ctx.stroke(); ctx.fillStyle = "#000"; ctx.font = `bold ${Math.max(18, Math.round(Math.min(w,h)*.13))}px Arial, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("QZ TPCL IMAGE TEST", w/2, h*.40); ctx.font = `${Math.max(12, Math.round(Math.min(w,h)*.07))}px Arial, sans-serif`; ctx.fillText(`${size.widthIn}in x ${size.heightIn}in @ ${QZ_IMAGE_DPI}dpi`, w/2, h*.58); ctx.fillText(new Date().toLocaleString(), w/2, h*.70); return canvas; }
-  function qzPixelConfig(settings, size, copies, jobName){ return qz.configs.create(settings.printerName || QZ_DEFAULT_PRINTER, { units: "in", size: { width: Number(size.widthIn || 1), height: Number(size.heightIn || 1) }, margins: 0, copies: Math.max(1, qzInt(copies,1,9999,1)), colorType: "grayscale", interpolation: "nearest-neighbor", density: String(QZ_IMAGE_DPI), scaleContent: true, jobName: jobName || "BEINVT QZ Pixel Image" }); }
-  async function qzSendCanvas(canvas, size, settings, copies, label){ await qzConnect(); if (settings.engine === "pixel") { const base64 = canvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, ""); await qz.print(qzPixelConfig(settings,size,copies,label), [{ type: "pixel", format: "image", flavor: "base64", data: base64 }]); return { engine: "pixel", commandChars: base64.length }; } const command = qzCanvasToTpclCommand(canvas, size, settings, copies); await qzSendRawCommandString(command, settings, label); return { engine: "raw-tpcl-image", commandChars: command.length }; }
-  async function qzTest(){ const s = qzReadModal(true), size = qzSelectedSize(s); try { qzSetBusy(true); qzStatus("Building raw TPCL image test...\nSensor: " + qzSensorName(s.sensor) + "\nSize: " + size.widthIn + "in x " + size.heightIn + "in"); const sent = await qzSendCanvas(qzBuildTestCanvas(size), size, s, 1, "BEINVT QZ Raw TPCL Image Test"); qzStatus(`Raw image test sent.\nPrinter: ${s.printerName}\nEngine: ${sent.engine}\nSize: ${size.widthIn}in x ${size.heightIn}in\nSensor: ${qzSensorName(s.sensor)}\nDPI: ${QZ_IMAGE_DPI}\nData chars: ${sent.commandChars}`); } catch(e) { qzStatus("Raw image test failed:\n" + (e && e.message ? e.message : e)); } finally { qzSetBusy(false); } }
-  async function qzPrintItems(items, settings, label){ const mult = qzInt(settings.quantity,1,9999,1), modalType = settings.labelType || "CURRENT", modalSize = qzSelectedSize(settings); let printed = 0, imageWarnings = 0; const list = (items || []).slice(); for (let idx=0; idx<list.length; idx++) { const item = list[idx] || {}, row = qzClone(item.row || currentRow()), type = modalType === "CURRENT" ? (item.importType || item.labelType || qzCurrentType()) : qzSelectedType(settings), size = modalType === "CURRENT" ? (item.importSize || item.labelSize || modalSize) : modalSize, baseQty = qzInt(item.qty || row.labelsNeeded || row.quantity || 1,1,9999,1), copies = Math.min(9999, Math.max(1, baseQty * mult)); qzStatus(`Rendering label ${idx+1} of ${list.length} as image...\nCopies: ${copies}\nTemplate: ${qzTypeLabel(type)}\nSize: ${size.widthIn}in x ${size.heightIn}in\nSensor: ${qzSensorName(settings.sensor)}`); const img = await qzBuildCanvasForRow(row, type, size); imageWarnings += (img.warnings || []).length; qzStatus(`Sending label ${idx+1} of ${list.length} to QZ...\nEngine: ${settings.engine === "pixel" ? "QZ pixel PNG" : "Raw TPCL SG image"}\nCopies: ${copies}`); const sent = await qzSendCanvas(img.canvas, img.size, settings, copies, `${label || "BEINVT Label"} ${idx+1}`); printed += copies; qzStatus(`Sent label ${idx+1} of ${list.length}.\nEngine: ${sent.engine}\nData chars: ${sent.commandChars}\nExternal image warnings so far: ${imageWarnings}`); } qzStatus(`${label || "Labels"} sent to QZ.\nPrinter: ${settings.printerName}\nTotal labels requested: ${printed}\nEngine: ${settings.engine === "pixel" ? "QZ pixel PNG" : "Raw TPCL SG image"}\nSensor: ${qzSensorName(settings.sensor)}\nSpeed: ${settings.speed} ips\nDarkness: ${settings.darkness}\nExternal image inline warnings: ${imageWarnings}`); }
-  async function qzPrintCurrent(){ const s = qzReadModal(true); try { qzSetBusy(true); await qzPrintItems([{ row: currentRow(), qty: 1, labelType: qzSelectedType(s), labelSize: qzSelectedSize(s) }], s, "Current label QZ image print"); } catch(e) { qzStatus("Print Current failed:\n" + (e && e.message ? e.message : e)); } finally { qzSetBusy(false); } }
-  async function qzPrintQueue(){ const s = qzReadModal(true); try { qzSetBusy(true); if (!queue.length) { qzStatus("Queue is empty."); return; } await qzPrintItems(queue, s, "Queue QZ image print"); } catch(e) { qzStatus("Print Queue failed:\n" + (e && e.message ? e.message : e)); } finally { qzSetBusy(false); } }
-  function qzPatchButton(){ const b = byId("printWithQz"); if (!b) return; b.textContent = "Print with QZ"; b.title = "Open QZ Tray TEC raw-image print settings"; b.onclick = qzOpen; }
-  const prevRenderAllQzRawTpclImageV8649 = renderAll;
-  renderAll = function(){ prevRenderAllQzRawTpclImageV8649(); qzPatchButton(); };
-  window.BEINVT_QZ = { version: "8.6.49_qz_raw_tpcl_image", open: qzOpen, connect: qzConnect, listPrinters: qzList, feedTest: qzFeedTest, testPrint: qzTest, printCurrent: qzPrintCurrent, printQueue: qzPrintQueue, defaultPrinter: QZ_DEFAULT_PRINTER, imageDpi: QZ_IMAGE_DPI };
-  setTimeout(qzPatchButton, 0);
+  }, true);
+
+  const observer = new MutationObserver(() => cleanupQzModal());
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  setTimeout(cleanupQzModal, 0);
 })();
