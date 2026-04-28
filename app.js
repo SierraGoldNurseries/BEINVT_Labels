@@ -3880,6 +3880,9 @@ function fits(el) {
   return el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= el.clientHeight + 1;
 }
 function autoFitPotText() {
+  // v8.6.48: Auto-fit is now display-only. It may temporarily shrink the visible
+  // text so it does not overflow, but it never writes back to layout.objects[id].fontSize.
+  // This keeps manually resized label fonts from snapping back after render/row change/print.
   for (const id of ["WO", "ITEM", "WEEK"]) {
     const obj = document.querySelector(`.obj[data-id="${id}"]`);
     const inner = obj && obj.querySelector(".inner");
@@ -3896,18 +3899,33 @@ function autoFitPotText() {
       inner.style.overflowWrap = "normal";
       inner.style.whiteSpace = "normal";
     }
-    let lo = 5, hi = id === "ITEM" ? 96 : 48, best = lo;
-    while (lo <= hi) {
-      const mid = Math.floor((lo + hi) / 2);
+
+    const saved = Number(o.fontSize || (id === "ITEM" ? 30 : (id === "WEEK" ? 18 : 16)));
+    const hi = Math.max(1, Math.min(saved, id === "ITEM" ? 96 : 48));
+    let lo = 5;
+    let low = lo;
+    let high = Math.floor(hi);
+    let best = Math.max(lo, Math.floor(hi));
+
+    inner.style.fontSize = hi + "px";
+    if (fits(inner)) {
+      inner.style.fontSize = hi + "px";
+      continue;
+    }
+
+    best = lo;
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
       inner.style.fontSize = mid + "px";
-      if (fits(inner)) { best = mid; lo = mid + 1; }
-      else hi = mid - 1;
+      if (fits(inner)) { best = mid; low = mid + 1; }
+      else high = mid - 1;
     }
     inner.style.fontSize = best + "px";
-    o.fontSize = best;
   }
 }
 function autoFitWrapText() {
+  // v8.6.48: Use the user's saved font size as the maximum and only shrink the
+  // rendered DOM when needed. Do not overwrite o.fontSize.
   const ranges = {
     WO: [16, 5], CROP: [11, 4.2], INTERNAL: [11, 4.2],
     SCION: [30, 3.2], ROOTSTOCK: [30, 3.2],
@@ -3919,13 +3937,21 @@ function autoFitWrapText() {
     const o = layout.objects[id];
     if (!obj || !inner || !o) continue;
     if (!inner.textContent.trim() && id !== "ADDRESS" && id !== "WARNING") continue;
-    let hi = range[0], lo = range[1], best = lo;
+
+    const saved = Number(o.fontSize || range[0]);
+    const hi = Math.max(range[1], Math.min(saved, range[0]));
+    const lo = range[1];
+    let best = hi;
+
+    inner.style.fontSize = hi.toFixed(1) + "px";
+    if (fits(inner)) continue;
+
+    best = lo;
     for (let fs = hi; fs >= lo; fs -= 0.2) {
       inner.style.fontSize = fs.toFixed(1) + "px";
       if (fits(inner)) { best = fs; break; }
     }
     inner.style.fontSize = best.toFixed(1) + "px";
-    o.fontSize = Number(best.toFixed(1));
   }
 }
 
@@ -4127,7 +4153,10 @@ function applyControls() {
   }
   if (!isImageObject(selectedId)) {
     const fs = Number($("fontSize") && $("fontSize").value);
-    if (Number.isFinite(fs) && fs > 0) o.fontSize = fs;
+    if (Number.isFinite(fs) && fs > 0) {
+      o.fontSize = fs;
+      o.manualFontSize = true;
+    }
     o.fontFamily = "Times New Roman";
   }
   if ($("safeMargin")) layout.safeMarginPx = Number($("safeMargin").value || 0);
@@ -4380,6 +4409,17 @@ function initEvents() {
     if (inp) {
       inp.onchange = applyControls;
       inp.onkeydown = ev => { if (ev.key === "Enter") applyControls(); };
+      if (id === "fontSize") {
+        inp.oninput = ev => {
+          if (!layout || !layout.objects || !layout.objects[selectedId] || isImageObject(selectedId)) return;
+          const fs = Number(ev.target.value);
+          if (!Number.isFinite(fs) || fs <= 0) return;
+          layout.objects[selectedId].fontSize = fs;
+          layout.objects[selectedId].manualFontSize = true;
+          saveWorkingLayout();
+          renderCanvas();
+        };
+      }
     }
   }
   if ($("savePreset")) $("savePreset").onclick = savePreset;
