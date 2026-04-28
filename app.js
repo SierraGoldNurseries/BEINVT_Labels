@@ -6042,3 +6042,388 @@ boot();
   observer.observe(document.documentElement, { childList: true, subtree: true });
   setTimeout(cleanup, 0);
 })();
+
+/* --------------------------------------------------------------------------
+   v8.6.51 QZ driver-safe preview print override.
+   Purpose: avoid TPCL/media setup commands that can reset the TEC printer's
+   calibrated gap/notch sensor and cause "NO LABEL". QZ now defaults to using
+   the Windows printer driver/printer saved media settings, like normal print.
+   Existing Chrome print buttons remain unchanged.
+   -------------------------------------------------------------------------- */
+(function installQzDriverSafePreviewModeV8651(){
+  const QZ_DEFAULT_PRINTER = "\\\\sgnfs01\\TEC B-ONE";
+  const QZ_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/qz-tray@2.2.6/qz-tray.js";
+  const QZ_SETTINGS_KEY = "beinvtQzDriverSafeSettings_v8651";
+  const OLD_QZ_KEYS = [
+    "beinvtQzTpclSettings_v8647",
+    "beinvtQzRawTpclImageSettings_v8649"
+  ];
+
+  const byId = id => document.getElementById(id);
+  const escHtml = v => typeof escapeHtml === "function"
+    ? escapeHtml(v)
+    : String(v == null ? "" : v).replace(/[&<>\"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+  const clean = v => typeof cleanDisplay === "function" ? cleanDisplay(v) : String(v == null ? "" : v).trim();
+  const cloneSafe = v => typeof clone === "function" ? clone(v) : JSON.parse(JSON.stringify(v));
+
+  function intVal(v, min, max, fb){
+    const n = parseInt(String(v == null ? "" : v).replace(/[^0-9\-]/g, ""), 10);
+    return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fb;
+  }
+
+  function defaults(){
+    return {
+      printerName: QZ_DEFAULT_PRINTER,
+      quantity: "1",
+      sensor: "driver",
+      threshold: "driver",
+      useDriverSavedSettings: true,
+      allowSetupCommands: false
+    };
+  }
+
+  function readSettings(){
+    let s = {};
+    try { s = JSON.parse(localStorage.getItem(QZ_SETTINGS_KEY) || "{}") || {}; } catch(e) { s = {}; }
+    return Object.assign(defaults(), s || {});
+  }
+
+  function saveSettings(patch){
+    try {
+      const next = Object.assign(readSettings(), patch || {});
+      localStorage.setItem(QZ_SETTINGS_KEY, JSON.stringify(next));
+    } catch(e) {}
+  }
+
+  function clearOldQzSettings(){
+    try { OLD_QZ_KEYS.forEach(k => localStorage.removeItem(k)); } catch(e) {}
+  }
+
+  function qzStatus(msg){
+    const el = byId("beinvtQzStatus");
+    if (el) el.textContent = String(msg || "");
+  }
+
+  function setBusy(isBusy){
+    ["beinvtQzConnect","beinvtQzTest","beinvtQzPrintCurrent","beinvtQzPrintQueue","beinvtQzClearSettings"].forEach(id => {
+      const el = byId(id);
+      if (el) el.disabled = !!isBusy;
+    });
+  }
+
+  function css(){
+    let style = byId("beinvtQzDriverSafeCssV8651");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "beinvtQzDriverSafeCssV8651";
+      document.head.appendChild(style);
+    }
+    style.textContent = `.beinvtQzOverlay{position:fixed;inset:0;background:rgba(3,7,18,.62);backdrop-filter:blur(7px);z-index:99999;display:none;align-items:center;justify-content:center;padding:18px}.beinvtQzOverlay.open{display:flex}.beinvtQzModal{width:min(620px,96vw);max-height:92vh;overflow:auto;border:1px solid rgba(148,163,184,.35);border-radius:22px;background:#111827;color:#e5e7eb;box-shadow:0 24px 80px rgba(0,0,0,.45);padding:18px}.beinvtQzHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.beinvtQzTitle{font-size:18px;font-weight:950}.beinvtQzSub{font-size:12px;color:#9ca3af;margin-top:3px;line-height:1.35}.beinvtQzClose{border:1px solid rgba(148,163,184,.35);background:rgba(255,255,255,.06);color:#e5e7eb;border-radius:12px;padding:7px 10px;cursor:pointer}.beinvtQzGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.beinvtQzGrid .full{grid-column:1/-1}.beinvtQzModal label{display:block;font-size:12px;font-weight:800;color:#cbd5e1;margin:0 0 5px}.beinvtQzModal input,.beinvtQzModal select{width:100%;border:1px solid rgba(148,163,184,.35);border-radius:12px;background:#0b1220;color:#e5e7eb;padding:10px 11px;font-size:14px;outline:none}.beinvtQzHint{font-size:11px;line-height:1.35;color:#94a3b8;margin-top:4px}.beinvtQzCheck{display:flex;align-items:flex-start;gap:8px;border:1px solid rgba(148,163,184,.22);background:rgba(255,255,255,.035);padding:10px;border-radius:14px}.beinvtQzCheck input{width:auto;margin-top:2px}.beinvtQzCheck span{font-size:12px;line-height:1.35;color:#cbd5e1}.beinvtQzActions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.beinvtQzActions button{border:1px solid rgba(148,163,184,.35);border-radius:14px;background:#1f2937;color:#f8fafc;padding:10px 12px;font-weight:900;cursor:pointer}.beinvtQzActions button.primary{background:#2563eb;border-color:#60a5fa}.beinvtQzActions button.good{background:#15803d;border-color:#4ade80}.beinvtQzActions button.warn{background:#92400e;border-color:#f59e0b}.beinvtQzActions button:disabled{opacity:.55;cursor:wait}.beinvtQzStatus{margin-top:12px;border-radius:14px;background:#0b1220;border:1px solid rgba(148,163,184,.25);padding:10px;white-space:pre-wrap;font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#d1d5db;max-height:210px;overflow:auto}body.beinvt-theme-light .beinvtQzModal{background:#fff;color:#111827}body.beinvt-theme-light .beinvtQzSub,body.beinvt-theme-light .beinvtQzHint{color:#64748b}body.beinvt-theme-light .beinvtQzModal label{color:#334155}body.beinvt-theme-light .beinvtQzModal input,body.beinvt-theme-light .beinvtQzModal select,body.beinvt-theme-light .beinvtQzStatus{background:#f8fafc;color:#111827;border-color:#cbd5e1}body.beinvt-theme-light .beinvtQzCheck{background:#f8fafc;border-color:#cbd5e1}body.beinvt-theme-light .beinvtQzCheck span{color:#334155}body.beinvt-theme-light .beinvtQzClose,body.beinvt-theme-light .beinvtQzActions button{background:#e5e7eb;color:#111827;border-color:#cbd5e1}body.beinvt-theme-light .beinvtQzActions button.primary{background:#2563eb;color:#fff}body.beinvt-theme-light .beinvtQzActions button.good{background:#15803d;color:#fff}body.beinvt-theme-light .beinvtQzActions button.warn{background:#b45309;color:#fff}`;
+  }
+
+  function modal(){
+    css();
+    const old = byId("beinvtQzOverlay");
+    if (old) old.remove();
+
+    const s = readSettings();
+    const overlay = document.createElement("div");
+    overlay.id = "beinvtQzOverlay";
+    overlay.className = "beinvtQzOverlay";
+    overlay.dataset.beinvtQzMode = "driver-safe-v8651";
+    overlay.innerHTML = `<div class="beinvtQzModal" role="dialog" aria-modal="true">
+      <div class="beinvtQzHead">
+        <div>
+          <div class="beinvtQzTitle">Print with QZ - Driver Safe</div>
+          <div class="beinvtQzSub">Uses the Windows printer driver and the printer's saved/calibrated media settings. No TPCL label-size, speed, darkness, sensor, or threshold commands are sent by default.</div>
+        </div>
+        <button type="button" class="beinvtQzClose" id="beinvtQzClose">Close</button>
+      </div>
+      <div class="beinvtQzGrid">
+        <div class="full">
+          <label>Printer name</label>
+          <input id="beinvtQzPrinter" value="${escHtml(s.printerName || QZ_DEFAULT_PRINTER)}" spellcheck="false">
+        </div>
+        <div>
+          <label>Quantity</label>
+          <input id="beinvtQzQuantity" type="number" min="1" max="9999" step="1" value="${escHtml(s.quantity || "1")}">
+          <div class="beinvtQzHint">This multiplies each label's own quantity.</div>
+        </div>
+        <div>
+          <label>Sensor</label>
+          <select id="beinvtQzSensor">
+            <option value="driver"${s.sensor === "driver" ? " selected" : ""}>Use printer/driver saved sensor</option>
+            <option value="transmissive"${s.sensor === "transmissive" ? " selected" : ""}>Transmissive / Gap, notch, hole</option>
+            <option value="reflective"${s.sensor === "reflective" ? " selected" : ""}>Reflective / Black mark</option>
+            <option value="continuous"${s.sensor === "continuous" ? " selected" : ""}>Continuous / No sensor</option>
+          </select>
+          <div class="beinvtQzHint">Default is safest. For your orange hole stock, the physical printer/driver should be Transmissive.</div>
+        </div>
+        <div>
+          <label>Threshold</label>
+          <select id="beinvtQzThreshold">
+            <option value="driver"${s.threshold === "driver" ? " selected" : ""}>Use printer/driver saved threshold</option>
+            <option value="auto"${s.threshold === "auto" ? " selected" : ""}>Auto / Default</option>
+            <option value="1"${s.threshold === "1" ? " selected" : ""}>1 - very light</option>
+            <option value="2"${s.threshold === "2" ? " selected" : ""}>2</option>
+            <option value="3"${s.threshold === "3" ? " selected" : ""}>3</option>
+            <option value="4"${s.threshold === "4" ? " selected" : ""}>4</option>
+            <option value="5"${s.threshold === "5" ? " selected" : ""}>5 - middle</option>
+            <option value="6"${s.threshold === "6" ? " selected" : ""}>6</option>
+            <option value="7"${s.threshold === "7" ? " selected" : ""}>7</option>
+            <option value="8"${s.threshold === "8" ? " selected" : ""}>8</option>
+            <option value="9"${s.threshold === "9" ? " selected" : ""}>9 - very dark</option>
+          </select>
+          <div class="beinvtQzHint">Sensor cutoff only. Leave saved/default unless the printer itself is recalibrated.</div>
+        </div>
+        <div class="full beinvtQzCheck">
+          <input id="beinvtQzUseDriverSaved" type="checkbox"${s.useDriverSavedSettings !== false ? " checked" : ""}>
+          <span><b>Use printer/driver saved media settings</b><br>This prevents QZ from changing label size, darkness, speed, sensor, or threshold. This is recommended because the printer says "NO LABEL" when commands override its calibration.</span>
+        </div>
+      </div>
+      <div class="beinvtQzActions">
+        <button type="button" id="beinvtQzConnect">Connect + List Printers</button>
+        <button type="button" id="beinvtQzClearSettings" class="warn">Clear old QZ settings</button>
+        <button type="button" id="beinvtQzTest">Send Driver Test</button>
+        <button type="button" class="primary" id="beinvtQzPrintCurrent">Print Current</button>
+        <button type="button" class="good" id="beinvtQzPrintQueue">Print Queue</button>
+      </div>
+      <div class="beinvtQzStatus" id="beinvtQzStatus">Ready.</div>
+    </div>`;
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener("click", ev => { if (ev.target === overlay) close(); });
+    byId("beinvtQzClose").onclick = close;
+    byId("beinvtQzConnect").onclick = listPrinters;
+    byId("beinvtQzClearSettings").onclick = () => {
+      clearOldQzSettings();
+      saveSettings({ sensor: "driver", threshold: "driver", useDriverSavedSettings: true });
+      qzStatus("Old QZ TPCL/raw settings cleared. This popup now uses driver-safe mode. Close and reopen Print with QZ if you want to confirm the fields reset.");
+    };
+    byId("beinvtQzTest").onclick = testPrint;
+    byId("beinvtQzPrintCurrent").onclick = printCurrent;
+    byId("beinvtQzPrintQueue").onclick = printQueueItems;
+
+    ["beinvtQzPrinter","beinvtQzQuantity","beinvtQzSensor","beinvtQzThreshold","beinvtQzUseDriverSaved"].forEach(id => {
+      const el = byId(id);
+      if (!el) return;
+      el.addEventListener("change", () => saveSettings(readModal()));
+      el.addEventListener("input", () => saveSettings(readModal()));
+    });
+    return overlay;
+  }
+
+  function readModal(){
+    const s = {
+      printerName: clean(byId("beinvtQzPrinter") && byId("beinvtQzPrinter").value) || QZ_DEFAULT_PRINTER,
+      quantity: String(intVal(byId("beinvtQzQuantity") && byId("beinvtQzQuantity").value, 1, 9999, 1)),
+      sensor: clean(byId("beinvtQzSensor") && byId("beinvtQzSensor").value) || "driver",
+      threshold: clean(byId("beinvtQzThreshold") && byId("beinvtQzThreshold").value) || "driver",
+      useDriverSavedSettings: !!(byId("beinvtQzUseDriverSaved") && byId("beinvtQzUseDriverSaved").checked),
+      allowSetupCommands: false
+    };
+    saveSettings(s);
+    return s;
+  }
+
+  function open(){
+    clearOldQzSettings();
+    modal().classList.add("open");
+    const s = readSettings();
+    qzStatus("Ready. Driver-safe QZ mode is active.\nPrinter: " + (s.printerName || QZ_DEFAULT_PRINTER) + "\nNo TPCL/media setup commands will be sent.\nUse this when normal printing works but QZ causes NO LABEL.\nFor orange hole stock: keep the printer/driver calibrated as Transmissive / Gap, notch, hole.");
+  }
+
+  function close(){
+    const o = byId("beinvtQzOverlay");
+    if (o) o.classList.remove("open");
+  }
+
+  function loadScriptOnce(url, attrName, globalName){
+    if (globalName && window[globalName]) return Promise.resolve(window[globalName]);
+    const selector = `script[${attrName}="1"]`;
+    const existing = document.querySelector(selector);
+    if (existing && existing.dataset.loaded === "1") return Promise.resolve(globalName ? window[globalName] : true);
+    return new Promise((resolve, reject) => {
+      const script = existing || document.createElement("script");
+      script.src = url;
+      script.async = true;
+      script.setAttribute(attrName, "1");
+      script.onload = () => { script.dataset.loaded = "1"; resolve(globalName ? window[globalName] : true); };
+      script.onerror = () => reject(new Error("Could not load " + url));
+      if (!existing) document.head.appendChild(script);
+    });
+  }
+
+  async function qzLoad(){
+    await loadScriptOnce(QZ_SCRIPT_URL, "data-beinvt-qz-tray", "qz");
+    if (!window.qz) throw new Error("QZ Tray library loaded, but window.qz was not found.");
+    return window.qz;
+  }
+
+  async function qzConnect(){
+    await qzLoad();
+    if (qz.websocket && qz.websocket.isActive && qz.websocket.isActive()) return;
+    await qz.websocket.connect({ retries: 3, delay: 1 });
+  }
+
+  async function listPrinters(){
+    try {
+      setBusy(true);
+      qzStatus("Connecting to QZ Tray...");
+      await qzConnect();
+      const printers = await qz.printers.find();
+      const s = readModal();
+      const match = printers.find(p => String(p).toLowerCase() === String(s.printerName).toLowerCase());
+      qzStatus(`Connected to QZ Tray ${qz.version || ""}.\n\nPrinters found:\n${printers.map(p => "- " + p).join("\n") || "(none returned)"}\n\nSelected printer ${match ? "matched" : "not found exactly"}: ${s.printerName}\n\nMode: Driver-safe. QZ will not send TPCL sensor/size commands.`);
+    } catch(e) {
+      qzStatus("QZ connect/list failed:\n" + (e && e.message ? e.message : e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function withLabelContext(type, size, fn){
+    const oldType = labelType;
+    const oldLayout = layout;
+    const oldSelected = selectedId;
+    const oldSize = size ? labelSizeInches(type) : null;
+    try {
+      if (size && typeof saveLabelSizeInches === "function") saveLabelSizeInches(type, size);
+      labelType = type;
+      selectedId = defaultSelectedId(type);
+      layout = loadWorkingLayout(type);
+      layout.labelSize = labelSizeInches(type);
+      if (isWrapLikeMode(type)) rebalanceWrapLikeQrLayout(layout, type);
+      return await fn();
+    } finally {
+      if (oldSize && typeof saveLabelSizeInches === "function") saveLabelSizeInches(type, oldSize);
+      labelType = oldType;
+      layout = oldLayout;
+      selectedId = oldSelected;
+    }
+  }
+
+  function preparePrintLayout(row){
+    if (labelType === "POT") applyPotAutoStack();
+    if (isWrapLikeMode(labelType)) {
+      applyWrapDataAwareStack(row);
+      enforceWrapQrTextClearance(row);
+    }
+    autoFitAllText();
+  }
+
+  function pageHtml(row){
+    preparePrintLayout(row);
+    const s = labelSizeInches(labelType);
+    const b = sizePx(labelType);
+    const page = renderPrintPage(row);
+    return `<!doctype html><html><head><meta charset="utf-8"><style>@page{size:${s.widthIn}in ${s.heightIn}in;margin:0}html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important}.page{position:relative;width:${b.w}px;height:${b.h}px;overflow:hidden;background:#fff;color:#000;box-sizing:border-box;page-break-after:always}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}img{max-width:100%;max-height:100%}</style></head><body>${page}</body></html>`;
+  }
+
+  function testHtml(){
+    let s;
+    try { s = labelSizeInches(labelType); } catch(e) { s = { widthIn: 5, heightIn: 0.75 }; }
+    return `<!doctype html><html><head><meta charset="utf-8"><style>@page{size:${s.widthIn}in ${s.heightIn}in;margin:0}html,body{margin:0;padding:0;background:#fff}.page{width:${s.widthIn}in;height:${s.heightIn}in;border:2px solid #000;box-sizing:border-box;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:Arial,sans-serif;color:#000}.big{font-weight:900;font-size:16px}.small{font-size:9px;margin-top:5px}</style></head><body><div class="page"><div class="big">QZ DRIVER TEST</div><div class="small">Printer/driver saved media settings</div><div class="small">${escHtml(new Date().toLocaleString())}</div></div></body></html>`;
+  }
+
+  function qzConfig(settings, copies, jobName){
+    const opts = {
+      copies: Math.max(1, intVal(copies, 1, 9999, 1)),
+      jobName: jobName || "BEINVT Label"
+    };
+    return qz.configs.create(settings.printerName || QZ_DEFAULT_PRINTER, opts);
+  }
+
+  async function sendHtml(html, settings, copies, jobName){
+    await qzConnect();
+    const cfg = qzConfig(settings, copies, jobName);
+    const data = [{ type: "pixel", format: "html", flavor: "plain", data: html }];
+    await qz.print(cfg, data);
+  }
+
+  async function testPrint(){
+    const s = readModal();
+    try {
+      setBusy(true);
+      qzStatus("Sending driver-safe test. No TPCL/media setup commands are being sent...");
+      await sendHtml(testHtml(), s, 1, "BEINVT QZ Driver Safe Test");
+      qzStatus("Driver-safe test sent.\nIf the printer still says NO LABEL, the Windows printer driver/QZ path is using a different saved stock/sensor than normal Chrome print. Recheck the TEC driver Printing Preferences and sensor calibration, not app label commands.");
+    } catch(e) {
+      qzStatus("Driver-safe test failed:\n" + (e && e.message ? e.message : e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function printItems(items, settings, title){
+    const list = (items || []).slice();
+    const multiplier = intVal(settings.quantity, 1, 9999, 1);
+    let total = 0;
+    for (let i = 0; i < list.length; i++) {
+      const item = list[i] || {};
+      const row = cloneSafe(item.row || currentRow());
+      const type = item.importType || item.labelType || labelType;
+      const size = item.importSize || item.labelSize || null;
+      const baseQty = intVal(item.qty || row.labelsNeeded || row.quantity || 1, 1, 9999, 1);
+      const copies = Math.max(1, Math.min(9999, baseQty * multiplier));
+      qzStatus(`Building label ${i + 1} of ${list.length} for QZ driver-safe print...\nType: ${type}\nCopies: ${copies}\nNo TPCL/media setup commands sent.`);
+      const html = await withLabelContext(type, size, async () => pageHtml(row));
+      await sendHtml(html, settings, copies, `${title || "BEINVT Label"} ${i + 1}`);
+      total += copies;
+    }
+    qzStatus(`${title || "Labels"} sent to QZ.\nPrinter: ${settings.printerName}\nTotal labels requested: ${total}\nMode: Driver-safe HTML through Windows driver\nSensor command: not sent\nThreshold command: not sent\nSpeed/darkness command: not sent`);
+  }
+
+  async function printCurrent(){
+    const s = readModal();
+    try {
+      setBusy(true);
+      await printItems([{ row: currentRow(), qty: 1, labelType }], s, "Current label");
+    } catch(e) {
+      qzStatus("Print Current failed:\n" + (e && e.message ? e.message : e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function printQueueItems(){
+    const s = readModal();
+    try {
+      setBusy(true);
+      if (!queue.length) { qzStatus("Queue is empty."); return; }
+      await printItems(queue, s, "Queue labels");
+    } catch(e) {
+      qzStatus("Print Queue failed:\n" + (e && e.message ? e.message : e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function patchButton(){
+    const b = byId("printWithQz");
+    if (!b) return;
+    b.textContent = "Print with QZ";
+    b.title = "Open QZ Tray driver-safe print settings";
+    b.onclick = open;
+  }
+
+  const prevRenderAll = renderAll;
+  renderAll = function(){
+    prevRenderAll();
+    patchButton();
+  };
+
+  window.BEINVT_QZ = {
+    version: "8.6.51_qz_driver_safe",
+    open,
+    connect: qzConnect,
+    listPrinters,
+    testPrint,
+    printCurrent,
+    printQueue: printQueueItems,
+    clearOldSettings: clearOldQzSettings,
+    defaultPrinter: QZ_DEFAULT_PRINTER
+  };
+
+  setTimeout(patchButton, 0);
+})();
