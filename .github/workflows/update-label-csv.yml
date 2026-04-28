@@ -2,324 +2,133 @@ name: Update BEINVT CSV Files
 
 on:
   workflow_dispatch:
-    inputs:
-      refresh_items:
-        description: "Also refresh BEINVT - Items.csv"
-        required: false
-        default: false
-        type: boolean
 
   schedule:
-    # Labels backup schedule.
-    # cron-job.org can still trigger this workflow every 5 minutes.
-    - cron: "7,22,37,52 * * * *"
+    # Labels CSV every 30 minutes, offset to avoid busy GitHub top-of-hour queue.
+    - cron: "7,37 * * * *"
 
-    # Items update once daily at 11:59 PM Los Angeles time.
-    - cron: "59 23 * * *"
-      timezone: "America/Los_Angeles"
+    # Items CSV once daily.
+    # GitHub cron is UTC. 06:59 UTC = 11:59 PM Pacific during daylight saving time.
+    - cron: "59 6 * * *"
 
 permissions:
   contents: write
 
 concurrency:
-  group: update-beinvt-csv-files
+  group: update-beinvt-csv-files-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   update-csv-files:
+    name: Update BEINVT CSV Files
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      LABELS_CSV_URL: ${{ secrets.NETSUITE_LABELS_CSV_URL }}
+      ITEMS_CSV_URL: ${{ secrets.NETSUITE_ITEMS_CSV_URL }}
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Decide what to refresh
+      - name: Decide which CSV files to update
         id: decide
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          EVENT_SCHEDULE: ${{ github.event.schedule }}
-          INPUT_REFRESH_ITEMS: ${{ github.event.inputs.refresh_items || 'false' }}
+        shell: bash
         run: |
-          echo "Event name: $EVENT_NAME"
-          echo "Schedule: $EVENT_SCHEDULE"
-          echo "Refresh items input: $INPUT_REFRESH_ITEMS"
+          EVENT_NAME="${{ github.event_name }}"
+          SCHEDULE="${{ github.event.schedule }}"
 
-          REFRESH_LABELS="true"
-          REFRESH_ITEMS="false"
+          RUN_LABELS="false"
+          RUN_ITEMS="false"
 
-          # Daily 11:59 PM Los Angeles schedule refreshes Items too.
-          if [ "$EVENT_NAME" = "schedule" ] && [ "$EVENT_SCHEDULE" = "59 23 * * *" ]; then
-            REFRESH_ITEMS="true"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            RUN_LABELS="true"
+            RUN_ITEMS="true"
+          elif [ "$SCHEDULE" = "59 6 * * *" ]; then
+            RUN_LABELS="false"
+            RUN_ITEMS="true"
+          else
+            RUN_LABELS="true"
+            RUN_ITEMS="false"
           fi
 
-          # Manual Run workflow checkbox can force Items refresh.
-          if [ "$INPUT_REFRESH_ITEMS" = "true" ]; then
-            REFRESH_ITEMS="true"
+          echo "run_labels=$RUN_LABELS" >> "$GITHUB_OUTPUT"
+          echo "run_items=$RUN_ITEMS" >> "$GITHUB_OUTPUT"
+
+          echo "Run labels: $RUN_LABELS"
+          echo "Run items:  $RUN_ITEMS"
+
+      - name: Download selected NetSuite CSV files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          download_csv() {
+            local url="$1"
+            local out="$2"
+            local label="$3"
+            local tmp="${out}.tmp"
+
+            if [ -z "$url" ]; then
+              echo "::error::$label URL is empty. Add it as a GitHub secret."
+              exit 1
+            fi
+
+            mkdir -p "$(dirname "$out")"
+
+            echo "Downloading $label..."
+            curl -L --fail --silent --show-error \
+              --retry 3 \
+              --retry-delay 10 \
+              "$url" \
+              -o "$tmp"
+
+            if [ ! -s "$tmp" ]; then
+              echo "::error::$label downloaded as an empty file."
+              rm -f "$tmp"
+              exit 1
+            fi
+
+            if head -c 500 "$tmp" | grep -qiE "<html|<!doctype|login|sign in"; then
+              echo "::error::$label looks like HTML/login page, not CSV."
+              echo "First 500 characters:"
+              head -c 500 "$tmp" || true
+              echo
+              rm -f "$tmp"
+              exit 1
+            fi
+
+            mv "$tmp" "$out"
+            echo "Saved $label to $out"
+          }
+
+          if [ "${{ steps.decide.outputs.run_labels }}" = "true" ]; then
+            download_csv "$LABELS_CSV_URL" "data/labels.csv" "BEINVT Labels CSV"
           fi
 
-          echo "refresh_labels=$REFRESH_LABELS" >> "$GITHUB_OUTPUT"
-          echo "refresh_items=$REFRESH_ITEMS" >> "$GITHUB_OUTPUT"
-
-          echo "Refresh labels: $REFRESH_LABELS"
-          echo "Refresh items: $REFRESH_ITEMS"
-
-      - name: Download NetSuite Labels source
-        if: steps.decide.outputs.refresh_labels == 'true'
-        env:
-          NETSUITE_LABELS_URL: ${{ secrets.NETSUITE_LABELS_URL }}
-        run: |
-          mkdir -p data
-
-          if [ -z "$NETSUITE_LABELS_URL" ]; then
-            echo "ERROR: NETSUITE_LABELS_URL secret is missing."
-            exit 1
-          fi
-
-          curl -L --fail --silent --show-error --retry 3 --retry-delay 5 \
-            "$NETSUITE_LABELS_URL" \
-            -o data/labels_source.html
-
-          test -s data/labels_source.html
-
-          echo "Labels source preview:"
-          head -n 5 data/labels_source.html
-
-      - name: Download NetSuite Items source
-        if: steps.decide.outputs.refresh_items == 'true'
-        env:
-          NETSUITE_ITEMS_URL: ${{ secrets.BEINVT_ITEMS }}
-        run: |
-          mkdir -p data
-
-          if [ -z "$NETSUITE_ITEMS_URL" ]; then
-            echo "ERROR: BEINVT_ITEMS secret is missing."
-            exit 1
-          fi
-
-          curl -L --fail --silent --show-error --retry 3 --retry-delay 5 \
-            "$NETSUITE_ITEMS_URL" \
-            -o data/items_source.raw
-
-          test -s data/items_source.raw
-
-          echo "Items source preview:"
-          head -n 5 data/items_source.raw
-
-      - name: Convert sources to CSV
-        run: |
-          python3 <<'PY'
-          import csv
-          import html
-          import re
-          from html.parser import HTMLParser
-          from pathlib import Path
-
-          class FirstTableParser(HTMLParser):
-              def __init__(self):
-                  super().__init__()
-                  self.in_table = False
-                  self.done_table = False
-                  self.table_depth = 0
-                  self.in_row = False
-                  self.in_cell = False
-                  self.current_cell = []
-                  self.current_row = []
-                  self.rows = []
-
-              def handle_starttag(self, tag, attrs):
-                  tag = tag.lower()
-
-                  if self.done_table:
-                      return
-
-                  if tag == "table":
-                      if not self.in_table:
-                          self.in_table = True
-                          self.table_depth = 1
-                      else:
-                          self.table_depth += 1
-                      return
-
-                  if not self.in_table:
-                      return
-
-                  if tag == "tr":
-                      self.in_row = True
-                      self.current_row = []
-                      return
-
-                  if tag in ("th", "td") and self.in_row:
-                      self.in_cell = True
-                      self.current_cell = []
-                      return
-
-                  if tag == "br" and self.in_cell:
-                      self.current_cell.append(" ")
-
-              def handle_endtag(self, tag):
-                  tag = tag.lower()
-
-                  if self.done_table:
-                      return
-
-                  if tag == "table" and self.in_table:
-                      self.table_depth -= 1
-                      if self.table_depth <= 0:
-                          self.in_table = False
-                          self.done_table = True
-                      return
-
-                  if not self.in_table:
-                      return
-
-                  if tag in ("th", "td") and self.in_cell:
-                      value = "".join(self.current_cell)
-                      value = html.unescape(value)
-                      value = re.sub(r"\s+", " ", value).strip()
-                      self.current_row.append(value)
-                      self.current_cell = []
-                      self.in_cell = False
-                      return
-
-                  if tag == "tr" and self.in_row:
-                      if self.current_row:
-                          self.rows.append(self.current_row)
-                      self.current_row = []
-                      self.in_row = False
-                      return
-
-              def handle_data(self, data):
-                  if self.in_cell:
-                      self.current_cell.append(data)
-
-              def handle_entityref(self, name):
-                  if self.in_cell:
-                      self.current_cell.append(f"&{name};")
-
-              def handle_charref(self, name):
-                  if self.in_cell:
-                      self.current_cell.append(f"&#{name};")
-
-          def looks_like_html(raw):
-              stripped = raw.lstrip()
-              lower = stripped[:1000].lower()
-              return (
-                  lower.startswith("<!doctype")
-                  or lower.startswith("<html")
-                  or "<table" in raw.lower()
-              )
-
-          def convert_source_to_csv(source_file, output_file, required_header=None):
-              source_path = Path(source_file)
-              output_path = Path(output_file)
-
-              if not source_path.exists():
-                  print(f"Skipping {source_file}; source file not present.")
-                  return False
-
-              raw = source_path.read_text(encoding="utf-8", errors="replace")
-
-              if not looks_like_html(raw):
-                  output_path.write_text(raw, encoding="utf-8")
-                  print(f"{output_file}: source already looks like CSV. Saved directly.")
-                  return True
-
-              parser = FirstTableParser()
-              parser.feed(raw)
-              rows = parser.rows
-
-              if not rows:
-                  raise SystemExit(f"ERROR: {source_file} is HTML but no table rows were found.")
-
-              header = rows[0]
-              header_len = len(header)
-
-              if header_len < 2:
-                  raise SystemExit(f"ERROR: {source_file} table header only has {header_len} columns.")
-
-              if required_header and required_header not in header:
-                  raise SystemExit(
-                      f"ERROR: {source_file} does not look like expected data. "
-                      f"Missing header: {required_header}. Headers found: {header}"
-                  )
-
-              normalized_rows = []
-
-              for row in rows:
-                  if len(row) < header_len:
-                      row = row + [""] * (header_len - len(row))
-                  elif len(row) > header_len:
-                      row = row[:header_len]
-                  normalized_rows.append(row)
-
-              with output_path.open("w", newline="", encoding="utf-8") as f:
-                  writer = csv.writer(f)
-                  writer.writerows(normalized_rows)
-
-              print(f"{output_file}: converted HTML table to CSV.")
-              print(f"{output_file}: columns = {header_len}")
-              print(f"{output_file}: data rows = {len(normalized_rows) - 1}")
-              print(f"{output_file}: first headers = {header[:10]}")
-
-              return True
-
-          labels_changed = convert_source_to_csv(
-              "data/labels_source.html",
-              "data/labels.csv",
-              required_header="Work Order"
-          )
-
-          items_changed = convert_source_to_csv(
-              "data/items_source.raw",
-              "data/BEINVT - Items.csv",
-              required_header=None
-          )
-
-          if labels_changed:
-              first_line = Path("data/labels.csv").read_text(encoding="utf-8", errors="replace").splitlines()[0]
-              if "<!DOCTYPE" in first_line or "<html" in first_line.lower():
-                  raise SystemExit("ERROR: data/labels.csv is still HTML after conversion.")
-              if "Work Order" not in first_line:
-                  raise SystemExit("ERROR: data/labels.csv does not contain Work Order header.")
-
-          if items_changed:
-              first_line = Path("data/BEINVT - Items.csv").read_text(encoding="utf-8", errors="replace").splitlines()[0]
-              if "<!DOCTYPE" in first_line or "<html" in first_line.lower():
-                  raise SystemExit("ERROR: data/BEINVT - Items.csv is still HTML after conversion.")
-
-          PY
-
-      - name: Show CSV previews
-        run: |
-          echo "===== labels.csv preview ====="
-          if [ -f "data/labels.csv" ]; then
-            head -n 5 "data/labels.csv"
-          fi
-
-          echo ""
-          echo "===== BEINVT - Items.csv preview ====="
-          if [ -f "data/BEINVT - Items.csv" ]; then
-            head -n 5 "data/BEINVT - Items.csv"
+          if [ "${{ steps.decide.outputs.run_items }}" = "true" ]; then
+            download_csv "$ITEMS_CSV_URL" "data/BEINVT - Items.csv" "BEINVT Items CSV"
           fi
 
       - name: Commit updated CSV files
+        shell: bash
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          set -euo pipefail
 
-          rm -f data/labels_source.html
-          rm -f data/items_source.raw
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add data/labels.csv
+          git add data/labels.csv "data/BEINVT - Items.csv" 2>/dev/null || true
 
-          if [ -f "data/BEINVT - Items.csv" ]; then
-            git add "data/BEINVT - Items.csv"
-          fi
-
-          if git diff --cached --quiet; then
+          if [ -z "$(git status --porcelain -- data/labels.csv 'data/BEINVT - Items.csv')" ]; then
             echo "No CSV changes to commit."
             exit 0
           fi
 
-          git commit -m "Update BEINVT CSV files"
-          git push
+          git commit -m "Update BEINVT CSV files [skip ci]"
+
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
