@@ -4,11 +4,10 @@ on:
   workflow_dispatch:
 
   schedule:
-    # Labels CSV every 30 minutes, offset from the top of the hour.
+    # Labels saved search every 30 minutes.
     - cron: "7,37 * * * *"
 
-    # Items CSV once daily.
-    # GitHub cron is UTC.
+    # Items once daily.
     - cron: "59 6 * * *"
 
 permissions:
@@ -25,8 +24,8 @@ jobs:
     timeout-minutes: 10
 
     env:
-      LABELS_CSV_URL: ${{ secrets.NETSUITE_LABELS_URL }}
-      ITEMS_CSV_URL: ${{ secrets.BEINVT_ITEMS }}
+      LABELS_SOURCE_URL: ${{ secrets.NETSUITE_LABELS_URL }}
+      ITEMS_SOURCE_URL: ${{ secrets.BEINVT_ITEMS }}
 
     steps:
       - name: Checkout repo
@@ -61,16 +60,21 @@ jobs:
           echo "Run labels: $RUN_LABELS"
           echo "Run items:  $RUN_ITEMS"
 
-      - name: Download selected NetSuite CSV files
+      - name: Install HTML parser
+        shell: bash
+        run: |
+          python3 -m pip install --quiet beautifulsoup4
+
+      - name: Download and convert selected NetSuite sources
         shell: bash
         run: |
           set -euo pipefail
 
-          download_csv() {
+          download_and_convert() {
             local url="$1"
             local out="$2"
             local label="$3"
-            local tmp="${out}.tmp"
+            local raw="${out}.raw"
 
             if [ -z "$url" ]; then
               echo "::error::$label URL is empty. Check the matching GitHub repository secret."
@@ -84,33 +88,232 @@ jobs:
               --retry 3 \
               --retry-delay 10 \
               "$url" \
-              -o "$tmp"
+              -o "$raw"
 
-            if [ ! -s "$tmp" ]; then
+            if [ ! -s "$raw" ]; then
               echo "::error::$label downloaded as an empty file."
-              rm -f "$tmp"
+              rm -f "$raw"
               exit 1
             fi
 
-            if head -c 500 "$tmp" | grep -qiE "<html|<!doctype|login|sign in"; then
-              echo "::error::$label looks like an HTML/login page, not CSV."
-              echo "First 500 characters:"
-              head -c 500 "$tmp" || true
-              echo
-              rm -f "$tmp"
-              exit 1
-            fi
+            python3 - "$raw" "$out" "$label" <<'PY'
+import csv
+import re
+import sys
+from pathlib import Path
+from bs4 import BeautifulSoup
 
-            mv "$tmp" "$out"
-            echo "Saved $label to $out"
+raw_path = Path(sys.argv[1])
+out_path = Path(sys.argv[2])
+label = sys.argv[3]
+
+data = raw_path.read_bytes()
+text = data.decode("utf-8-sig", errors="replace")
+
+def looks_like_html(s):
+    sample = s[:5000].lower()
+    return (
+        "<html" in sample
+        or "<!doctype" in sample
+        or "<table" in sample
+        or "<title>search results" in sample
+    )
+
+def looks_like_csv(s):
+    sample = s[:2000].lower()
+    return not looks_like_html(s) and ("," in sample or "\t" in sample or "\n" in sample)
+
+def clean_cell(value):
+    value = value.replace("\xa0", " ")
+    value = re.sub(r"\s+", " ", value)
+    return value.strip()
+
+def make_unique_headers(headers):
+    used = {}
+    result = []
+
+    for i, h in enumerate(headers, start=1):
+        h = clean_cell(h)
+        if not h:
+            h = f"Column_{i}"
+
+        base = h
+        if base in used:
+            used[base] += 1
+            h = f"{base}_{used[base]}"
+        else:
+            used[base] = 1
+
+        result.append(h)
+
+    return result
+
+def normalize_rows(rows):
+    rows = [[clean_cell(c) for c in row] for row in rows]
+    rows = [row for row in rows if any(cell for cell in row)]
+
+    if not rows:
+        return []
+
+    width = max(len(row) for row in rows)
+    rows = [row + [""] * (width - len(row)) for row in rows]
+
+    # Remove totally empty columns.
+    keep_cols = []
+    for col in range(width):
+        values = [row[col] for row in rows]
+        if any(v for v in values):
+            keep_cols.append(col)
+
+    rows = [[row[col] for col in keep_cols] for row in rows]
+
+    if not rows:
+        return []
+
+    # Remove leading utility columns such as blank Edit/View columns.
+    while rows and rows[0]:
+        header = rows[0][0].strip().lower()
+        col_values = [row[0].strip().lower() for row in rows[1:] if row[0].strip()]
+        utility_values = {"edit", "view", "edit view", "view edit", "remove", "delete"}
+
+        if header == "" and col_values and all(v in utility_values for v in col_values):
+            rows = [row[1:] for row in rows]
+            continue
+
+        break
+
+    if not rows or not rows[0]:
+        return []
+
+    rows[0] = make_unique_headers(rows[0])
+
+    # Remove repeated header rows inside NetSuite paged/list tables.
+    header = rows[0]
+    cleaned = [header]
+    for row in rows[1:]:
+        if row == header:
+            continue
+        cleaned.append(row)
+
+    return cleaned
+
+def extract_html_table_to_csv(html, out_file):
+    soup = BeautifulSoup(html, "html.parser")
+
+    for tag in soup(["script", "style", "noscript", "svg"]):
+        tag.decompose()
+
+    preferred_selectors = [
+        "table#div__bodytab",
+        "table.uir-list-table",
+        "table[id*='bodytab']",
+        "table[id*='__bodytab']",
+        "table[class*='list']",
+    ]
+
+    candidate_tables = []
+    for selector in preferred_selectors:
+        candidate_tables.extend(soup.select(selector))
+
+    if not candidate_tables:
+        candidate_tables = soup.find_all("table")
+
+    best_rows = []
+    best_score = -1
+
+    for table in candidate_tables:
+        rows = []
+
+        for tr in table.find_all("tr"):
+            cells = tr.find_all(["th", "td"], recursive=False)
+            if not cells:
+                cells = tr.find_all(["th", "td"])
+
+            row = [clean_cell(cell.get_text(" ", strip=True)) for cell in cells]
+            if any(row):
+                rows.append(row)
+
+        normalized = normalize_rows(rows)
+
+        if len(normalized) < 2:
+            continue
+
+        width = max(len(r) for r in normalized)
+        non_empty_cells = sum(1 for r in normalized for c in r if c)
+
+        table_id = table.get("id", "") or ""
+        table_class = " ".join(table.get("class", []))
+
+        bonus = 0
+        if "bodytab" in table_id.lower():
+            bonus += 10000
+        if "uir-list" in table_class.lower() or "list" in table_class.lower():
+            bonus += 5000
+
+        score = bonus + (len(normalized) * width) + non_empty_cells
+
+        if score > best_score:
+            best_score = score
+            best_rows = normalized
+
+    if not best_rows:
+        title = soup.title.get_text(" ", strip=True) if soup.title else ""
+        first_text = clean_cell(soup.get_text(" ", strip=True))[:500]
+        raise SystemExit(
+            f"Could not find a usable results table in {label}. "
+            f"Page title: {title}. First text: {first_text}"
+        )
+
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+
+    with out_file.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerows(best_rows)
+
+    print(f"Converted HTML saved search to CSV: {out_file}")
+    print(f"Rows written including header: {len(best_rows)}")
+    print(f"Columns written: {len(best_rows[0])}")
+
+if looks_like_html(text):
+    lower = text.lower()
+
+    # Only fail for a true login/access problem when no table exists.
+    if "<table" not in lower and ("login" in lower or "sign in" in lower):
+        raise SystemExit(f"{label} looks like a NetSuite login/access page, not public results.")
+
+    extract_html_table_to_csv(text, out_path)
+
+else:
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_bytes(data)
+    print(f"Saved direct CSV/text source to: {out_path}")
+
+if not out_path.exists() or out_path.stat().st_size == 0:
+    raise SystemExit(f"{label} output file is empty: {out_path}")
+PY
+
+            rm -f "$raw"
           }
 
           if [ "${{ steps.decide.outputs.run_labels }}" = "true" ]; then
-            download_csv "$LABELS_CSV_URL" "data/labels.csv" "BEINVT Labels CSV"
+            download_and_convert "$LABELS_SOURCE_URL" "data/labels.csv" "BEINVT Labels saved search"
           fi
 
           if [ "${{ steps.decide.outputs.run_items }}" = "true" ]; then
-            download_csv "$ITEMS_CSV_URL" "data/BEINVT - Items.csv" "BEINVT Items CSV"
+            download_and_convert "$ITEMS_SOURCE_URL" "data/BEINVT - Items.csv" "BEINVT Items"
+          fi
+
+      - name: Show output preview
+        shell: bash
+        run: |
+          if [ -f "data/labels.csv" ]; then
+            echo "Labels CSV preview:"
+            head -n 5 "data/labels.csv"
+          fi
+
+          if [ -f "data/BEINVT - Items.csv" ]; then
+            echo "Items CSV preview:"
+            head -n 5 "data/BEINVT - Items.csv"
           fi
 
       - name: Commit updated CSV files
