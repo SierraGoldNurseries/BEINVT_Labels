@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
 
   schedule:
-    # Labels CSV every 30 minutes, offset to avoid busy GitHub top-of-hour queue.
+    # Labels CSV every 30 minutes, offset from the top of the hour.
     - cron: "7,37 * * * *"
 
     # Items CSV once daily.
-    # GitHub cron is UTC. 06:59 UTC = 11:59 PM Pacific during daylight saving time.
+    # GitHub cron is UTC.
     - cron: "59 6 * * *"
 
 permissions:
@@ -25,8 +25,8 @@ jobs:
     timeout-minutes: 10
 
     env:
-      LABELS_CSV_URL: ${{ secrets.NETSUITE_LABELS_CSV_URL }}
-      ITEMS_CSV_URL: ${{ secrets.NETSUITE_ITEMS_CSV_URL }}
+      LABELS_CSV_URL: ${{ secrets.NETSUITE_LABELS_URL }}
+      ITEMS_CSV_URL: ${{ secrets.BEINVT_ITEMS }}
 
     steps:
       - name: Checkout repo
@@ -73,7 +73,7 @@ jobs:
             local tmp="${out}.tmp"
 
             if [ -z "$url" ]; then
-              echo "::error::$label URL is empty. Add it as a GitHub secret."
+              echo "::error::$label URL is empty. Check the matching GitHub repository secret."
               exit 1
             fi
 
@@ -93,7 +93,7 @@ jobs:
             fi
 
             if head -c 500 "$tmp" | grep -qiE "<html|<!doctype|login|sign in"; then
-              echo "::error::$label looks like HTML/login page, not CSV."
+              echo "::error::$label looks like an HTML/login page, not CSV."
               echo "First 500 characters:"
               head -c 500 "$tmp" || true
               echo
