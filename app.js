@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6.46_no_lock_visible_checkboxes";
+const APP_VERSION = "8.6.47_qz_tray_tpcl";
 const WRAP_QR_BALANCE_VERSION = "8.6.44";
 const INCH = 96;
 const LABEL_SIZES = {
@@ -5246,3 +5246,217 @@ function boot() {
   });
 }
 boot();
+
+/* v8.6.47 QZ Tray direct raw TPCL printing support.
+   Adds Print with QZ without changing the existing window.print flow. */
+(function installQzTrayTpclSupportV8647(){
+  const QZ_DEFAULT_PRINTER = "\\\\sgnfs01\\TEC B-ONE";
+  const QZ_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/qz-tray@2.2.6/qz-tray.js";
+  const QZ_SETTINGS_KEY = "beinvtQzTpclSettings_v8647";
+  const ESC = "\x1B";
+  const END = "\x0A\x00";
+
+  function qzSettings(){
+    const d = { printerName: QZ_DEFAULT_PRINTER, speed: "3", darkness: "0", quantity: "1" };
+    try { return Object.assign(d, JSON.parse(localStorage.getItem(QZ_SETTINGS_KEY) || "{}") || {}); } catch(e) { return d; }
+  }
+  function qzSave(s){ try { localStorage.setItem(QZ_SETTINGS_KEY, JSON.stringify(s || {})); } catch(e) {} }
+  function qzInt(v, min, max, fb){ const n = parseInt(String(v ?? "").replace(/[^\-0-9]/g, ""), 10); return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fb; }
+  function qzPad(n, w){ return String(Math.max(0, Math.round(Number(n || 0)))).padStart(w || 4, "0"); }
+  function qzInToMm10(inches){ return Math.max(1, Math.round(Number(inches || 0) * 25.4 * 10)); }
+  function qzPxToMm10(px){ return Math.max(0, Math.round(Number(px || 0) / INCH * 25.4 * 10)); }
+  function qzClean(v, max){ return cleanDisplay(v).replace(/[\x00\x0A\x0D\x1B]/g, " ").replace(/\s+/g, " ").trim().slice(0, max || 220); }
+  function qzLines(v, chars, lines){
+    const out = [];
+    String(v ?? "").replace(/\r/g, "").split("\n").forEach(part => {
+      let line = "";
+      qzClean(part, 600).split(/\s+/).filter(Boolean).forEach(word => {
+        const test = line ? line + " " + word : word;
+        if (test.length > chars && line) { out.push(line); line = word; } else line = test;
+      });
+      if (line) out.push(line);
+    });
+    return out.slice(0, Math.max(1, lines || 1));
+  }
+  function qzLabelSizeCommand(type){
+    const s = labelSizeInches(type);
+    const w = qzInToMm10(s.widthIn);
+    const h = qzInToMm10(s.heightIn);
+    return `${ESC}D${qzPad(h,4)}, ${qzPad(w,4)}, ${qzPad(h,4)}${END}`;
+  }
+  function qzDensityCommand(darkness){
+    const n = qzInt(darkness, -10, 10, 0);
+    return `${ESC}AY; ${n >= 0 ? "+" : "-"}${qzPad(Math.abs(n),2)}, 0${END}`;
+  }
+  function qzIssueCommand(qty, speed){
+    const s = ["3","5","8"].includes(String(speed)) ? String(speed) : "3";
+    return `${ESC}XS; I, ${qzPad(qzInt(qty,1,9999,1),4)}, 0002C${s}200${END}`;
+  }
+  function qzRot(o){ const r = ((Number((o && o.rot) || 0) % 360) + 360) % 360; return r >= 45 && r < 135 ? "11" : r >= 135 && r < 225 ? "22" : r >= 225 && r < 315 ? "33" : "00"; }
+  function qzFont(id, o){ const fs = Number((o && o.fontSize) || 10); if (id === "WARNING" || id === "ADDRESS" || id === "LOT") return "A"; return fs >= 17 ? "D" : fs >= 13 ? "C" : "A"; }
+  function qzMag(id, o){ const fs = Number((o && o.fontSize) || 10); if (id === "WARNING" || id === "ADDRESS") return "1"; return String(Math.max(1, Math.min(4, Math.round(fs / 12)))); }
+  function qzAlign(o){ if (!o || o.alignH === "left") return { xf: 0, p: "P1" }; if (o.alignH === "right") return { xf: 1, p: "P3" }; return { xf: 0.5, p: "P2" }; }
+  function qzText(no, id, text, o, line){
+    const safe = qzClean(text, 255);
+    if (!safe) return "";
+    const fs = Math.max(6, Number((o && o.fontSize) || 10));
+    const a = qzAlign(o);
+    const x = qzPad(qzPxToMm10(Number(o.x || 0) + Number(o.w || 0) * a.xf), 4);
+    const y = qzPad(qzPxToMm10(Number(o.y || 0) + Math.max(7, fs * 0.9) * (line || 0)), 4);
+    const m = qzMag(id, o);
+    return `${ESC}PC${qzPad(no,3)}; ${x}, ${y}, ${m}, ${m}, ${qzFont(id,o)}, ${qzRot(o)}, B, ${a.p}=${safe}${END}`;
+  }
+  function qzQr(no, text, o){
+    const data = qzClean(text, 1200) || " ";
+    const x = qzPad(qzPxToMm10(Number(o && o.x) || 0), 4);
+    const y = qzPad(qzPxToMm10(Number(o && o.y) || 0), 4);
+    const side = Math.max(Number((o && o.w) || 34), Number((o && o.h) || 34));
+    const cell = qzPad(Math.max(3, Math.min(7, Math.round(side / 10))), 2);
+    return `${ESC}XB${qzPad(no,2)}; ${x}, ${y}, T, M, ${cell}, A, 0, M2=${data}${END}`;
+  }
+  function qzObjectText(id, row){
+    if (!isWrapLikeMode(labelType)) return labelText(id, row);
+    if (id === "ROOTSTOCK") { const t = wrapRootstockText(row); return t ? "on " + t : ""; }
+    if (id === "LOGO") return isGenevaRootstock(row) ? "SG\nGENEVA" : "SG";
+    if (id === "WARNING") return WRAP_WARNING;
+    return wrapObjectText(id, row);
+  }
+  function qzPrepare(row){
+    if (labelType === "POT") applyPotAutoStack();
+    if (isWrapLikeMode(labelType)) { applyWrapDataAwareStack(row); enforceWrapQrTextClearance(row); }
+    autoFitAllText();
+  }
+  function qzBuildOne(row, settings, copies){
+    qzPrepare(row);
+    let out = qzLabelSizeCommand(labelType) + qzDensityCommand(settings.darkness) + `${ESC}C${END}`;
+    let textNo = 1, qrNo = 1;
+    for (const id of objectOrder()) {
+      const o = layout && layout.objects && layout.objects[id];
+      if (!o || !shouldRenderObject(id, row)) continue;
+      if (!isWrapLikeMode(labelType) && id === "WEEK" && !row.week) continue;
+      if (!isWrapLikeMode(labelType) && id === "QR") { out += qzQr(qrNo++, row.wo || " ", o); continue; }
+      if (isWrapLikeMode(labelType) && id === "WO_QR") { out += qzQr(qrNo++, wrapLeftQrText(row), o); continue; }
+      if (isWrapLikeMode(labelType) && id === "LOT_QR") { const txt = wrapRightQrText(row); if (txt) out += qzQr(qrNo++, txt, o); continue; }
+      const text = qzObjectText(id, row);
+      if (!cleanDisplay(text)) continue;
+      if (id === "LOGO") {
+        text.split("\n").filter(Boolean).forEach((line, i, arr) => {
+          const o2 = clone(o); o2.y = Number(o.y || 0) + i * Math.max(9, Number(o.h || 18) / arr.length); o2.h = Math.max(8, Number(o.h || 18) / arr.length); o2.fontSize = 9; o2.alignH = "center";
+          out += qzText(textNo++, id, line, o2, 0);
+        });
+        continue;
+      }
+      const fs = Math.max(6, Number(o.fontSize || 10));
+      const maxChars = id === "WARNING" ? 14 : Math.max(8, Math.floor(Number(o.w || 40) / Math.max(4.5, fs * 0.52)));
+      const maxLines = id === "WARNING" ? 12 : Math.max(1, Math.floor(Number(o.h || 12) / Math.max(7, fs * .9)));
+      qzLines(text, maxChars, maxLines).forEach((line, i) => { out += qzText(textNo++, id, line, o, i); });
+    }
+    out += qzIssueCommand(copies, settings.speed);
+    return out;
+  }
+  function qzWithType(type, size, fn){
+    const oldType = labelType, oldLayout = layout, oldSelected = selectedId, oldSize = size ? labelSizeInches(type) : null;
+    try {
+      if (size) saveLabelSizeInches(type, size);
+      labelType = type; selectedId = defaultSelectedId(type); layout = loadWorkingLayout(type); layout.labelSize = labelSizeInches(type);
+      if (isWrapLikeMode(type)) rebalanceWrapLikeQrLayout(layout, type);
+      return fn();
+    } finally {
+      if (oldSize) saveLabelSizeInches(type, oldSize);
+      labelType = oldType; layout = oldLayout; selectedId = oldSelected;
+    }
+  }
+  function qzBuildItems(items, settings){
+    const mult = qzInt(settings.quantity, 1, 9999, 1);
+    let out = "";
+    (items || []).forEach(item => {
+      const row = clone(item && item.row ? item.row : currentRow());
+      const type = item && item.importType ? item.importType : labelType;
+      const size = item && item.importSize ? item.importSize : null;
+      const itemQty = qzInt(item && (item.qty || row.labelsNeeded || row.quantity), 1, 9999, 1);
+      out += qzWithType(type, size, () => qzBuildOne(row, settings, Math.min(9999, itemQty * mult)));
+    });
+    return out;
+  }
+  function qzBuildTest(settings){
+    return qzWithType(labelType, null, () => {
+      const s = labelSizeInches(labelType), w = qzInToMm10(s.widthIn), h = qzInToMm10(s.heightIn);
+      let out = qzLabelSizeCommand(labelType) + qzDensityCommand(settings.darkness) + `${ESC}C${END}`;
+      out += `${ESC}LC; 0010, 0010, ${qzPad(Math.max(20, w - 10),4)}, ${qzPad(Math.max(20, h - 10),4)}, 1, 4${END}`;
+      out += qzText(1, "TEST", "QZ RAW TPCL TEST", { x: 12, y: 10, w: sizePx(labelType).w - 24, h: 18, fontSize: 12, alignH: "center", rot: 0 }, 0);
+      out += qzQr(1, "QZ TEST " + new Date().toISOString(), { x: 14, y: 32, w: 42, h: 42 });
+      out += qzText(2, "TEST", settings.printerName || QZ_DEFAULT_PRINTER, { x: 62, y: 36, w: Math.max(60, sizePx(labelType).w - 70), h: 22, fontSize: 8, alignH: "left", rot: 0 }, 0);
+      out += qzIssueCommand(1, settings.speed);
+      return out;
+    });
+  }
+
+  function qzCss(){
+    if ($("beinvtQzCss")) return;
+    const style = document.createElement("style");
+    style.id = "beinvtQzCss";
+    style.textContent = `.beinvtQzOverlay{position:fixed;inset:0;background:rgba(3,7,18,.62);backdrop-filter:blur(7px);z-index:99999;display:none;align-items:center;justify-content:center;padding:18px}.beinvtQzOverlay.open{display:flex}.beinvtQzModal{width:min(560px,96vw);max-height:92vh;overflow:auto;border:1px solid rgba(148,163,184,.35);border-radius:22px;background:#111827;color:#e5e7eb;box-shadow:0 24px 80px rgba(0,0,0,.45);padding:18px}.beinvtQzHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.beinvtQzTitle{font-size:18px;font-weight:950}.beinvtQzSub{font-size:12px;color:#9ca3af;margin-top:3px}.beinvtQzClose{border:1px solid rgba(148,163,184,.35);background:rgba(255,255,255,.06);color:#e5e7eb;border-radius:12px;padding:7px 10px;cursor:pointer}.beinvtQzGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.beinvtQzGrid .full{grid-column:1/-1}.beinvtQzModal label{display:block;font-size:12px;font-weight:800;color:#cbd5e1;margin:0 0 5px}.beinvtQzModal input,.beinvtQzModal select{width:100%;border:1px solid rgba(148,163,184,.35);border-radius:12px;background:#0b1220;color:#e5e7eb;padding:10px 11px;font-size:14px;outline:none}.beinvtQzActions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.beinvtQzActions button{border:1px solid rgba(148,163,184,.35);border-radius:14px;background:#1f2937;color:#f8fafc;padding:10px 12px;font-weight:900;cursor:pointer}.beinvtQzActions button.primary{background:#2563eb;border-color:#60a5fa}.beinvtQzActions button.good{background:#15803d;border-color:#4ade80}.beinvtQzStatus{margin-top:12px;border-radius:14px;background:#0b1220;border:1px solid rgba(148,163,184,.25);padding:10px;white-space:pre-wrap;font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#d1d5db;max-height:170px;overflow:auto}body.beinvt-theme-light .beinvtQzModal{background:#fff;color:#111827}body.beinvt-theme-light .beinvtQzSub{color:#64748b}body.beinvt-theme-light .beinvtQzModal label{color:#334155}body.beinvt-theme-light .beinvtQzModal input,body.beinvt-theme-light .beinvtQzModal select,body.beinvt-theme-light .beinvtQzStatus{background:#f8fafc;color:#111827;border-color:#cbd5e1}body.beinvt-theme-light .beinvtQzClose,body.beinvt-theme-light .beinvtQzActions button{background:#e5e7eb;color:#111827;border-color:#cbd5e1}body.beinvt-theme-light .beinvtQzActions button.primary{background:#2563eb;color:#fff}body.beinvt-theme-light .beinvtQzActions button.good{background:#15803d;color:#fff}`;
+    document.head.appendChild(style);
+  }
+  function qzModal(){
+    qzCss();
+    let o = $("beinvtQzOverlay");
+    if (o) return o;
+    const s = qzSettings();
+    const opts = Array.from({length:21},(_,i)=>i-10).map(n => `<option value="${n}"${String(s.darkness)===String(n)?" selected":""}>${n===0?"0 - default":n>0?"+"+n+" darker":n+" lighter"}</option>`).join("");
+    o = document.createElement("div");
+    o.id = "beinvtQzOverlay";
+    o.className = "beinvtQzOverlay";
+    o.innerHTML = `<div class="beinvtQzModal" role="dialog" aria-modal="true"><div class="beinvtQzHead"><div><div class="beinvtQzTitle">Print with QZ - Raw TPCL</div><div class="beinvtQzSub">Direct to Toshiba/TEC through QZ Tray. Existing Chrome print buttons are unchanged.</div></div><button type="button" class="beinvtQzClose" id="beinvtQzClose">Close</button></div><div class="beinvtQzGrid"><div class="full"><label>Printer name</label><input id="beinvtQzPrinter" value="${escapeHtml(s.printerName || QZ_DEFAULT_PRINTER)}" spellcheck="false"></div><div><label>Speed</label><select id="beinvtQzSpeed"><option value="3"${s.speed==="3"?" selected":""}>3 ips</option><option value="5"${s.speed==="5"?" selected":""}>5 ips</option><option value="8"${s.speed==="8"?" selected":""}>8 ips</option></select></div><div><label>Darkness</label><select id="beinvtQzDarkness">${opts}</select></div><div><label>Quantity</label><input id="beinvtQzQuantity" type="number" min="1" max="9999" step="1" value="${escapeHtml(s.quantity || "1")}"></div></div><div class="beinvtQzActions"><button type="button" id="beinvtQzConnect">Connect + List Printers</button><button type="button" id="beinvtQzTest">Send Safe Test Print</button><button type="button" class="primary" id="beinvtQzPrintCurrent">Print Current</button><button type="button" class="good" id="beinvtQzPrintQueue">Print Queue</button></div><div class="beinvtQzStatus" id="beinvtQzStatus">Ready. Use Connect + List Printers first.</div></div>`;
+    document.body.appendChild(o);
+    o.addEventListener("click", ev => { if (ev.target === o) qzClose(); });
+    $("beinvtQzClose").onclick = qzClose;
+    $("beinvtQzConnect").onclick = qzList;
+    $("beinvtQzTest").onclick = qzTest;
+    $("beinvtQzPrintCurrent").onclick = qzPrintCurrent;
+    $("beinvtQzPrintQueue").onclick = qzPrintQueue;
+    ["beinvtQzPrinter","beinvtQzSpeed","beinvtQzDarkness","beinvtQzQuantity"].forEach(id => { const el = $(id); if (el) el.addEventListener("change", () => qzSave(qzReadModal())); });
+    return o;
+  }
+  function qzReadModal(){
+    const s = { printerName: cleanDisplay($("beinvtQzPrinter") && $("beinvtQzPrinter").value) || QZ_DEFAULT_PRINTER, speed: cleanDisplay($("beinvtQzSpeed") && $("beinvtQzSpeed").value) || "3", darkness: String(qzInt($("beinvtQzDarkness") && $("beinvtQzDarkness").value,-10,10,0)), quantity: String(qzInt($("beinvtQzQuantity") && $("beinvtQzQuantity").value,1,9999,1)) };
+    qzSave(s); return s;
+  }
+  function qzStatus(msg){ const el = $("beinvtQzStatus"); if (el) el.textContent = String(msg || ""); }
+  function qzOpen(){ qzModal().classList.add("open"); qzStatus("Ready. Printer default: " + QZ_DEFAULT_PRINTER + "\nUse Connect + List Printers first."); }
+  function qzClose(){ const o = $("beinvtQzOverlay"); if (o) o.classList.remove("open"); }
+  function qzLoad(){
+    if (window.qz) return Promise.resolve(window.qz);
+    const existing = document.querySelector('script[data-beinvt-qz-tray="1"]');
+    if (existing && existing.dataset.loaded === "1") return Promise.resolve(window.qz);
+    return new Promise((resolve, reject) => {
+      const script = existing || document.createElement("script");
+      script.src = QZ_SCRIPT_URL; script.async = true; script.dataset.beinvtQzTray = "1";
+      script.onload = () => { script.dataset.loaded = "1"; window.qz ? resolve(window.qz) : reject(new Error("qz-tray.js loaded, but window.qz was not found.")); };
+      script.onerror = () => reject(new Error("Could not load qz-tray.js from CDN. Check internet/CDN access or vendor qz-tray.js locally."));
+      if (!existing) document.head.appendChild(script);
+    });
+  }
+  async function qzConnect(){ await qzLoad(); if (!window.qz) throw new Error("QZ Tray library is not available."); if (qz.websocket && qz.websocket.isActive && qz.websocket.isActive()) return; await qz.websocket.connect({ retries: 3, delay: 1 }); }
+  async function qzList(){
+    try { qzStatus("Connecting to QZ Tray..."); await qzConnect(); const printers = await qz.printers.find(); const s = qzReadModal(); const match = printers.find(p => String(p).toLowerCase() === String(s.printerName).toLowerCase()); qzStatus(`Connected to QZ Tray ${qz.version || ""}.\n\nPrinters found:\n${printers.map(p=>"- "+p).join("\n") || "(none returned)"}\n\nSelected printer ${match ? "matched" : "not found exactly"}: ${s.printerName}`); }
+    catch(e) { qzStatus("QZ connect/list failed:\n" + (e && e.message ? e.message : e)); }
+  }
+  async function qzSend(tpcl, s, label){ await qzConnect(); await qz.print(qz.configs.create(s.printerName || QZ_DEFAULT_PRINTER), [{ type: "raw", format: "command", flavor: "plain", data: tpcl }]); qzStatus(`${label} sent to QZ.\nPrinter: ${s.printerName}\nBytes/chars: ${tpcl.length}\nSpeed: ${s.speed} ips\nDarkness: ${s.darkness}\nQuantity: ${s.quantity}`); }
+  async function qzTest(){ const s = qzReadModal(); try { qzStatus("Building safe TPCL test label..."); await qzSend(qzBuildTest(s), s, "Safe TPCL test print"); } catch(e) { qzStatus("Test print failed:\n" + (e && e.message ? e.message : e)); } }
+  async function qzPrintCurrent(){ const s = qzReadModal(); try { qzStatus("Building current label TPCL from the live designer layout..."); await qzSend(qzBuildItems([{ row: currentRow(), qty: 1 }], s), s, "Current label raw TPCL print"); } catch(e) { qzStatus("Print Current failed:\n" + (e && e.message ? e.message : e)); } }
+  async function qzPrintQueue(){ const s = qzReadModal(); try { if (!queue.length) { qzStatus("Queue is empty."); return; } qzStatus("Building queue TPCL from the live designer layout..."); await qzSend(qzBuildItems(queue, s), s, "Queue raw TPCL print"); } catch(e) { qzStatus("Print Queue failed:\n" + (e && e.message ? e.message : e)); } }
+  function qzButton(){
+    if ($("printWithQz")) return;
+    const anchor = $("printQueue") || $("printLabel") || document.querySelector(".top button.primary");
+    const parent = (anchor && anchor.parentNode) || document.querySelector(".top");
+    if (!parent) return;
+    const b = document.createElement("button");
+    b.id = "printWithQz"; b.type = "button"; b.className = "primary"; b.textContent = "Print with QZ"; b.title = "Open QZ Tray raw TPCL print settings"; b.onclick = qzOpen;
+    if (anchor && anchor.nextSibling) parent.insertBefore(b, anchor.nextSibling); else parent.appendChild(b);
+  }
+  const prevRenderAllQzV8647 = renderAll;
+  renderAll = function(){ prevRenderAllQzV8647(); qzButton(); };
+  window.BEINVT_QZ = { version: "8.6.47_qz_tray_tpcl", open: qzOpen, connect: qzConnect, listPrinters: qzList, testPrint: qzTest, buildCurrentTpcl: () => qzBuildItems([{ row: currentRow(), qty: 1 }], qzSettings()), defaultPrinter: QZ_DEFAULT_PRINTER };
+  setTimeout(qzButton, 0);
+})();
