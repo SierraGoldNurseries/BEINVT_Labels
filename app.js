@@ -1,5 +1,5 @@
-const APP_VERSION = "8.6.55_flush_left_info_bigger";
-const WRAP_QR_BALANCE_VERSION = "8.6.55";
+const APP_VERSION = "8.6.56_no_gaps_into_item_names";
+const WRAP_QR_BALANCE_VERSION = "8.6.56";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -439,12 +439,15 @@ function rebalanceWrapLikeQrLayout(layoutObj, type) {
   const leftTextStart = o.WO_QR && type !== "FIELD" && o.WO_QR.visible !== false
     ? Math.round(Number(o.WO_QR.x || 0) + Number(o.WO_QR.w || 0))
     : Math.round(Number((o.WO_QR && o.WO_QR.x) || margin) + Number((o.WO_QR && o.WO_QR.w) || (34 * sx)));
-  const leftTextWidth = Math.max(32, centerX - leftTextStart - gap);
+  // v8.6.56: no gap between the WO/Crop/Internal ID block and the item-name block.
+  // The right border of the left info block now touches the left border of Scion/Rootstock.
+  const leftTextWidth = Math.max(32, centerX - leftTextStart);
   stackLeftInfoObjects(o, type, labelH, leftTextStart, leftTextWidth, margin, gap, sy);
 
   const rightTextEdge = o.LOT_QR && type !== "SHIP" && o.LOT_QR.visible !== false
-    ? Math.max(centerX + Math.round(100 * sx), Math.round(Number(o.LOT_QR.x || rightAnchor) - gap))
-    : Math.round(rightAnchor - gap);
+    // v8.6.56: item-name block touches the lot QR block on the right with no gap.
+    ? Math.max(centerX + Math.round(100 * sx), Math.round(Number(o.LOT_QR.x || rightAnchor)))
+    : Math.round(rightAnchor);
   const centerWidth = Math.max(110, rightTextEdge - centerX);
   ["SCION", "SCION_PATENT", "ROOTSTOCK", "ROOTSTOCK_PATENT", "LOT", "ADDRESS"].forEach(id => {
     if (!o[id]) return;
@@ -482,7 +485,8 @@ function enforceWrapQrTextClearance(row) {
     });
   }
   if (rightQr) {
-    const maxRight = Math.max(20, Math.round(Number(rightQr.x || 0) - gap));
+    // v8.6.56: keep item names flush against the right-side lot QR box.
+    const maxRight = Math.max(20, Math.round(Number(rightQr.x || 0)));
     ["SCION", "SCION_PATENT", "ROOTSTOCK", "ROOTSTOCK_PATENT", "LOT", "ADDRESS"].forEach(id => {
       if (!o[id]) return;
       o[id].w = Math.max(36, maxRight - Number(o[id].x || 0));
