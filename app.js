@@ -4368,6 +4368,48 @@ function printQueue() {
   if (!queue.length) { alert("Queue is empty."); return; }
   printRows(queue);
 }
+function printFitRange(id) {
+  const ranges = {
+    WO: [36, 4.8], CROP: [34, 4.2], INTERNAL: [36, 4.2],
+    SCION: [46, 3.2], ROOTSTOCK: [46, 3.2],
+    SCION_PATENT: [10, 2.6], ROOTSTOCK_PATENT: [10, 2.6],
+    LOT: [12, 2.8], ADDRESS: [10, 2.6], WARNING: [8, 2.1],
+    ITEM: [96, 5], WEEK: [48, 5]
+  };
+  return ranges[id] || [48, 3];
+}
+function printFitAttrs(id, o) {
+  const range = printFitRange(id);
+  const max = Math.max(range[1], Math.min(Number(o && o.fontSize || range[0]), range[0]));
+  const min = Math.max(1, Number(range[1] || 3));
+  return `class="beinvtPrintFitText" data-fit-id="${escapeHtml(id)}" data-max-font="${max.toFixed(2)}" data-min-font="${min.toFixed(2)}"`;
+}
+function printAutoFitScript() {
+  return `<script>
+(function(){
+  function n(v,f){v=parseFloat(v);return isFinite(v)?v:f;}
+  function fits(el){return el.scrollWidth<=el.clientWidth+1&&el.scrollHeight<=el.clientHeight+1;}
+  function fitOne(el){
+    var hi=n(el.getAttribute('data-max-font'),n(getComputedStyle(el).fontSize,12));
+    var lo=n(el.getAttribute('data-min-font'),2.5);
+    if(hi<lo){var t=hi;hi=lo;lo=t;}
+    var low=lo, high=hi, best=lo;
+    el.style.fontSize=hi.toFixed(2)+'px';
+    if(fits(el)) return;
+    for(var i=0;i<24;i++){
+      var mid=(low+high)/2;
+      el.style.fontSize=mid.toFixed(2)+'px';
+      if(fits(el)){best=mid;low=mid;} else {high=mid;}
+    }
+    el.style.fontSize=best.toFixed(2)+'px';
+  }
+  function fitAll(){document.querySelectorAll('.beinvtPrintFitText').forEach(fitOne);}
+  function run(){fitAll();setTimeout(function(){fitAll();setTimeout(function(){window.print();},120);},80);}
+  if(document.readyState==='complete') setTimeout(run,80);
+  else window.addEventListener('load',function(){setTimeout(run,80);});
+})();
+<\/script>`;
+}
 function printRows(items) {
   if (labelType === "POT") applyPotAutoStack();
   autoFitAllText();
@@ -4378,7 +4420,7 @@ function printRows(items) {
   items.forEach(item => {
     for (let i = 0; i < Math.max(1, item.qty || 1); i++) pages += renderPrintPage(item.row, b);
   });
-  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Print Labels</title><style>@page{size:${s.widthIn}in ${s.heightIn}in;margin:0}html,body{margin:0;padding:0;background:#fff}.page{position:relative;width:${b.w}px;height:${b.h}px;overflow:hidden;background:#fff;color:#000;page-break-after:always;break-after:page;transform-origin:0 0;transform:scale(${calibration.scaleX},${calibration.scaleY})}*{box-sizing:border-box}</style></head><body>${pages}<script>setTimeout(()=>print(),300)<\/script></body></html>`);
+  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Print Labels</title><style>@page{size:${s.widthIn}in ${s.heightIn}in;margin:0}html,body{margin:0;padding:0;background:#fff}.page{position:relative;width:${b.w}px;height:${b.h}px;overflow:hidden;background:#fff;color:#000;page-break-after:always;break-after:page;transform-origin:0 0;transform:scale(${calibration.scaleX},${calibration.scaleY})}.beinvtPrintFitText{overflow:hidden}*{box-sizing:border-box}</style></head><body>${pages}${printAutoFitScript()}</body></html>`);
   win.document.close();
 }
 function renderPrintPage(row) {
@@ -4407,7 +4449,7 @@ function printTextInner(id, row, o) {
   const w = swap ? o.h : o.w;
   const h = swap ? o.w : o.h;
   const wrap = id === "ITEM" ? "white-space:normal;word-break:normal;overflow-wrap:normal;line-height:.9;padding:0;" : "white-space:nowrap;line-height:.95;";
-  return `<div style="position:absolute;left:${left}px;top:${top}px;width:${w}px;height:${h}px;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:center;${wrap}text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize || 16}px;transform-origin:center center;transform:rotate(${o.rot || 0}deg);">${escapeHtml(labelText(id, row))}</div>`;
+  return `<div ${printFitAttrs(id, o)} style="position:absolute;left:${left}px;top:${top}px;width:${w}px;height:${h}px;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:center;${wrap}text-transform:uppercase;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize || 16}px;transform-origin:center center;transform:rotate(${o.rot || 0}deg);">${escapeHtml(labelText(id, row))}</div>`;
 }
 function printWrapObjectInner(id, row, o) {
   if (id === "WO_QR" && isFieldMode()) {
@@ -4429,10 +4471,11 @@ function printWrapObjectInner(id, row, o) {
     return `<img src="${escapeHtml(urls[0] || SG_LOGO_URL)}" style="width:100%;height:100%;object-fit:contain;image-rendering:auto" onerror="this.outerHTML='SG'">`;
   }
   const textAlign = o.alignH === "left" ? "left" : o.alignH === "right" ? "right" : "center";
-  const base = `position:absolute;inset:0;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:${textAlign};white-space:normal;word-break:normal;overflow-wrap:normal;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize || 8}px;line-height:.86;padding:0 1px;color:#000;`;
-  if (id === "ROOTSTOCK") { const rootText = wrapRootstockText(row); const shipSingle = shippingSingleLineInfo(row); return (rootText && !shipSingle) ? `<div style="${base}text-transform:uppercase"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(rootText)}</div>` : ""; }
-  if (id === "WARNING") return `<div style="${base}white-space:pre-line;line-height:1.05;text-transform:uppercase;align-items:center;">${escapeHtml(WRAP_WARNING)}</div>`;
-  return `<div style="${base}text-transform:uppercase;">${escapeHtml(wrapObjectText(id, row))}</div>`;
+  const lineHeight = (id === "WARNING") ? 1.0 : (id === "SCION" || id === "ROOTSTOCK" ? 0.94 : 0.98);
+  const base = `position:absolute;inset:0;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:${textAlign};white-space:normal;word-break:normal;overflow-wrap:normal;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize || 8}px;line-height:${lineHeight};padding:0 1px;color:#000;`;
+  if (id === "ROOTSTOCK") { const rootText = wrapRootstockText(row); const shipSingle = shippingSingleLineInfo(row); return (rootText && !shipSingle) ? `<div ${printFitAttrs(id, o)} style="${base}text-transform:uppercase"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(rootText)}</div>` : ""; }
+  if (id === "WARNING") return `<div ${printFitAttrs(id, o)} style="${base}white-space:pre-line;line-height:1.0;text-transform:uppercase;align-items:center;">${escapeHtml(WRAP_WARNING)}</div>`;
+  return `<div ${printFitAttrs(id, o)} style="${base}text-transform:uppercase;">${escapeHtml(wrapObjectText(id, row))}</div>`;
 }
 
 function bindDirectionalButtons() {
