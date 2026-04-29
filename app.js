@@ -5383,11 +5383,26 @@ function initEvents() {
   injectCssV8645();
 })();
 
-/* v8.6.58: Free Field Designer template + smaller warning fit. */
-(function installFreeFieldDesignerV8658(){
+
+/* v8.6.59: Free Field Designer upgrades: local/shared templates, size dropdowns, no render table, modern toolbar, empty default canvas, barcode dropdown fix, smaller warning fit. */
+(function installFreeFieldDesignerV8659(){
   const FREE_TYPE = "FREE";
-  const FREE_COPY_KEY = "beinvtFreeDesignerClipboard_v8658";
+  const FREE_COPY_KEY = "beinvtFreeDesignerClipboard_v8659";
+  const FREE_TEMPLATES_KEY = "beinvtFreeFieldTemplates_v8659";
+  const FREE_SHARED_LIBRARY_DEFAULT = "data/free-field-templates.json";
   const BARCODE_TYPES = ["code128", "code39", "ean13", "upca", "itf14", "datamatrix", "pdf417"];
+  const FREE_WIDTH_OPTIONS = [0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 8];
+  const FREE_HEIGHT_OPTIONS = [0.5, 0.75, 1, 1.5, 2, 3, 4, 5, 6, 8];
+  const FREE_SIZE_PRESETS = [
+    { name: "5 x 0.75 in - wrap/field/shipping", w: 5, h: 0.75 },
+    { name: "5 x 1 in", w: 5, h: 1 },
+    { name: "4 x 2 in", w: 4, h: 2 },
+    { name: "3 x 1 in", w: 3, h: 1 },
+    { name: "2 x 1 in", w: 2, h: 1 },
+    { name: "1 x 0.5 in", w: 1, h: 0.5 },
+    { name: "0.75 x 5 in - pot stake", w: 0.75, h: 5 },
+    { name: "4 x 6 in", w: 4, h: 6 }
+  ];
 
   LABEL_SIZES.FREE = LABEL_SIZES.FREE || { widthIn: 4, heightIn: 2 };
   BASE_LABEL_SIZES.FREE = BASE_LABEL_SIZES.FREE || { widthIn: 4, heightIn: 2 };
@@ -5407,43 +5422,67 @@ function initEvents() {
     if (type === "image") return { type: "image", x, y, w: 120, h: 70, rot: 0, value: "", fit: "contain", locked: false, visible: true, alignH: "center", alignV: "middle" };
     return { type: "text", x, y, w: 210, h: 44, rot: 0, text: "TEXT FIELD", fontSize: 28, fontFamily: "Arial", bold: true, italic: false, underline: false, wrap: false, uppercase: false, autoFit: true, lineHeight: 1.0, letterSpacing: 0, locked: false, visible: true, alignH: "center", alignV: "middle" };
   }
+  function isOldFreeSampleLayout(src) {
+    const objs = src && src.objects;
+    if (!objs) return false;
+    const ids = Object.keys(objs).sort().join("|");
+    if (ids !== "BARCODE_1|QR_1|TEXT_1") return false;
+    return cleanDisplay(objs.TEXT_1 && objs.TEXT_1.text) === "TEXT FIELD" &&
+      cleanDisplay(objs.QR_1 && objs.QR_1.value) === "QR TEXT" &&
+      cleanDisplay(objs.BARCODE_1 && objs.BARCODE_1.value) === "1234567890";
+  }
   function normalizeFreeLayout(src) {
     const currentSize = labelSizeInches(FREE_TYPE);
-    const base = {
-      name: "Free Field Designer", labelType: FREE_TYPE, safeMarginPx: 4, gridPx: 4, snapPx: 4,
-      labelSize: clone(currentSize), objectOrder: ["TEXT_1", "QR_1", "BARCODE_1"],
-      objects: { TEXT_1: freeDefaultObject("text", "TEXT_1", 14, 12), QR_1: freeDefaultObject("qr", "QR_1", 242, 12), BARCODE_1: freeDefaultObject("barcode", "BARCODE_1", 14, 76) }
-    };
-    const sourceObjects = (src && src.objects) || base.objects;
-    const ids = Array.isArray(src && src.objectOrder) && src.objectOrder.length ? src.objectOrder.slice() : Object.keys(sourceObjects);
-    const out = Object.assign({}, base, src || {}, { labelType: FREE_TYPE, labelSize: clone(currentSize), objects: {}, objectOrder: [] });
-    ids.forEach(id => {
-      const incoming = sourceObjects[id]; if (!incoming) return;
-      const type = incoming.type || (id.includes("QR") ? "qr" : (id.includes("BARCODE") ? "barcode" : "text"));
+    const sourceObjects = isOldFreeSampleLayout(src) ? {} : ((src && src.objects) || {});
+    const sourceOrder = Array.isArray(src && src.objectOrder) ? src.objectOrder.slice() : Object.keys(sourceObjects);
+    const out = Object.assign({}, src || {}, {
+      name: cleanDisplay(src && src.name) || "Free Field Designer",
+      labelType: FREE_TYPE,
+      safeMarginPx: Number((src && src.safeMarginPx) || 4),
+      gridPx: Number((src && src.gridPx) || 4),
+      snapPx: Number((src && src.snapPx) || 4),
+      labelSize: clone(currentSize),
+      objects: {},
+      objectOrder: []
+    });
+    sourceOrder.forEach(id => {
+      const incoming = sourceObjects[id];
+      if (!incoming) return;
+      const type = incoming.type || (id.includes("QR") ? "qr" : (id.includes("BARCODE") ? "barcode" : (id.includes("IMAGE") ? "image" : "text")));
       const def = freeDefaultObject(type, id, Number(incoming.x || 10), Number(incoming.y || 10));
       const obj = Object.assign({}, def, incoming, { type });
-      obj.x = Number(obj.x || 0); obj.y = Number(obj.y || 0); obj.w = Number(obj.w || def.w || 40); obj.h = Number(obj.h || def.h || 20); obj.rot = Number(obj.rot || 0);
+      obj.x = Number(obj.x || 0);
+      obj.y = Number(obj.y || 0);
+      obj.w = Number(obj.w || def.w || 40);
+      obj.h = Number(obj.h || def.h || 20);
+      obj.rot = Number(obj.rot || 0);
+      obj.alignH = cleanDisplay(obj.alignH || "center");
+      obj.alignV = cleanDisplay(obj.alignV || "middle");
       if (obj.type === "text") {
-        obj.text = cleanDisplay(obj.text || obj.value || "TEXT FIELD");
+        obj.text = String(obj.text ?? obj.value ?? "");
         obj.fontSize = Math.max(1, Number(obj.fontSize || 24));
         obj.fontFamily = cleanDisplay(obj.fontFamily || "Arial");
         obj.lineHeight = Math.max(0.5, Math.min(3, Number(obj.lineHeight || 1)));
         obj.letterSpacing = Number(obj.letterSpacing || 0);
-      } else obj.value = cleanDisplay(obj.value || obj.text || (obj.type === "barcode" ? "1234567890" : "QR TEXT"));
-      out.objects[id] = obj; out.objectOrder.push(id);
+      } else {
+        obj.value = cleanDisplay(obj.value || obj.text || (obj.type === "barcode" ? "1234567890" : (obj.type === "qr" ? "QR TEXT" : "")));
+      }
+      out.objects[id] = obj;
+      out.objectOrder.push(id);
     });
-    if (!out.objectOrder.length) { out.objects.TEXT_1 = freeDefaultObject("text", "TEXT_1", 14, 12); out.objectOrder = ["TEXT_1"]; }
     return out;
   }
   function nextFreeId(type) { const p = freePrefixForType(type); let n = 1; while (layout && layout.objects && layout.objects[p + "_" + n]) n++; return p + "_" + n; }
   function freeObjectType(id) { const o = layout && layout.objects && layout.objects[id]; return (o && o.type) || "text"; }
-  function freeHumanName(id) { const o = layout && layout.objects && layout.objects[id]; const type = (o && o.type) || "text"; return (type === "qr" ? "QR Code" : (type === "barcode" ? "Barcode" : (type === "image" ? "Image" : "Text"))) + " " + id.replace(/^[A-Z]+_?/, ""); }
+  function freeHumanName(id) { const o = layout && layout.objects && layout.objects[id]; const type = (o && o.type) || "text"; return (type === "qr" ? "QR Code" : (type === "barcode" ? "Barcode" : (type === "image" ? "Image" : "Text"))) + " " + String(id || "").replace(/^[A-Z]+_?/, ""); }
   function barcodeUrl(value, type) { return "https://quickchart.io/barcode?type=" + encodeURIComponent(cleanDisplay(type || "code128").toLowerCase()) + "&text=" + encodeURIComponent(value || " "); }
   function freeTransformStyle(o) { const r = Number(o && o.rot || 0); return r ? "transform:rotate(" + r + "deg);transform-origin:center center;" : ""; }
   function safeFontName(v) { return cleanDisplay(v || "Arial").replace(/['";<>]/g, ""); }
+  function freeAlignItems(v) { return v === "top" ? "flex-start" : (v === "bottom" ? "flex-end" : "center"); }
+  function freeJustify(v) { return v === "left" ? "flex-start" : (v === "right" ? "flex-end" : "center"); }
   function freeTextCss(o, forPrint) {
     const textAlign = o.alignH === "left" ? "left" : (o.alignH === "right" ? "right" : "center");
-    return "position:absolute;inset:0;display:flex;align-items:" + alignV(o.alignV) + ";justify-content:" + alignH(o.alignH) + ";overflow:hidden;text-align:" + textAlign + ";white-space:" + (o.wrap !== false ? "normal" : "nowrap") + ";word-break:normal;overflow-wrap:" + (o.wrap !== false ? "break-word" : "normal") + ";font-family:'" + safeFontName(o.fontFamily) + "',Arial,sans-serif;font-weight:" + (o.bold === false ? "400" : "900") + ";font-style:" + (o.italic ? "italic" : "normal") + ";text-decoration:" + (o.underline ? "underline" : "none") + ";font-size:" + Math.max(1, Number(o.fontSize || 24)) + "px;line-height:" + Math.max(0.5, Math.min(3, Number(o.lineHeight || 1))) + ";letter-spacing:" + Number(o.letterSpacing || 0) + "px;color:#000;text-transform:" + (o.uppercase ? "uppercase" : "none") + ";padding:" + (forPrint ? "0" : "0 1px") + ";" + freeTransformStyle(o);
+    return "position:absolute;inset:0;display:flex;align-items:" + freeAlignItems(o.alignV) + ";justify-content:" + freeJustify(o.alignH) + ";overflow:hidden;text-align:" + textAlign + ";white-space:" + (o.wrap !== false ? "normal" : "nowrap") + ";word-break:normal;overflow-wrap:" + (o.wrap !== false ? "break-word" : "normal") + ";font-family:'" + safeFontName(o.fontFamily) + "',Arial,sans-serif;font-weight:" + (o.bold === false ? "400" : "900") + ";font-style:" + (o.italic ? "italic" : "normal") + ";text-decoration:" + (o.underline ? "underline" : "none") + ";font-size:" + Math.max(1, Number(o.fontSize || 24)) + "px;line-height:" + Math.max(0.5, Math.min(3, Number(o.lineHeight || 1))) + ";letter-spacing:" + Number(o.letterSpacing || 0) + "px;color:#000;text-transform:" + (o.uppercase ? "uppercase" : "none") + ";padding:" + (forPrint ? "0" : "0 1px") + ";" + freeTransformStyle(o);
   }
   function freeFitAttrs(id, o) { if (!o || o.type !== "text" || o.autoFit === false) return ""; const max = Math.max(1, Number(o.fontSize || 24)); const min = Math.max(1, Number(o.minFontSize || 3)); return "class=\"beinvtPrintFitText\" data-fit-id=\"" + escapeHtml(id) + "\" data-max-font=\"" + max.toFixed(2) + "\" data-min-font=\"" + min.toFixed(2) + "\""; }
 
@@ -5454,8 +5493,13 @@ function initEvents() {
     if (o.type === "qr") { holder.style.cssText += freeTransformStyle(o); renderQrInto(holder, o.value || " "); return holder; }
     if (o.type === "barcode") {
       holder.style.cssText += freeTransformStyle(o);
-      const img = document.createElement("img"); img.src = barcodeUrl(o.value || "1234567890", o.barcodeType || "code128"); img.alt = "Barcode"; img.style.cssText = "width:100%;height:100%;object-fit:fill;image-rendering:auto;";
-      const fallback = document.createElement("div"); fallback.textContent = o.value || "1234567890"; fallback.style.cssText = "display:none;position:absolute;inset:0;align-items:center;justify-content:center;border:2px solid #000;font:900 12px Arial;color:#000;background:#fff;";
+      const img = document.createElement("img");
+      img.src = barcodeUrl(o.value || "1234567890", o.barcodeType || "code128");
+      img.alt = "Barcode";
+      img.style.cssText = "width:100%;height:100%;object-fit:fill;image-rendering:auto;";
+      const fallback = document.createElement("div");
+      fallback.textContent = o.value || "1234567890";
+      fallback.style.cssText = "display:none;position:absolute;inset:0;align-items:center;justify-content:center;border:2px solid #000;font:900 12px Arial;color:#000;background:#fff;";
       img.onerror = () => { img.style.display = "none"; fallback.style.display = "flex"; };
       holder.appendChild(img); holder.appendChild(fallback); return holder;
     }
@@ -5464,7 +5508,14 @@ function initEvents() {
       if (cleanDisplay(o.value)) { const img = document.createElement("img"); img.src = o.value; img.alt = "Image"; img.style.cssText = "width:100%;height:100%;object-fit:" + (o.fit || "contain") + ";"; holder.appendChild(img); }
       return holder;
     }
-    const inner = document.createElement("div"); inner.className = "freeTextInner"; inner.dataset.textId = id; inner.dataset.autofit = o.autoFit === false ? "false" : "true"; inner.textContent = o.text || ""; inner.style.cssText = freeTextCss(o, false); holder.appendChild(inner); return holder;
+    const inner = document.createElement("div");
+    inner.className = "freeTextInner";
+    inner.dataset.textId = id;
+    inner.dataset.autofit = o.autoFit === false ? "false" : "true";
+    inner.textContent = o.text || "";
+    inner.style.cssText = freeTextCss(o, false);
+    holder.appendChild(inner);
+    return holder;
   }
   function printFreeObjectInner(id, o) {
     if (o.type === "qr") return '<div style="position:absolute;inset:0;overflow:hidden;' + freeTransformStyle(o) + '"><img src="' + qrUrl(o.value || " ") + '" style="width:100%;height:100%;object-fit:fill;image-rendering:pixelated"></div>';
@@ -5472,66 +5523,475 @@ function initEvents() {
     if (o.type === "image") return cleanDisplay(o.value) ? '<div style="position:absolute;inset:0;overflow:hidden;' + freeTransformStyle(o) + '"><img src="' + escapeHtml(o.value) + '" style="width:100%;height:100%;object-fit:' + escapeHtml(o.fit || "contain") + ';image-rendering:auto"></div>' : "";
     return '<div ' + freeFitAttrs(id, o) + ' style="' + freeTextCss(o, true) + '">' + escapeHtml(o.text || "") + '</div>';
   }
+  function applyFreeModeStageLayout() {
+    if (!isFreeMode()) return;
+    const host = $("canvasHost");
+    const dataWrap = $("stageDataWrap");
+    const labelHost = $("stageLabelHost");
+    if (host) {
+      host.style.setProperty("display", "flex", "important");
+      host.style.setProperty("flex-direction", "column", "important");
+      host.style.setProperty("width", "100%", "important");
+      host.style.setProperty("height", "100%", "important");
+      host.style.setProperty("align-items", "stretch", "important");
+      host.style.setProperty("justify-content", "stretch", "important");
+    }
+    if (dataWrap) {
+      dataWrap.style.setProperty("display", "none", "important");
+      dataWrap.style.setProperty("visibility", "hidden", "important");
+      dataWrap.style.setProperty("width", "0px", "important");
+      dataWrap.style.setProperty("height", "0px", "important");
+      dataWrap.style.setProperty("flex", "0 0 0px", "important");
+      dataWrap.style.setProperty("min-width", "0px", "important");
+      dataWrap.style.setProperty("min-height", "0px", "important");
+      dataWrap.style.setProperty("overflow", "hidden", "important");
+    }
+    if (labelHost) {
+      labelHost.style.setProperty("display", "flex", "important");
+      labelHost.style.setProperty("visibility", "visible", "important");
+      labelHost.style.setProperty("opacity", "1", "important");
+      labelHost.style.setProperty("flex", "1 1 auto", "important");
+      labelHost.style.setProperty("width", "100%", "important");
+      labelHost.style.setProperty("height", "100%", "important");
+      labelHost.style.setProperty("min-width", "0px", "important");
+      labelHost.style.setProperty("max-width", "100%", "important");
+      labelHost.style.setProperty("align-items", "center", "important");
+      labelHost.style.setProperty("justify-content", "center", "important");
+      labelHost.style.setProperty("overflow", "hidden", "important");
+      labelHost.style.setProperty("padding", "8px", "important");
+    }
+  }
+  function restoreNonFreeStageLayout() {
+    const dataWrap = $("stageDataWrap");
+    const labelHost = $("stageLabelHost");
+    const host = $("canvasHost");
+    if (dataWrap) ["display", "visibility", "width", "height", "flex", "min-width", "min-height", "overflow"].forEach(p => dataWrap.style.removeProperty(p));
+    if (labelHost) ["flex", "width", "height", "min-width", "max-width", "align-items", "justify-content", "overflow", "padding"].forEach(p => labelHost.style.removeProperty(p));
+    if (host) ["flex-direction", "align-items", "justify-content"].forEach(p => host.style.removeProperty(p));
+  }
   function renderFreeCanvas() {
-    const labelHost = ensureStageShell(); if (!labelHost || !layout) return;
-    labelHost.innerHTML = ""; const dataWrap = $("stageDataWrap"); if (dataWrap) dataWrap.style.setProperty("display", "none", "important");
-    const s = sizePx(FREE_TYPE); const zoom = applyZoomSliderCap(labelHost);
+    const labelHost = ensureStageShell();
+    if (!labelHost || !layout) return;
+    applyFreeModeStageLayout();
+    labelHost.innerHTML = "";
+    const s = sizePx(FREE_TYPE);
+    const zoom = applyZoomSliderCap(labelHost);
     const stack = document.createElement("div"); stack.className = "stageStack freeStageStack";
     const previewRow = document.createElement("div"); previewRow.className = "labelPreviewRow freePreviewRow";
     const frame = document.createElement("div"); frame.className = "stageFrame"; frame.style.width = Math.ceil(s.w * zoom) + "px"; frame.style.height = Math.ceil(s.h * zoom) + "px";
     const stage = document.createElement("div"); stage.className = "stageInner"; stage.style.width = s.w + "px"; stage.style.height = s.h + "px"; stage.style.transform = "scale(" + zoom + ")"; stage.style.transformOrigin = "0 0";
     const canvas = document.createElement("div"); canvas.className = "labelCanvas freeLabelCanvas"; canvas.style.width = s.w + "px"; canvas.style.height = s.h + "px";
-    stage.appendChild(canvas); frame.appendChild(stage); if (showGrid) addGrid(canvas); if (showSafeZone) addSafeZone(canvas);
-    freeObjectIds(layout).forEach(id => { const o = layout.objects[id]; if (!o || o.visible === false) return; const obj = document.createElement("div"); obj.className = "obj freeObj" + (selectedId === id ? " selected" : "") + (o.locked ? " locked" : ""); obj.dataset.id = id; Object.assign(obj.style, { left: o.x + "px", top: o.y + "px", width: o.w + "px", height: o.h + "px" }); obj.appendChild(makeFreeObjectInner(id, o)); canvas.appendChild(obj); attachObjectEvents(obj); });
-    previewRow.appendChild(frame); stack.appendChild(previewRow); labelHost.appendChild(stack); autoFitFreeTextSoon(); applyPersistentDebugLayerSizes(false); refreshDebugLayerLabelsSoon();
+    stage.appendChild(canvas); frame.appendChild(stage);
+    if (showGrid) addGrid(canvas);
+    if (showSafeZone) addSafeZone(canvas);
+    const ids = freeObjectIds(layout);
+    ids.forEach(id => {
+      const o = layout.objects[id];
+      if (!o || o.visible === false) return;
+      const obj = document.createElement("div");
+      obj.className = "obj freeObj" + (selectedId === id ? " selected" : "") + (o.locked ? " locked" : "");
+      obj.dataset.id = id;
+      Object.assign(obj.style, { left: o.x + "px", top: o.y + "px", width: o.w + "px", height: o.h + "px" });
+      obj.appendChild(makeFreeObjectInner(id, o));
+      canvas.appendChild(obj);
+      attachObjectEvents(obj);
+    });
+    if (!ids.length) {
+      const empty = document.createElement("div");
+      empty.className = "freeEmptyCanvasNote";
+      empty.textContent = "Blank Free Field label - add Text, QR, Barcode, or Image from the left panel.";
+      canvas.appendChild(empty);
+    }
+    previewRow.appendChild(frame);
+    stack.appendChild(previewRow);
+    labelHost.appendChild(stack);
+    autoFitFreeTextSoon();
+    applyPersistentDebugLayerSizes(false);
+    refreshDebugLayerLabelsSoon();
   }
   function fitOneFreeText(el) { if (!el || el.dataset.autofit === "false") return; const obj = el.closest(".obj"); const o = obj && layout && layout.objects && layout.objects[obj.dataset.id]; if (!o || o.autoFit === false) return; const max = Math.max(1, Number(o.fontSize || 24)); const min = Math.max(1, Number(o.minFontSize || 3)); let low = min, high = max, best = min; el.style.fontSize = max + "px"; if (fits(el)) return; for (let i = 0; i < 24; i++) { const mid = (low + high) / 2; el.style.fontSize = mid.toFixed(2) + "px"; if (fits(el)) { best = mid; low = mid; } else high = mid; } el.style.fontSize = best.toFixed(2) + "px"; }
   function autoFitFreeText() { document.querySelectorAll(".freeTextInner").forEach(fitOneFreeText); }
   function autoFitFreeTextSoon() { autoFitFreeText(); requestAnimationFrame(autoFitFreeText); setTimeout(autoFitFreeText, 80); setTimeout(autoFitFreeText, 220); }
 
-  const previousFallbackLayout = fallbackLayout; fallbackLayout = function(type) { return type === FREE_TYPE ? normalizeFreeLayout({ labelType: FREE_TYPE }) : previousFallbackLayout(type); };
-  const previousNormalizeLayout = normalizeLayout; normalizeLayout = function(src) { return src && src.labelType === FREE_TYPE ? normalizeFreeLayout(src) : previousNormalizeLayout(src); };
-  const previousObjectOrder = objectOrder; objectOrder = function(type = labelType) { return type === FREE_TYPE ? freeObjectIds(type === labelType ? layout : (DEFAULT_LAYOUTS.FREE || fallbackLayout(FREE_TYPE))) : previousObjectOrder(type); };
-  const previousDefaultSelectedId = defaultSelectedId; defaultSelectedId = function(type = labelType) { return type === FREE_TYPE ? (objectOrder(FREE_TYPE)[0] || "TEXT_1") : previousDefaultSelectedId(type); };
-  const previousIsImageObject = isImageObject; isImageObject = function(id) { return isFreeMode() ? ["qr", "barcode", "image"].includes(freeObjectType(id)) : previousIsImageObject(id); };
-  const previousObjectDisplayName = objectDisplayName; objectDisplayName = function(id) { return isFreeMode() ? freeHumanName(id) : previousObjectDisplayName(id); };
-  const previousApplyModeClass = applyModeClass; applyModeClass = function() { previousApplyModeClass(); if (document.body) document.body.classList.toggle("beinvt-label-free", isFreeMode()); };
-  const previousEnsureModeTabs = ensureModeTabs; ensureModeTabs = function() { previousEnsureModeTabs(); const sel = $("labelType"); if (sel && !sel.querySelector('option[value="FREE"]')) { const opt = document.createElement("option"); opt.value = FREE_TYPE; opt.textContent = "Free Field"; sel.appendChild(opt); } const tabs = $("modeTabs"); if (tabs && !tabs.querySelector('[data-mode="FREE"]')) { const btn = document.createElement("button"); btn.type = "button"; btn.className = "modeTab"; btn.dataset.mode = FREE_TYPE; btn.textContent = "Free Field"; tabs.appendChild(btn); } };
-  const previousRenderObjectPanel = renderObjectPanel; renderObjectPanel = function() { if (!isFreeMode()) return previousRenderObjectPanel(); const panel = $("objectPanel"); if (!panel || !layout || !layout.objects) return; if (!layout.objects[selectedId]) selectedId = defaultSelectedId(FREE_TYPE); panel.innerHTML = ""; if ($("objectsModeNote")) $("objectsModeNote").textContent = "Free Field"; freeObjectIds(layout).forEach(id => { const o = layout.objects[id]; const visible = o.visible !== false; const locked = !!o.locked; const btn = document.createElement("button"); btn.type = "button"; btn.className = "objectBtn" + (selectedId === id ? " active" : "") + (!visible ? " hiddenObj" : ""); btn.innerHTML = '<span class="objectBtnTop"><span class="objectName">' + escapeHtml(objectDisplayName(id)) + '</span><span class="objectIcons"><span class="objectIconBtn" role="button" tabindex="0" data-action="visible">' + (visible ? '👁️' : '🙈') + '</span><span class="objectIconBtn" role="button" tabindex="0" data-action="lock">' + (locked ? '🔒' : '🔓') + '</span></span></span><span class="operatorHint">' + (visible ? "Visible" : "Hidden") + " • " + (locked ? "Locked" : "Unlocked") + '</span>'; btn.onclick = () => selectObject(id, true); btn.querySelectorAll(".objectIconBtn").forEach(icon => { icon.onclick = ev => { ev.preventDefault(); ev.stopPropagation(); selectedId = id; pushHistory(); if (icon.dataset.action === "visible") o.visible = o.visible === false; if (icon.dataset.action === "lock") o.locked = !o.locked; saveWorkingLayout(); renderObjectPanel(); syncControls(); renderCanvas(); }; }); panel.appendChild(btn); }); };
-  const previousRenderCanvas = renderCanvas; renderCanvas = function() { if (isFreeMode()) return renderFreeCanvas(); const dataWrap = $("stageDataWrap"); if (dataWrap) dataWrap.style.removeProperty("display"); return previousRenderCanvas(); };
-  const previousAutoFitAllText = autoFitAllText; autoFitAllText = function() { return isFreeMode() ? autoFitFreeText() : previousAutoFitAllText(); };
+  const previousFallbackLayout = fallbackLayout;
+  fallbackLayout = function(type) { return type === FREE_TYPE ? normalizeFreeLayout({ labelType: FREE_TYPE, objects: {}, objectOrder: [] }) : previousFallbackLayout(type); };
+  const previousNormalizeLayout = normalizeLayout;
+  normalizeLayout = function(src) { return src && src.labelType === FREE_TYPE ? normalizeFreeLayout(src) : previousNormalizeLayout(src); };
+  const previousObjectOrder = objectOrder;
+  objectOrder = function(type = labelType) { return type === FREE_TYPE ? freeObjectIds(type === labelType ? layout : (DEFAULT_LAYOUTS.FREE || fallbackLayout(FREE_TYPE))) : previousObjectOrder(type); };
+  const previousDefaultSelectedId = defaultSelectedId;
+  defaultSelectedId = function(type = labelType) { return type === FREE_TYPE ? (objectOrder(FREE_TYPE)[0] || "") : previousDefaultSelectedId(type); };
+  const previousIsImageObject = isImageObject;
+  isImageObject = function(id) { return isFreeMode() ? ["qr", "barcode", "image"].includes(freeObjectType(id)) : previousIsImageObject(id); };
+  const previousObjectDisplayName = objectDisplayName;
+  objectDisplayName = function(id) { return isFreeMode() ? freeHumanName(id) : previousObjectDisplayName(id); };
+  const previousApplyModeClass = applyModeClass;
+  applyModeClass = function() { previousApplyModeClass(); if (document.body) document.body.classList.toggle("beinvt-label-free", isFreeMode()); if (isFreeMode()) applyFreeModeStageLayout(); else restoreNonFreeStageLayout(); };
+  const previousEnsureModeTabs = ensureModeTabs;
+  ensureModeTabs = function() {
+    previousEnsureModeTabs();
+    const sel = $("labelType");
+    if (sel && !sel.querySelector('option[value="FREE"]')) { const opt = document.createElement("option"); opt.value = FREE_TYPE; opt.textContent = "Free Field"; sel.appendChild(opt); }
+    const tabs = $("modeTabs");
+    if (tabs && !tabs.querySelector('[data-mode="FREE"]')) { const btn = document.createElement("button"); btn.type = "button"; btn.className = "modeTab"; btn.dataset.mode = FREE_TYPE; btn.textContent = "Free Field"; tabs.appendChild(btn); }
+  };
+  const previousRenderObjectPanel = renderObjectPanel;
+  renderObjectPanel = function() {
+    if (!isFreeMode()) return previousRenderObjectPanel();
+    const panel = $("objectPanel");
+    if (!panel || !layout || !layout.objects) return;
+    if (!layout.objects[selectedId]) selectedId = defaultSelectedId(FREE_TYPE);
+    panel.innerHTML = "";
+    if ($("objectsModeNote")) $("objectsModeNote").textContent = "Free Field";
+    const ids = freeObjectIds(layout);
+    if (!ids.length) {
+      const note = document.createElement("div");
+      note.className = "freeObjectEmptyNote";
+      note.textContent = "No boxes yet. Add Text, QR, Barcode, or Image below.";
+      panel.appendChild(note);
+      return;
+    }
+    ids.forEach(id => {
+      const o = layout.objects[id];
+      const visible = o.visible !== false;
+      const locked = !!o.locked;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "objectBtn" + (selectedId === id ? " active" : "") + (!visible ? " hiddenObj" : "");
+      btn.innerHTML = '<span class="objectBtnTop"><span class="objectName">' + escapeHtml(objectDisplayName(id)) + '</span><span class="objectIcons"><span class="objectIconBtn" role="button" tabindex="0" data-action="visible">' + (visible ? '👁️' : '🙈') + '</span><span class="objectIconBtn" role="button" tabindex="0" data-action="lock">' + (locked ? '🔒' : '🔓') + '</span></span></span><span class="operatorHint">' + (visible ? "Visible" : "Hidden") + " • " + (locked ? "Locked" : "Unlocked") + '</span>';
+      btn.onclick = () => selectObject(id, true);
+      btn.querySelectorAll(".objectIconBtn").forEach(icon => {
+        icon.onclick = ev => {
+          ev.preventDefault(); ev.stopPropagation(); selectedId = id; pushHistory();
+          if (icon.dataset.action === "visible") o.visible = o.visible === false;
+          if (icon.dataset.action === "lock") o.locked = !o.locked;
+          saveWorkingLayout(); renderObjectPanel(); syncControls(); renderCanvas();
+        };
+      });
+      panel.appendChild(btn);
+    });
+  };
+  const previousRenderCanvas = renderCanvas;
+  renderCanvas = function() { if (isFreeMode()) return renderFreeCanvas(); restoreNonFreeStageLayout(); return previousRenderCanvas(); };
+  const previousAutoFitAllText = autoFitAllText;
+  autoFitAllText = function() { return isFreeMode() ? autoFitFreeText() : previousAutoFitAllText(); };
 
+  function freeOptionList(values, current) {
+    return values.map(v => '<option value="' + escapeHtml(v) + '"' + (Number(v) === Number(current) ? ' selected' : '') + '>' + escapeHtml(formatPresetInches(v)) + ' in</option>').join('') + '<option value="custom">Custom</option>';
+  }
+  function freeSizePresetOptions() {
+    return '<option value="custom">Custom / use width + height dropdowns</option>' + FREE_SIZE_PRESETS.map(p => '<option value="' + p.w + 'x' + p.h + '">' + escapeHtml(p.name) + '</option>').join('');
+  }
   function freeControlsHtml() {
     const fonts = ["Arial", "Arial Black", "Times New Roman", "Georgia", "Verdana", "Tahoma", "Courier New", "Trebuchet MS", "Impact"].map(f => '<option value="' + escapeHtml(f) + '">' + escapeHtml(f) + '</option>').join("");
     const barcodes = BARCODE_TYPES.map(t => '<option value="' + escapeHtml(t) + '">' + escapeHtml(t.toUpperCase()) + '</option>').join("");
-    return '<section class="beinvtCard" id="freeDesignerSection"><div class="beinvtCardHeader">Free Field Template <span class="smallNote">BarTender-style builder</span></div><div class="beinvtCardBody"><div class="compactGrid two"><div class="field"><label for="freeWidthIn">Label Width (in)</label><input id="freeWidthIn" type="number" min="0.2" max="12" step="0.01"></div><div class="field"><label for="freeHeightIn">Label Height (in)</label><input id="freeHeightIn" type="number" min="0.2" max="12" step="0.01"></div></div><div class="buttonRow" style="margin-top:8px"><button id="freeApplySize" type="button">Apply Label Size</button><button id="freeAddText" type="button">Add Text</button><button id="freeAddQr" type="button">Add QR</button><button id="freeAddBarcode" type="button">Add Barcode</button><button id="freeAddImage" type="button">Add Image URL</button></div><div class="field" style="margin-top:9px"><label for="freeObjText">Selected Text / QR / Barcode / Image URL</label><textarea id="freeObjText" style="min-height:70px;resize:vertical"></textarea></div><div class="compactGrid two" style="margin-top:8px"><div class="field"><label for="freeFontFamily">Font</label><select id="freeFontFamily">' + fonts + '</select></div><div class="field"><label for="freeBarcodeType">Barcode Type</label><select id="freeBarcodeType">' + barcodes + '</select></div></div><div class="compactGrid" style="margin-top:8px"><div class="field"><label for="freeAlignH">Horizontal Align</label><select id="freeAlignH"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></div><div class="field"><label for="freeAlignV">Vertical Align</label><select id="freeAlignV"><option value="top">Top</option><option value="middle">Middle</option><option value="bottom">Bottom</option></select></div><div class="field"><label for="freeLineHeight">Line Height</label><input id="freeLineHeight" type="number" min="0.5" max="3" step="0.05"></div><div class="field"><label for="freeLetterSpacing">Letter Space</label><input id="freeLetterSpacing" type="number" min="-5" max="20" step="0.1"></div></div><div class="checkRow" style="margin-top:9px"><label class="checkItem"><input id="freeBold" type="checkbox"> Bold</label><label class="checkItem"><input id="freeItalic" type="checkbox"> Italic</label><label class="checkItem"><input id="freeUnderline" type="checkbox"> Underline</label><label class="checkItem"><input id="freeWrap" type="checkbox"> Wrap Text</label><label class="checkItem"><input id="freeUppercase" type="checkbox"> Uppercase</label><label class="checkItem"><input id="freeAutoFit" type="checkbox"> Auto-fit to Box</label><label class="checkItem"><input id="freeShowBarcodeText" type="checkbox"> Barcode Text</label></div><div class="buttonRow" style="margin-top:9px"><button id="freeDuplicate" type="button">Duplicate</button><button id="freeCopy" type="button">Copy</button><button id="freePaste" type="button">Paste</button><button id="freeBringFront" type="button">Bring Front</button><button id="freeSendBack" type="button">Send Back</button><button id="freeDelete" class="danger" type="button">Delete</button></div><div class="smallNote" style="margin-top:8px">Tip: Ctrl+C / Ctrl+V copies and pastes selected boxes. Use Grid/Snap above for alignment.</div></div></section>';
+    const s = labelSizeInches(FREE_TYPE);
+    return '<section class="beinvtCard" id="freeDesignerSection"><div class="beinvtCardHeader">Free Field Template <span class="smallNote">custom label builder</span></div><div class="beinvtCardBody">' +
+      '<div class="field"><label for="freeTemplateSelect">Saved templates</label><select id="freeTemplateSelect"></select></div>' +
+      '<div class="compactGrid two" style="margin-top:8px"><div class="field"><label for="freeTemplateName">Template Name</label><input id="freeTemplateName" placeholder="Example: Bin Label"></div><div class="field"><label for="freeSharedTemplateUrl">Shared GitHub library URL</label><input id="freeSharedTemplateUrl" value="' + escapeHtml(FREE_SHARED_LIBRARY_DEFAULT) + '"></div></div>' +
+      '<div class="buttonRow" style="margin-top:8px"><button id="freeSaveTemplate" type="button">Save Template</button><button id="freeLoadTemplate" type="button">Load</button><button id="freeDeleteTemplate" class="danger" type="button">Delete</button><button id="freeExportTemplate" type="button">Export JSON</button><button id="freeImportTemplate" type="button">Import JSON</button><button id="freeLoadSharedTemplates" type="button">Load Shared</button></div>' +
+      '<div class="field" style="margin-top:8px"><textarea id="freeTemplateJson" placeholder="Template JSON appears here for export/import. Shared library can be a JSON array or {templates:[...]}." style="min-height:54px;resize:vertical"></textarea></div>' +
+      '<div class="field" style="margin-top:10px"><label for="freeSizePreset">Label Size Preset</label><select id="freeSizePreset">' + freeSizePresetOptions() + '</select></div>' +
+      '<div class="compactGrid" style="margin-top:8px"><div class="field"><label for="freeWidthSelect">Width</label><select id="freeWidthSelect">' + freeOptionList(FREE_WIDTH_OPTIONS, s.widthIn) + '</select></div><div class="field"><label for="freeHeightSelect">Height</label><select id="freeHeightSelect">' + freeOptionList(FREE_HEIGHT_OPTIONS, s.heightIn) + '</select></div><div class="field"><label for="freeWidthIn">Custom W</label><input id="freeWidthIn" type="number" min="0.2" max="12" step="0.01"></div><div class="field"><label for="freeHeightIn">Custom H</label><input id="freeHeightIn" type="number" min="0.2" max="12" step="0.01"></div></div>' +
+      '<div class="buttonRow" style="margin-top:8px"><button id="freeApplySize" type="button">Apply Label Size</button><button id="freeAddText" type="button">Add Text</button><button id="freeAddQr" type="button">Add QR</button><button id="freeAddBarcode" type="button">Add Barcode</button><button id="freeAddImage" type="button">Add Image URL</button></div>' +
+      '<div class="field" style="margin-top:9px"><label for="freeObjText">Selected Text / QR / Barcode / Image URL</label><textarea id="freeObjText" style="min-height:70px;resize:vertical"></textarea></div>' +
+      '<div class="compactGrid two" style="margin-top:8px"><div class="field"><label for="freeFontFamily">Font</label><select id="freeFontFamily">' + fonts + '</select></div><div class="field"><label for="freeBarcodeType">Barcode Type</label><select id="freeBarcodeType">' + barcodes + '</select></div></div>' +
+      '<div class="freeFormatToolbar" style="margin-top:9px"><button id="freeBold" type="button" data-toggle="bold" title="Bold"><b>B</b></button><button id="freeItalic" type="button" data-toggle="italic" title="Italic"><i>I</i></button><button id="freeUnderline" type="button" data-toggle="underline" title="Underline"><u>U</u></button><button id="freeWrap" type="button" data-toggle="wrap" title="Wrap Text">Wrap</button><button id="freeUppercase" type="button" data-toggle="uppercase" title="Uppercase">Aa</button><button id="freeAutoFit" type="button" data-toggle="autofit" title="Auto-fit to box">Fit</button><button id="freeShowBarcodeText" type="button" data-toggle="barcodetext" title="Barcode text">123</button></div>' +
+      '<div class="compactGrid" style="margin-top:8px"><div class="field"><label for="freeAlignH">Horizontal Align</label><select id="freeAlignH"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></div><div class="field"><label for="freeAlignV">Vertical Align</label><select id="freeAlignV"><option value="top">Top</option><option value="middle">Middle</option><option value="bottom">Bottom</option></select></div><div class="field"><label for="freeLineHeight">Line Height</label><input id="freeLineHeight" type="number" min="0.5" max="3" step="0.05"></div><div class="field"><label for="freeLetterSpacing">Letter Space</label><input id="freeLetterSpacing" type="number" min="-5" max="20" step="0.1"></div></div>' +
+      '<div class="buttonRow" style="margin-top:9px"><button id="freeDuplicate" type="button">Duplicate</button><button id="freeCopy" type="button">Copy</button><button id="freePaste" type="button">Paste</button><button id="freeBringFront" type="button">Bring Front</button><button id="freeSendBack" type="button">Send Back</button><button id="freeDelete" class="danger" type="button">Delete</button></div>' +
+      '<div class="smallNote" style="margin-top:8px">Templates save locally in this browser. For everyone to see shared templates, export JSON and add it to the repo as <b>data/free-field-templates.json</b>; then users can click Load Shared.</div>' +
+      '</div></section>';
   }
-  function ensureFreeDesignerControls() { const panel = getObjectsPanePanel(); if (!panel || $("freeDesignerSection")) return; const pos = $("positionSection"); const wrap = document.createElement("div"); wrap.innerHTML = freeControlsHtml(); const sec = wrap.firstElementChild; if (pos && pos.parentElement) pos.parentElement.insertBefore(sec, pos.nextSibling); else panel.appendChild(sec); bindFreeDesignerControls(); }
-  function bindFreeDesignerControls() { ["freeObjText", "freeFontFamily", "freeBarcodeType", "freeAlignH", "freeAlignV", "freeLineHeight", "freeLetterSpacing", "freeBold", "freeItalic", "freeUnderline", "freeWrap", "freeUppercase", "freeAutoFit", "freeShowBarcodeText"].forEach(id => { const el = $(id); if (!el) return; const evName = el.tagName === "TEXTAREA" || el.tagName === "INPUT" ? "input" : "change"; el.addEventListener(evName, applyFreeObjectControls); el.addEventListener("change", applyFreeObjectControls); }); const bind = (id, fn) => { const el = $(id); if (el) el.onclick = fn; }; bind("freeApplySize", applyFreeLabelSize); bind("freeAddText", () => addFreeObject("text")); bind("freeAddQr", () => addFreeObject("qr")); bind("freeAddBarcode", () => addFreeObject("barcode")); bind("freeAddImage", () => addFreeObject("image")); bind("freeDuplicate", duplicateFreeObject); bind("freeCopy", copyFreeObject); bind("freePaste", pasteFreeObject); bind("freeBringFront", () => moveFreeZ("front")); bind("freeSendBack", () => moveFreeZ("back")); bind("freeDelete", deleteFreeObject); }
-  function updateFreeDesignerVisibility() { ensureFreeDesignerControls(); const sec = $("freeDesignerSection"); if (sec) sec.style.display = isFreeMode() ? "block" : "none"; const s = labelSizeInches(FREE_TYPE); if ($("freeWidthIn")) $("freeWidthIn").value = s.widthIn; if ($("freeHeightIn")) $("freeHeightIn").value = s.heightIn; }
-  function syncFreeDesignerControls() { updateFreeDesignerVisibility(); if (!isFreeMode() || !layout || !layout.objects) return; const o = layout.objects[selectedId]; if (!o) return; if ($("freeObjText")) $("freeObjText").value = o.type === "text" ? (o.text || "") : (o.value || ""); if ($("freeFontFamily")) $("freeFontFamily").value = o.fontFamily || "Arial"; if ($("freeBarcodeType")) { $("freeBarcodeType").value = o.barcodeType || "code128"; $("freeBarcodeType").disabled = o.type !== "barcode"; } if ($("freeAlignH")) $("freeAlignH").value = o.alignH || "center"; if ($("freeAlignV")) $("freeAlignV").value = o.alignV || "middle"; if ($("freeLineHeight")) $("freeLineHeight").value = Number(o.lineHeight || 1); if ($("freeLetterSpacing")) $("freeLetterSpacing").value = Number(o.letterSpacing || 0); const textOnly = o.type === "text"; ["freeFontFamily", "freeLineHeight", "freeLetterSpacing", "freeBold", "freeItalic", "freeUnderline", "freeWrap", "freeUppercase", "freeAutoFit"].forEach(id => { if ($(id)) $(id).disabled = !textOnly; }); if ($("freeBold")) $("freeBold").checked = o.bold !== false; if ($("freeItalic")) $("freeItalic").checked = !!o.italic; if ($("freeUnderline")) $("freeUnderline").checked = !!o.underline; if ($("freeWrap")) $("freeWrap").checked = o.wrap !== false; if ($("freeUppercase")) $("freeUppercase").checked = !!o.uppercase; if ($("freeAutoFit")) $("freeAutoFit").checked = o.autoFit !== false; if ($("freeShowBarcodeText")) { $("freeShowBarcodeText").checked = o.showText !== false; $("freeShowBarcodeText").disabled = o.type !== "barcode"; } }
-  function applyFreeLabelSize() { if (!isFreeMode()) return; const oldSize = labelSizeInches(FREE_TYPE); const w = normalizeInchesValue($("freeWidthIn") && $("freeWidthIn").value, oldSize.widthIn, 0.2, 12); const h = normalizeInchesValue($("freeHeightIn") && $("freeHeightIn").value, oldSize.heightIn, 0.2, 12); pushHistory(); saveLabelSizeInches(FREE_TYPE, { widthIn: w, heightIn: h }); if (layout) layout.labelSize = { widthIn: w, heightIn: h }; clampAllObjects(); resetZoomToAutoMax(); saveWorkingLayout(); renderAll(); }
-  function addFreeObject(type) { if (!isFreeMode()) return; pushHistory(); const id = nextFreeId(type); const offset = freeObjectIds(layout).length * 8; layout.objects[id] = freeDefaultObject(type, id, 12 + (offset % 80), 12 + (offset % 60)); layout.objectOrder = freeObjectIds(layout).concat(id).filter((v, i, a) => a.indexOf(v) === i); selectedId = id; clampObject(id); saveWorkingLayout(); renderAll(); }
+  function ensureFreeDesignerControls() {
+    const panel = getObjectsPanePanel();
+    if (!panel || $("freeDesignerSection")) return;
+    const pos = $("positionSection");
+    const wrap = document.createElement("div");
+    wrap.innerHTML = freeControlsHtml();
+    const sec = wrap.firstElementChild;
+    if (pos && pos.parentElement) pos.parentElement.insertBefore(sec, pos.nextSibling); else panel.appendChild(sec);
+    bindFreeDesignerControls();
+    refreshFreeTemplateSelect();
+  }
+  function setToggleButton(id, on) { const el = $(id); if (!el) return; el.dataset.active = on ? "1" : "0"; el.classList.toggle("active", !!on); el.setAttribute("aria-pressed", on ? "true" : "false"); }
+  function getToggleButton(id) { const el = $(id); return !!(el && el.dataset.active === "1"); }
+  function bindFreeDesignerControls() {
+    ["freeObjText", "freeFontFamily", "freeBarcodeType", "freeAlignH", "freeAlignV", "freeLineHeight", "freeLetterSpacing"].forEach(id => { const el = $(id); if (!el) return; const evName = el.tagName === "TEXTAREA" || el.tagName === "INPUT" ? "input" : "change"; el.addEventListener(evName, applyFreeObjectControls); el.addEventListener("change", applyFreeObjectControls); });
+    ["freeBold", "freeItalic", "freeUnderline", "freeWrap", "freeUppercase", "freeAutoFit", "freeShowBarcodeText"].forEach(id => { const el = $(id); if (!el) return; el.onclick = () => { if (el.disabled) return; setToggleButton(id, !getToggleButton(id)); applyFreeObjectControls(); }; });
+    ["freeWidthSelect", "freeHeightSelect"].forEach(id => { const el = $(id); if (el) el.onchange = syncFreeCustomSizeFromDropdowns; });
+    const preset = $("freeSizePreset");
+    if (preset) preset.onchange = applyFreePresetToDropdowns;
+    const bind = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
+    bind("freeApplySize", applyFreeLabelSize);
+    bind("freeAddText", () => addFreeObject("text"));
+    bind("freeAddQr", () => addFreeObject("qr"));
+    bind("freeAddBarcode", () => addFreeObject("barcode"));
+    bind("freeAddImage", () => addFreeObject("image"));
+    bind("freeDuplicate", duplicateFreeObject);
+    bind("freeCopy", copyFreeObject);
+    bind("freePaste", pasteFreeObject);
+    bind("freeBringFront", () => moveFreeZ("front"));
+    bind("freeSendBack", () => moveFreeZ("back"));
+    bind("freeDelete", deleteFreeObject);
+    bind("freeSaveTemplate", saveFreeTemplate);
+    bind("freeLoadTemplate", loadFreeTemplate);
+    bind("freeDeleteTemplate", deleteFreeTemplate);
+    bind("freeExportTemplate", exportFreeTemplate);
+    bind("freeImportTemplate", importFreeTemplate);
+    bind("freeLoadSharedTemplates", loadSharedFreeTemplates);
+  }
+  function syncFreeCustomSizeFromDropdowns() {
+    const wSel = $("freeWidthSelect");
+    const hSel = $("freeHeightSelect");
+    if (wSel && wSel.value !== "custom" && $("freeWidthIn")) $("freeWidthIn").value = wSel.value;
+    if (hSel && hSel.value !== "custom" && $("freeHeightIn")) $("freeHeightIn").value = hSel.value;
+  }
+  function applyFreePresetToDropdowns() {
+    const el = $("freeSizePreset");
+    if (!el || el.value === "custom") return;
+    const parts = el.value.split("x");
+    const w = Number(parts[0]);
+    const h = Number(parts[1]);
+    if (Number.isFinite(w) && $("freeWidthIn")) $("freeWidthIn").value = w;
+    if (Number.isFinite(h) && $("freeHeightIn")) $("freeHeightIn").value = h;
+    if ($("freeWidthSelect")) $("freeWidthSelect").value = FREE_WIDTH_OPTIONS.includes(w) ? String(w) : "custom";
+    if ($("freeHeightSelect")) $("freeHeightSelect").value = FREE_HEIGHT_OPTIONS.includes(h) ? String(h) : "custom";
+  }
+  function updateFreeDesignerVisibility() {
+    ensureFreeDesignerControls();
+    const sec = $("freeDesignerSection");
+    if (sec) sec.style.display = isFreeMode() ? "block" : "none";
+    const s = labelSizeInches(FREE_TYPE);
+    if ($("freeWidthIn")) $("freeWidthIn").value = s.widthIn;
+    if ($("freeHeightIn")) $("freeHeightIn").value = s.heightIn;
+    if ($("freeWidthSelect")) $("freeWidthSelect").value = FREE_WIDTH_OPTIONS.includes(Number(s.widthIn)) ? String(Number(s.widthIn)) : "custom";
+    if ($("freeHeightSelect")) $("freeHeightSelect").value = FREE_HEIGHT_OPTIONS.includes(Number(s.heightIn)) ? String(Number(s.heightIn)) : "custom";
+    refreshFreeTemplateSelect();
+  }
+  function syncFreeDesignerControls() {
+    updateFreeDesignerVisibility();
+    if (!isFreeMode() || !layout || !layout.objects) return;
+    const o = layout.objects[selectedId];
+    const hasObj = !!o;
+    if ($("selectedName")) $("selectedName").textContent = hasObj ? objectDisplayName(selectedId) : "No object selected";
+    ["x", "y", "w", "h", "rot", "fontSize"].forEach(id => { const el = $(id); if (el) { el.disabled = !hasObj; if (!hasObj) el.value = ""; } });
+    if ($("freeObjText")) { $("freeObjText").disabled = !hasObj; $("freeObjText").value = !hasObj ? "" : (o.type === "text" ? (o.text || "") : (o.value || "")); }
+    if (!hasObj) {
+      ["freeFontFamily", "freeAlignH", "freeAlignV", "freeLineHeight", "freeLetterSpacing", "freeBarcodeType"].forEach(id => { if ($(id)) $(id).disabled = true; });
+      ["freeBold", "freeItalic", "freeUnderline", "freeWrap", "freeUppercase", "freeAutoFit", "freeShowBarcodeText", "freeDuplicate", "freeCopy", "freeBringFront", "freeSendBack", "freeDelete"].forEach(id => { if ($(id)) $(id).disabled = true; });
+      return;
+    }
+    const textOnly = o.type === "text";
+    ["freeFontFamily", "freeLineHeight", "freeLetterSpacing"].forEach(id => { if ($(id)) $(id).disabled = !textOnly; });
+    ["freeBold", "freeItalic", "freeUnderline", "freeWrap", "freeUppercase", "freeAutoFit"].forEach(id => { if ($(id)) $(id).disabled = !textOnly; });
+    ["freeAlignH", "freeAlignV", "freeBarcodeType", "freeDuplicate", "freeCopy", "freeBringFront", "freeSendBack", "freeDelete"].forEach(id => { if ($(id)) $(id).disabled = false; });
+    if ($("freeShowBarcodeText")) $("freeShowBarcodeText").disabled = o.type !== "barcode";
+    if ($("freeFontFamily")) $("freeFontFamily").value = o.fontFamily || "Arial";
+    if ($("freeBarcodeType")) $("freeBarcodeType").value = o.barcodeType || "code128";
+    if ($("freeAlignH")) $("freeAlignH").value = o.alignH || "center";
+    if ($("freeAlignV")) $("freeAlignV").value = o.alignV || "middle";
+    if ($("freeLineHeight")) $("freeLineHeight").value = Number(o.lineHeight || 1);
+    if ($("freeLetterSpacing")) $("freeLetterSpacing").value = Number(o.letterSpacing || 0);
+    setToggleButton("freeBold", o.bold !== false);
+    setToggleButton("freeItalic", !!o.italic);
+    setToggleButton("freeUnderline", !!o.underline);
+    setToggleButton("freeWrap", o.wrap !== false);
+    setToggleButton("freeUppercase", !!o.uppercase);
+    setToggleButton("freeAutoFit", o.autoFit !== false);
+    setToggleButton("freeShowBarcodeText", o.showText !== false);
+  }
+  function applyFreeLabelSize() {
+    if (!isFreeMode()) return;
+    syncFreeCustomSizeFromDropdowns();
+    const oldSize = labelSizeInches(FREE_TYPE);
+    const w = normalizeInchesValue($("freeWidthIn") && $("freeWidthIn").value, oldSize.widthIn, 0.2, 12);
+    const h = normalizeInchesValue($("freeHeightIn") && $("freeHeightIn").value, oldSize.heightIn, 0.2, 12);
+    pushHistory();
+    saveLabelSizeInches(FREE_TYPE, { widthIn: w, heightIn: h });
+    if (layout) layout.labelSize = { widthIn: w, heightIn: h };
+    clampAllObjects(); resetZoomToAutoMax(); saveWorkingLayout(); renderAll();
+  }
+  function addFreeObject(type) {
+    if (!isFreeMode()) return;
+    pushHistory();
+    const id = nextFreeId(type);
+    const offset = freeObjectIds(layout).length * 8;
+    layout.objects[id] = freeDefaultObject(type, id, 12 + (offset % 80), 12 + (offset % 60));
+    layout.objectOrder = freeObjectIds(layout).concat(id).filter((v, i, a) => a.indexOf(v) === i);
+    selectedId = id; clampObject(id); saveWorkingLayout(); renderAll();
+  }
   function selectedFreeObjectClone() { return isFreeMode() && layout && layout.objects && layout.objects[selectedId] ? clone(layout.objects[selectedId]) : null; }
   function copyFreeObject() { const obj = selectedFreeObjectClone(); if (obj) localStorage.setItem(FREE_COPY_KEY, JSON.stringify(obj)); }
   function pasteFreeObject() { if (!isFreeMode()) return; let obj = null; try { obj = JSON.parse(localStorage.getItem(FREE_COPY_KEY) || "null"); } catch (e) {} if (!obj) return; pushHistory(); const id = nextFreeId(obj.type || "text"); obj.x = Number(obj.x || 0) + 10; obj.y = Number(obj.y || 0) + 10; layout.objects[id] = obj; layout.objectOrder = freeObjectIds(layout).concat(id).filter((v, i, a) => a.indexOf(v) === i); selectedId = id; clampObject(id); saveWorkingLayout(); renderAll(); }
   function duplicateFreeObject() { copyFreeObject(); pasteFreeObject(); }
-  function deleteFreeObject() { if (!isFreeMode() || !layout || !layout.objects || !layout.objects[selectedId]) return; if (freeObjectIds(layout).length <= 1) { alert("Keep at least one object on the Free Field template."); return; } pushHistory(); delete layout.objects[selectedId]; layout.objectOrder = freeObjectIds(layout).filter(id => layout.objects[id]); selectedId = defaultSelectedId(FREE_TYPE); saveWorkingLayout(); renderAll(); }
+  function deleteFreeObject() { if (!isFreeMode() || !layout || !layout.objects || !layout.objects[selectedId]) return; pushHistory(); delete layout.objects[selectedId]; layout.objectOrder = freeObjectIds(layout).filter(id => layout.objects[id]); selectedId = defaultSelectedId(FREE_TYPE); saveWorkingLayout(); renderAll(); }
   function moveFreeZ(where) { if (!isFreeMode() || !layout || !layout.objects[selectedId]) return; pushHistory(); const ids = freeObjectIds(layout).filter(id => id !== selectedId); layout.objectOrder = where === "front" ? ids.concat(selectedId) : [selectedId].concat(ids); saveWorkingLayout(); renderAll(); }
-  function applyFreeObjectControls() { if (!isFreeMode() || !layout || !layout.objects || !layout.objects[selectedId] || window.beinvtFreeControlApplying) return; const o = layout.objects[selectedId]; pushHistory(); const textVal = $("freeObjText") ? $("freeObjText").value : ""; if (o.type === "text") o.text = textVal; else o.value = textVal; if (o.type === "text") { if ($("freeFontFamily")) o.fontFamily = $("freeFontFamily").value || "Arial"; if ($("freeLineHeight")) o.lineHeight = Number($("freeLineHeight").value || 1); if ($("freeLetterSpacing")) o.letterSpacing = Number($("freeLetterSpacing").value || 0); if ($("freeBold")) o.bold = $("freeBold").checked; if ($("freeItalic")) o.italic = $("freeItalic").checked; if ($("freeUnderline")) o.underline = $("freeUnderline").checked; if ($("freeWrap")) o.wrap = $("freeWrap").checked; if ($("freeUppercase")) o.uppercase = $("freeUppercase").checked; if ($("freeAutoFit")) o.autoFit = $("freeAutoFit").checked; } if (o.type === "barcode") { if ($("freeBarcodeType")) o.barcodeType = $("freeBarcodeType").value || "code128"; if ($("freeShowBarcodeText")) o.showText = $("freeShowBarcodeText").checked; } saveWorkingLayout(); renderCanvas(); }
-  const previousSyncControls = syncControls; syncControls = function() { previousSyncControls(); window.beinvtFreeControlApplying = true; syncFreeDesignerControls(); window.beinvtFreeControlApplying = false; };
-  const previousApplyControls = applyControls; applyControls = function() { if (!isFreeMode()) return previousApplyControls(); if (!layout || !layout.objects) return; if (!layout.objects[selectedId]) selectedId = defaultSelectedId(FREE_TYPE); const o = layout.objects[selectedId]; pushHistory(); for (const k of ["x", "y", "w", "h", "rot"]) { const inp = $(k); const val = Number(inp && inp.value); if (Number.isFinite(val)) o[k] = val; } const fs = Number($("fontSize") && $("fontSize").value); if (o.type === "text" && Number.isFinite(fs) && fs > 0) o.fontSize = fs; if ($("safeMargin")) layout.safeMarginPx = Number($("safeMargin").value || 0); if ($("gridPx")) layout.gridPx = Number($("gridPx").value || 4); if ($("snapPx")) layout.snapPx = Number($("snapPx").value || 4); clampObject(selectedId); saveWorkingLayout(); renderAll(); };
-  const previousRenderAll = renderAll; renderAll = function() { previousRenderAll(); updateFreeDesignerVisibility(); };
-  const previousPrintRows = printRows; printRows = function(items) { if (!isFreeMode()) return previousPrintRows(items); const s = labelSizeInches(FREE_TYPE); const b = sizePx(FREE_TYPE); const win = window.open("", "_blank"); const count = Math.max(1, (items && items.length) || 1); let pages = ""; for (let i = 0; i < count; i++) pages += renderFreePrintPage(); win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Print Free Field Label</title><style>@page{size:' + s.widthIn + 'in ' + s.heightIn + 'in;margin:0}html,body{margin:0;padding:0;background:#fff}.page{position:relative;width:' + b.w + 'px;height:' + b.h + 'px;overflow:hidden;background:#fff;color:#000;page-break-after:always;break-after:page;transform-origin:0 0;transform:scale(' + calibration.scaleX + ',' + calibration.scaleY + ')}.beinvtPrintFitText{overflow:hidden}*{box-sizing:border-box}</style></head><body>' + pages + printAutoFitScript() + '</body></html>'); win.document.close(); };
+  function applyFreeObjectControls() {
+    if (!isFreeMode() || !layout || !layout.objects || !layout.objects[selectedId] || window.beinvtFreeControlApplying) return;
+    const o = layout.objects[selectedId];
+    pushHistory();
+    const textVal = $("freeObjText") ? $("freeObjText").value : "";
+    if (o.type === "text") o.text = textVal; else o.value = textVal;
+    if ($("freeAlignH")) o.alignH = $("freeAlignH").value || "center";
+    if ($("freeAlignV")) o.alignV = $("freeAlignV").value || "middle";
+    if (o.type === "text") {
+      if ($("freeFontFamily")) o.fontFamily = $("freeFontFamily").value || "Arial";
+      if ($("freeLineHeight")) o.lineHeight = Number($("freeLineHeight").value || 1);
+      if ($("freeLetterSpacing")) o.letterSpacing = Number($("freeLetterSpacing").value || 0);
+      o.bold = getToggleButton("freeBold");
+      o.italic = getToggleButton("freeItalic");
+      o.underline = getToggleButton("freeUnderline");
+      o.wrap = getToggleButton("freeWrap");
+      o.uppercase = getToggleButton("freeUppercase");
+      o.autoFit = getToggleButton("freeAutoFit");
+    }
+    if (o.type === "barcode") {
+      if ($("freeBarcodeType")) o.barcodeType = $("freeBarcodeType").value || "code128";
+      o.showText = getToggleButton("freeShowBarcodeText");
+    }
+    saveWorkingLayout(); renderCanvas();
+  }
+
+  function readFreeTemplates() { try { const raw = localStorage.getItem(FREE_TEMPLATES_KEY); return raw ? JSON.parse(raw) : []; } catch (e) { return []; } }
+  function writeFreeTemplates(list) { try { localStorage.setItem(FREE_TEMPLATES_KEY, JSON.stringify(Array.isArray(list) ? list : [])); } catch (e) {} }
+  function currentFreeTemplateObject(name) {
+    const size = labelSizeInches(FREE_TYPE);
+    const payload = { name: cleanDisplay(name) || "Free Field Template", updatedAt: new Date().toISOString(), labelSize: size, layout: clone(layout || normalizeFreeLayout({ labelType: FREE_TYPE })) };
+    payload.layout.labelType = FREE_TYPE;
+    payload.layout.labelSize = size;
+    return payload;
+  }
+  function normalizeTemplatePayload(payload) {
+    const t = payload && payload.layout ? payload : { name: payload && payload.name, labelSize: payload && payload.labelSize, layout: payload };
+    if (!t || !t.layout) return null;
+    const size = t.labelSize || t.layout.labelSize || labelSizeInches(FREE_TYPE);
+    const name = cleanDisplay(t.name || t.layout.name || "Free Field Template");
+    const normalizedLayout = normalizeFreeLayout(Object.assign({}, t.layout, { labelType: FREE_TYPE }));
+    return { name, updatedAt: cleanDisplay(t.updatedAt) || new Date().toISOString(), labelSize: { widthIn: normalizeInchesValue(size.widthIn || size.width, 4), heightIn: normalizeInchesValue(size.heightIn || size.height, 2) }, layout: normalizedLayout };
+  }
+  function refreshFreeTemplateSelect() {
+    const sel = $("freeTemplateSelect"); if (!sel) return;
+    const templates = readFreeTemplates();
+    sel.innerHTML = templates.length ? templates.map((t, i) => '<option value="' + i + '">' + escapeHtml(t.name || ("Template " + (i + 1))) + '</option>').join("") : '<option value="">No saved templates</option>';
+  }
+  function saveFreeTemplate() {
+    if (!isFreeMode() || !layout) return;
+    const name = cleanDisplay($("freeTemplateName") && $("freeTemplateName").value) || (layout.name && layout.name !== "Free Field Designer" ? layout.name : "Free Field Template");
+    const templates = readFreeTemplates();
+    const payload = currentFreeTemplateObject(name);
+    const idx = templates.findIndex(t => cleanDisplay(t.name).toLowerCase() === name.toLowerCase());
+    if (idx >= 0) templates[idx] = payload; else templates.push(payload);
+    writeFreeTemplates(templates); refreshFreeTemplateSelect();
+  }
+  function loadFreeTemplate() {
+    if (!isFreeMode()) return;
+    const sel = $("freeTemplateSelect"); const idx = sel ? Number(sel.value) : -1;
+    const templates = readFreeTemplates(); const payload = templates[idx]; const t = normalizeTemplatePayload(payload);
+    if (!t) return;
+    pushHistory(); saveLabelSizeInches(FREE_TYPE, t.labelSize); layout = normalizeFreeLayout(t.layout); layout.labelSize = t.labelSize; selectedId = defaultSelectedId(FREE_TYPE); saveWorkingLayout(); renderAll();
+  }
+  function deleteFreeTemplate() {
+    const sel = $("freeTemplateSelect"); const idx = sel ? Number(sel.value) : -1; const templates = readFreeTemplates();
+    if (!Number.isFinite(idx) || idx < 0 || idx >= templates.length) return;
+    templates.splice(idx, 1); writeFreeTemplates(templates); refreshFreeTemplateSelect();
+  }
+  function exportFreeTemplate() {
+    if (!isFreeMode() || !layout) return;
+    const name = cleanDisplay($("freeTemplateName") && $("freeTemplateName").value) || "Free Field Template";
+    const payload = currentFreeTemplateObject(name);
+    const json = JSON.stringify(payload, null, 2);
+    if ($("freeTemplateJson")) $("freeTemplateJson").value = json;
+    try {
+      const blob = new Blob([json], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".json";
+      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 250);
+    } catch (e) {}
+  }
+  function importFreeTemplate() {
+    let raw = $("freeTemplateJson") ? $("freeTemplateJson").value : ""; if (!cleanDisplay(raw)) return;
+    let parsed = null; try { parsed = JSON.parse(raw); } catch (e) { alert("Template JSON is not valid."); return; }
+    const incoming = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.templates) ? parsed.templates : [parsed]);
+    const templates = readFreeTemplates();
+    incoming.forEach(item => { const t = normalizeTemplatePayload(item); if (!t) return; const idx = templates.findIndex(x => cleanDisplay(x.name).toLowerCase() === t.name.toLowerCase()); if (idx >= 0) templates[idx] = t; else templates.push(t); });
+    writeFreeTemplates(templates); refreshFreeTemplateSelect();
+  }
+  async function loadSharedFreeTemplates() {
+    const url = cleanDisplay($("freeSharedTemplateUrl") && $("freeSharedTemplateUrl").value) || FREE_SHARED_LIBRARY_DEFAULT;
+    try {
+      const res = await fetch(url + (url.includes("?") ? "&" : "?") + "cache=" + Date.now());
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const parsed = await res.json();
+      const incoming = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.templates) ? parsed.templates : [parsed]);
+      const templates = readFreeTemplates();
+      incoming.forEach(item => { const t = normalizeTemplatePayload(item); if (!t) return; const idx = templates.findIndex(x => cleanDisplay(x.name).toLowerCase() === t.name.toLowerCase()); if (idx >= 0) templates[idx] = t; else templates.push(t); });
+      writeFreeTemplates(templates); refreshFreeTemplateSelect();
+    } catch (e) { alert("Could not load shared templates from " + url + ". Add data/free-field-templates.json to GitHub Pages or paste exported JSON and click Import JSON."); }
+  }
+
+  const previousSyncControls = syncControls;
+  syncControls = function() { previousSyncControls(); window.beinvtFreeControlApplying = true; syncFreeDesignerControls(); window.beinvtFreeControlApplying = false; };
+  const previousApplyControls = applyControls;
+  applyControls = function() {
+    if (!isFreeMode()) return previousApplyControls();
+    if (!layout || !layout.objects || !layout.objects[selectedId]) return;
+    const o = layout.objects[selectedId];
+    pushHistory();
+    for (const k of ["x", "y", "w", "h", "rot"]) { const inp = $(k); const val = Number(inp && inp.value); if (Number.isFinite(val)) o[k] = val; }
+    const fs = Number($("fontSize") && $("fontSize").value); if (o.type === "text" && Number.isFinite(fs) && fs > 0) o.fontSize = fs;
+    if ($("safeMargin")) layout.safeMarginPx = Number($("safeMargin").value || 0);
+    if ($("gridPx")) layout.gridPx = Number($("gridPx").value || 4);
+    if ($("snapPx")) layout.snapPx = Number($("snapPx").value || 4);
+    clampObject(selectedId); saveWorkingLayout(); renderAll();
+  };
+  const previousRenderAll = renderAll;
+  renderAll = function() { previousRenderAll(); updateFreeDesignerVisibility(); if (isFreeMode()) applyFreeModeStageLayout(); };
+  const previousPrintRows = printRows;
+  printRows = function(items) {
+    if (!isFreeMode()) return previousPrintRows(items);
+    const s = labelSizeInches(FREE_TYPE); const b = sizePx(FREE_TYPE); const win = window.open("", "_blank");
+    const count = Math.max(1, (items && items.length) || 1); let pages = "";
+    for (let i = 0; i < count; i++) pages += renderFreePrintPage();
+    win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Print Free Field Label</title><style>@page{size:' + s.widthIn + 'in ' + s.heightIn + 'in;margin:0}html,body{margin:0;padding:0;background:#fff}.page{position:relative;width:' + b.w + 'px;height:' + b.h + 'px;overflow:hidden;background:#fff;color:#000;page-break-after:always;break-after:page;transform-origin:0 0;transform:scale(' + calibration.scaleX + ',' + calibration.scaleY + ')}.beinvtPrintFitText{overflow:hidden}*{box-sizing:border-box}</style></head><body>' + pages + printAutoFitScript() + '</body></html>');
+    win.document.close();
+  };
   function renderFreePrintPage() { let out = '<div class="page">'; freeObjectIds(layout).forEach(id => { const o = layout.objects[id]; if (!o || o.visible === false) return; const outer = 'position:absolute;left:' + o.x + 'px;top:' + o.y + 'px;width:' + o.w + 'px;height:' + o.h + 'px;overflow:hidden;'; out += '<div style="' + outer + '">' + printFreeObjectInner(id, o) + '</div>'; }); return out + '</div>'; }
 
-  const previousMakeWrapObjectInner = makeWrapObjectInner; makeWrapObjectInner = function(id, row, o) { if (id !== "WARNING") return previousMakeWrapObjectInner(id, row, o); const holder = document.createElement("div"); holder.style.cssText = "position:absolute;inset:0;overflow:hidden"; const inner = document.createElement("div"); inner.className = "wrapTextInner leftText smallText warningText"; inner.dataset.textId = id; inner.textContent = WRAP_WARNING; inner.style.fontSize = Math.max(1, Number(o.fontSize || 3.2) - 1) + "px"; inner.style.justifyContent = alignH(o.alignH); inner.style.alignItems = "center"; inner.style.textAlign = "left"; inner.style.lineHeight = "1"; holder.appendChild(inner); return holder; };
-  const previousPrintWrapObjectInner = printWrapObjectInner; printWrapObjectInner = function(id, row, o) { if (id !== "WARNING") return previousPrintWrapObjectInner(id, row, o); const fs = Math.max(1, Number(o.fontSize || 3.2) - 1); const oo = Object.assign({}, o, { fontSize: fs }); const base = "position:absolute;inset:0;display:flex;align-items:center;justify-content:" + alignH(o.alignH) + ";overflow:hidden;text-align:left;white-space:pre-line;word-break:normal;overflow-wrap:normal;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:" + fs + "px;line-height:1;padding:0 1px;color:#000;text-transform:uppercase;"; return '<div ' + printFitAttrs(id, oo) + ' style="' + base + '">' + escapeHtml(WRAP_WARNING) + '</div>'; };
+  const previousMakeWrapObjectInner = makeWrapObjectInner;
+  makeWrapObjectInner = function(id, row, o) {
+    if (id !== "WARNING") return previousMakeWrapObjectInner(id, row, o);
+    const fs = Math.max(1, Number(o.fontSize || 3.2) - 1);
+    const holder = document.createElement("div"); holder.style.cssText = "position:absolute;inset:0;overflow:hidden";
+    const inner = document.createElement("div"); inner.className = "wrapTextInner leftText smallText warningText"; inner.dataset.textId = id; inner.textContent = WRAP_WARNING;
+    inner.style.fontSize = fs + "px"; inner.style.justifyContent = alignH(o.alignH); inner.style.alignItems = "center"; inner.style.textAlign = "left"; inner.style.lineHeight = ".92"; inner.style.padding = "0";
+    holder.appendChild(inner); return holder;
+  };
+  const previousPrintWrapObjectInner = printWrapObjectInner;
+  printWrapObjectInner = function(id, row, o) {
+    if (id !== "WARNING") return previousPrintWrapObjectInner(id, row, o);
+    const fs = Math.max(1, Number(o.fontSize || 3.2) - 1);
+    const oo = Object.assign({}, o, { fontSize: fs });
+    const base = "position:absolute;inset:0;display:flex;align-items:center;justify-content:" + alignH(o.alignH) + ";overflow:hidden;text-align:left;white-space:pre-line;word-break:normal;overflow-wrap:normal;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:" + fs + "px;line-height:.92;padding:0;color:#000;text-transform:uppercase;";
+    return '<div ' + printFitAttrs(id, oo) + ' style="' + base + '">' + escapeHtml(WRAP_WARNING) + '</div>';
+  };
 
-  function injectFreeDesignerCss() { if ($("beinvt-v8658-free-designer-css")) return; const css = '.modeTab[data-mode="FREE"]{border-color:rgba(20,184,166,.65)!important;background:rgba(20,184,166,.20)!important;color:#ccfbf1!important}.modeTab[data-mode="FREE"].active{background:#0d9488!important;border-color:#5eead4!important;color:#fff!important;box-shadow:0 0 0 2px rgba(20,184,166,.18)!important}body.beinvt-label-free #stageDataWrap{display:none!important}body.beinvt-label-free #canvasHost{flex-direction:column!important;align-items:stretch!important;justify-content:stretch!important}body.beinvt-label-free #stageLabelHost{flex:1 1 auto!important;width:100%!important;height:100%!important;align-items:center!important;justify-content:center!important;padding:8px!important;display:flex!important;overflow:hidden!important}body.beinvt-stage-fixed.beinvt-label-free #stageDataWrap{display:none!important}body.beinvt-stage-fixed.beinvt-label-free #stageLabelHost{flex:1 1 auto!important;width:100%!important;height:100%!important;min-width:0!important;max-width:100%!important}body.beinvt-label-free .freeStageStack{width:100%!important;height:100%!important;align-items:center!important;justify-content:center!important;overflow:visible!important}body.beinvt-label-free .freePreviewRow{width:100%!important;max-width:100%!important;height:100%!important;align-items:center!important;justify-content:center!important;overflow:visible!important}.freeLabelCanvas{background:#fff!important}.freeObj .freeObjectInner img{display:block;width:100%;height:100%}#freeDesignerSection textarea{width:100%;border:1px solid rgba(255,255,255,.14);background:#080b1a;color:#fff;border-radius:8px;padding:7px 8px;font-size:13px;min-width:0}body.beinvt-light-theme #freeDesignerSection textarea{background:#fff!important;color:#111827!important;border-color:rgba(15,23,42,.22)!important}'; const tag = document.createElement("style"); tag.id = "beinvt-v8658-free-designer-css"; tag.textContent = css; document.head.appendChild(tag); }
+  function injectFreeDesignerCss() {
+    if ($("beinvt-v8659-free-designer-css")) return;
+    const css = '.modeTab[data-mode="FREE"]{border-color:rgba(20,184,166,.65)!important;background:rgba(20,184,166,.20)!important;color:#ccfbf1!important}.modeTab[data-mode="FREE"].active{background:#0d9488!important;border-color:#5eead4!important;color:#fff!important;box-shadow:0 0 0 2px rgba(20,184,166,.18)!important}body.beinvt-label-free #stageDataWrap,body.beinvt-stage-fixed.beinvt-label-free #stageDataWrap{display:none!important;visibility:hidden!important;width:0!important;height:0!important;flex:0 0 0px!important;min-width:0!important;min-height:0!important;overflow:hidden!important}body.beinvt-label-free #canvasHost{flex-direction:column!important;align-items:stretch!important;justify-content:stretch!important}body.beinvt-label-free #stageLabelHost,body.beinvt-stage-fixed.beinvt-label-free #stageLabelHost{flex:1 1 auto!important;width:100%!important;height:100%!important;min-width:0!important;max-width:100%!important;align-items:center!important;justify-content:center!important;padding:8px!important;display:flex!important;overflow:hidden!important}.freeStageStack{width:100%!important;height:100%!important;align-items:center!important;justify-content:center!important;overflow:visible!important}.freePreviewRow{width:100%!important;max-width:100%!important;height:100%!important;align-items:center!important;justify-content:center!important;overflow:visible!important}.freeLabelCanvas{background:#fff!important}.freeObj .freeObjectInner img{display:block;width:100%;height:100%}.freeEmptyCanvasNote{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;color:#64748b;font:800 14px Arial,sans-serif;pointer-events:none}.freeObjectEmptyNote{grid-column:1/-1;border:1px dashed rgba(255,255,255,.22);border-radius:10px;padding:12px;color:#aeb7d5;font-weight:800;text-align:center}.freeFormatToolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.freeFormatToolbar button{min-width:34px;height:32px;border-radius:8px!important;padding:5px 9px!important;font-weight:950!important}.freeFormatToolbar button.active{background:#2563eb!important;border-color:#93c5fd!important;color:#fff!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)!important}.freeFormatToolbar button:disabled{opacity:.45!important;cursor:not-allowed!important}#freeDesignerSection textarea{width:100%;border:1px solid rgba(255,255,255,.14);background:#080b1a;color:#fff;border-radius:8px;padding:7px 8px;font-size:13px;min-width:0}body.beinvt-light-theme #freeDesignerSection textarea{background:#fff!important;color:#111827!important;border-color:rgba(15,23,42,.22)!important}body.beinvt-light-theme .freeObjectEmptyNote{border-color:rgba(15,23,42,.22);color:#334155}.objectBtnTop{display:flex;align-items:center;justify-content:space-between;gap:6px}.objectIcons{display:inline-flex;gap:4px}.objectIconBtn{font-size:12px;line-height:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:2px 4px}.operatorHint{font-size:10px;color:#aeb7d5;font-weight:800}';
+    const tag = document.createElement("style"); tag.id = "beinvt-v8659-free-designer-css"; tag.textContent = css; document.head.appendChild(tag);
+  }
   injectFreeDesignerCss();
-  document.addEventListener("keydown", ev => { if (!isFreeMode()) return; const tag = document.activeElement && document.activeElement.tagName; if (["INPUT", "TEXTAREA", "SELECT"].includes(tag)) return; const mod = ev.ctrlKey || ev.metaKey; if (mod && ev.key.toLowerCase() === "c") { ev.preventDefault(); copyFreeObject(); } if (mod && ev.key.toLowerCase() === "v") { ev.preventDefault(); pasteFreeObject(); } if ((ev.key === "Delete" || ev.key === "Backspace") && layout && layout.objects && layout.objects[selectedId]) { ev.preventDefault(); deleteFreeObject(); } }, true);
-  window.BEINVT_FREE_DESIGNER = { add: addFreeObject, copy: copyFreeObject, paste: pasteFreeObject, duplicate: duplicateFreeObject, delete: deleteFreeObject };
+  document.addEventListener("keydown", ev => {
+    if (!isFreeMode()) return;
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (["INPUT", "TEXTAREA", "SELECT"].includes(tag)) return;
+    const mod = ev.ctrlKey || ev.metaKey;
+    if (mod && ev.key.toLowerCase() === "c") { ev.preventDefault(); copyFreeObject(); }
+    if (mod && ev.key.toLowerCase() === "v") { ev.preventDefault(); pasteFreeObject(); }
+    if ((ev.key === "Delete" || ev.key === "Backspace") && layout && layout.objects && layout.objects[selectedId]) { ev.preventDefault(); deleteFreeObject(); }
+  }, true);
+  window.BEINVT_FREE_DESIGNER = { add: addFreeObject, copy: copyFreeObject, paste: pasteFreeObject, duplicate: duplicateFreeObject, delete: deleteFreeObject, saveTemplate: saveFreeTemplate, loadTemplate: loadFreeTemplate, exportTemplate: exportFreeTemplate, importTemplate: importFreeTemplate, loadSharedTemplates: loadSharedFreeTemplates };
 })();
 
 function boot() {
