@@ -7128,3 +7128,203 @@ boot();
   setTimeout(applyVisibleMobileWidthV8666, 60);
   setTimeout(applyVisibleMobileWidthV8666, 500);
 })();
+
+/* v8.6.67: Mobile table action-column fix + strongest manual object resize protection.
+   The Add column is now a real fixed-width/sticky action column on mobile so the button
+   cannot be clipped by the right edge. Also preserve manual object dimensions after any
+   auto render/rebalance/clamp pass. */
+(function installMobileAddButtonAndManualResizeLockV8667(){
+  function important(el, prop, value) { if (el) el.style.setProperty(prop, value, "important"); }
+  function isMobileLikeV8667() {
+    const coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    const vv = Math.round((window.visualViewport && window.visualViewport.width) || 0);
+    const iw = Math.round(window.innerWidth || 0);
+    return coarse || Math.min(vv || iw || 9999, iw || vv || 9999) <= 900;
+  }
+  function installCssV8667() {
+    if (document.getElementById("beinvt-v8667-mobile-add-action-css")) return;
+    const css = `
+      @media (pointer:coarse), (max-width:900px){
+        body.beinvt-mobile-layout .stageTableScroll{
+          overflow-x:auto!important;
+          overflow-y:auto!important;
+          padding-right:0!important;
+          box-sizing:border-box!important;
+        }
+        body.beinvt-mobile-layout #stageRowsTable{
+          table-layout:fixed!important;
+          border-collapse:separate!important;
+          border-spacing:0!important;
+        }
+        body.beinvt-mobile-layout #stageRowsTable th:last-child,
+        body.beinvt-mobile-layout #stageRowsTable td:last-child{
+          position:sticky!important;
+          right:0!important;
+          z-index:35!important;
+          width:78px!important;
+          min-width:78px!important;
+          max-width:78px!important;
+          padding-left:8px!important;
+          padding-right:8px!important;
+          overflow:visible!important;
+          text-align:center!important;
+          box-sizing:border-box!important;
+          background:#10142d!important;
+          box-shadow:-10px 0 16px rgba(8,11,26,.82)!important;
+        }
+        body.beinvt-mobile-layout #stageRowsTable th:last-child{
+          z-index:45!important;
+          background:#151831!important;
+        }
+        body.beinvt-mobile-layout #stageRowsTable tr.active td:last-child{
+          background:#2563eb!important;
+        }
+        body.beinvt-mobile-layout #stageRowsTable td:last-child button{
+          display:inline-flex!important;
+          align-items:center!important;
+          justify-content:center!important;
+          width:58px!important;
+          min-width:58px!important;
+          max-width:58px!important;
+          height:34px!important;
+          padding:0!important;
+          margin:0!important;
+          border-radius:10px!important;
+          font-size:13px!important;
+          line-height:1!important;
+          white-space:nowrap!important;
+          overflow:visible!important;
+          box-sizing:border-box!important;
+        }
+        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable th:last-child,
+        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable td:last-child{
+          background:#ffffff!important;
+          box-shadow:-10px 0 16px rgba(255,255,255,.90)!important;
+        }
+        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable tr.active td:last-child{
+          background:#bfdbfe!important;
+        }
+      }
+    `;
+    const tag = document.createElement("style");
+    tag.id = "beinvt-v8667-mobile-add-action-css";
+    tag.textContent = css;
+    document.head.appendChild(tag);
+  }
+  function widenTableForActionV8667() {
+    installCssV8667();
+    const table = $("stageRowsTable");
+    const wrap = document.querySelector(".stageTableScroll");
+    if (!table || !wrap || !isMobileLikeV8667()) return false;
+    document.body && document.body.classList.add("beinvt-mobile-layout");
+    const visible = Math.max(320, Math.round((window.visualViewport && window.visualViewport.width) || window.innerWidth || document.documentElement.clientWidth || 390) - 12);
+    const minNeeded = labelType === "POT" ? 720 : (labelType === "SHIP" ? 940 : 1100);
+    const tableW = Math.max(minNeeded, visible - 24);
+    important(wrap, "width", "100%");
+    important(wrap, "max-width", "100%");
+    important(wrap, "overflow-x", "auto");
+    important(wrap, "overflow-y", "auto");
+    important(wrap, "-webkit-overflow-scrolling", "touch");
+    important(table, "width", tableW + "px");
+    important(table, "min-width", tableW + "px");
+    important(table, "max-width", "none");
+    important(table, "table-layout", "fixed");
+    table.querySelectorAll("tr").forEach(tr => {
+      const last = tr.lastElementChild;
+      if (!last) return;
+      important(last, "width", "78px");
+      important(last, "min-width", "78px");
+      important(last, "max-width", "78px");
+      important(last, "overflow", "visible");
+      important(last, "position", "sticky");
+      important(last, "right", "0px");
+    });
+    return true;
+  }
+
+  function isManualV8667(o) { return !!(o && (o.manualLayout || o.manualObject || o.userEdited)); }
+  function snapManualV8667() {
+    const snap = {};
+    if (!layout || !layout.objects) return snap;
+    Object.entries(layout.objects).forEach(([id, o]) => {
+      if (!isManualV8667(o)) return;
+      snap[id] = {
+        x: Number(o.x), y: Number(o.y), w: Number(o.w), h: Number(o.h), rot: Number(o.rot || 0),
+        fontSize: o.fontSize, fontFamily: o.fontFamily, alignH: o.alignH, alignV: o.alignV,
+        visible: o.visible, locked: o.locked, manualFontSize: o.manualFontSize
+      };
+    });
+    return snap;
+  }
+  function restoreManualV8667(snap) {
+    if (!layout || !layout.objects || !snap) return;
+    Object.entries(snap).forEach(([id, s]) => {
+      const o = layout.objects[id];
+      if (!o || !s) return;
+      Object.entries(s).forEach(([k, v]) => {
+        if (v !== undefined && !(typeof v === "number" && !Number.isFinite(v))) o[k] = v;
+      });
+      o.userEdited = true;
+      o.manualLayout = true;
+      o.manualObject = true;
+      o.manualEditedAt = o.manualEditedAt || Date.now();
+    });
+  }
+  function markSelectedManualV8667(reason) {
+    if (!layout || !layout.objects || !selectedId || !layout.objects[selectedId]) return;
+    const o = layout.objects[selectedId];
+    o.userEdited = true;
+    o.manualLayout = true;
+    o.manualObject = true;
+    o.manualReason = reason || o.manualReason || "manual";
+    o.manualEditedAt = Date.now();
+    if (Number.isFinite(Number(o.fontSize)) && Number(o.fontSize) > 0) o.manualFontSize = true;
+  }
+
+  document.addEventListener("input", ev => {
+    const id = ev.target && ev.target.id;
+    if (["x", "y", "w", "h", "rot", "fontSize"].includes(id)) markSelectedManualV8667("control-" + id);
+  }, true);
+  document.addEventListener("change", ev => {
+    const id = ev.target && ev.target.id;
+    if (["x", "y", "w", "h", "rot", "fontSize"].includes(id)) markSelectedManualV8667("control-" + id);
+  }, true);
+
+  const prevClampAllV8667 = typeof clampAllObjects === "function" ? clampAllObjects : null;
+  if (prevClampAllV8667) {
+    clampAllObjects = function() {
+      const snap = snapManualV8667();
+      const r = prevClampAllV8667.apply(this, arguments);
+      restoreManualV8667(snap);
+      return r;
+    };
+  }
+  const prevRenderRowsV8667 = typeof renderRows === "function" ? renderRows : null;
+  if (prevRenderRowsV8667) {
+    renderRows = function() {
+      const r = prevRenderRowsV8667.apply(this, arguments);
+      setTimeout(widenTableForActionV8667, 0);
+      setTimeout(widenTableForActionV8667, 80);
+      return r;
+    };
+  }
+  const prevRenderAllV8667 = renderAll;
+  renderAll = function() {
+    const snap = snapManualV8667();
+    const r = prevRenderAllV8667.apply(this, arguments);
+    restoreManualV8667(snap);
+    setTimeout(widenTableForActionV8667, 0);
+    setTimeout(widenTableForActionV8667, 120);
+    return r;
+  };
+  const prevApplyMobileV8667 = window.BEINVT_APPLY_MOBILE_LAYOUT;
+  window.BEINVT_APPLY_MOBILE_LAYOUT = function() {
+    try { if (typeof prevApplyMobileV8667 === "function") prevApplyMobileV8667(); } catch (_) {}
+    return widenTableForActionV8667();
+  };
+  window.addEventListener("resize", () => setTimeout(widenTableForActionV8667, 60));
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", () => setTimeout(widenTableForActionV8667, 60));
+  window.addEventListener("orientationchange", () => setTimeout(widenTableForActionV8667, 220));
+  setTimeout(widenTableForActionV8667, 80);
+  setTimeout(widenTableForActionV8667, 500);
+})();
