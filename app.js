@@ -390,9 +390,12 @@ function rebalanceWrapLikeQrLayout(layoutObj, type) {
   const sy = labelH / Math.max(1, 0.5 * INCH);
   const o = layoutObj.objects;
   const margin = Math.max(2, Math.round(2 * Math.min(sx, sy)));
-  const gap = type === "FIELD" ? Math.max(4, Math.round(5 * Math.min(sx, sy))) : Math.max(2, Math.round(3 * Math.min(sx, sy)));
-  // Field labels need breathing room between Row / WO-Crop-ID / item text, so the center starts farther right.
-  const centerX = Math.round((type === "FIELD" ? 142 : 124) * sx);
+  const gap = type === "FIELD"
+    ? Math.max(10, Math.round(10 * Math.min(sx, sy)))
+    : Math.max(2, Math.round(3 * Math.min(sx, sy)));
+  // v8.6.63: Field Labels need more space between the Row column, the stacked WO/Crop/ID block,
+  // and the main item text. Push the main text area slightly right and use a larger shared gap.
+  const centerX = Math.round((type === "FIELD" ? 150 : 124) * sx);
 
   const logoW = Math.max(Math.round(30 * sx), Math.round(28 * Math.min(sx, sy)));
   const warningW = Math.max(Math.round(58 * sx), Math.round(54 * sx));
@@ -6000,6 +6003,18 @@ function initEvents() {
 (function installMobileViewFixV8660(){
   const MOBILE_STYLE_ID = "beinvt-v8660-mobile-view-css";
   const MOBILE_MAX_WIDTH = 900;
+  let mobileReflowPending = false;
+  let mobileLastLayoutKey = "";
+
+  function scheduleMobileRerender() {
+    if (mobileReflowPending || !mobileViewport() || typeof renderCanvas !== "function") return;
+    mobileReflowPending = true;
+    const raf = window.requestAnimationFrame || (cb => setTimeout(cb, 16));
+    raf(() => raf(() => {
+      mobileReflowPending = false;
+      try { renderCanvas(); } catch (_) {}
+    }));
+  }
 
   function mobileViewport() {
     const w = Math.max(0, window.innerWidth || document.documentElement.clientWidth || 0);
@@ -6208,27 +6223,36 @@ function initEvents() {
     }
 
     if (labelHost) {
+      const widePreview = isWrapLikeMode(labelType) || labelType === "FREE";
       important(labelHost, "display", "flex");
       important(labelHost, "visibility", "visible");
       important(labelHost, "width", "100%");
       important(labelHost, "min-width", "0px");
       important(labelHost, "max-width", "100%");
       important(labelHost, "height", labelType === "FREE" ? "70vh" : "auto");
-      important(labelHost, "min-height", labelType === "FREE" ? "520px" : (labelType === "POT" ? "760px" : "300px"));
+      important(labelHost, "min-height", labelType === "FREE" ? "520px" : (labelType === "POT" ? "760px" : "320px"));
       important(labelHost, "max-height", "none");
       important(labelHost, "flex", "0 0 auto");
-      important(labelHost, "align-items", "center");
-      important(labelHost, "justify-content", "center");
+      important(labelHost, "align-items", widePreview ? "flex-start" : "center");
+      important(labelHost, "justify-content", widePreview ? "flex-start" : "center");
       important(labelHost, "padding", "8px");
-      important(labelHost, "overflow", "auto");
+      important(labelHost, "overflow-x", "auto");
+      important(labelHost, "overflow-y", "auto");
       important(labelHost, "box-sizing", "border-box");
     }
 
+    const widePreview = isWrapLikeMode(labelType) || labelType === "FREE";
     document.querySelectorAll(".stageStack,.labelPreviewRow").forEach(el => {
-      important(el, "max-width", "100%");
-      important(el, "width", "100%");
-      important(el, "align-items", "center");
-      important(el, "justify-content", "center");
+      important(el, "max-width", widePreview ? "none" : "100%");
+      important(el, "width", widePreview ? "max-content" : "100%");
+      important(el, "min-width", widePreview ? "max-content" : "0px");
+      important(el, "align-items", widePreview ? "flex-start" : "center");
+      important(el, "justify-content", widePreview ? "flex-start" : "center");
+      important(el, "overflow", "visible");
+      important(el, "box-sizing", "border-box");
+    });
+    document.querySelectorAll(".stageFrame,.stageInner").forEach(el => {
+      important(el, "max-width", "none");
       important(el, "overflow", "visible");
     });
 
@@ -6243,6 +6267,7 @@ function initEvents() {
   }
 
   function clearMobileLayout() {
+    mobileLastLayoutKey = "";
     if (document.body) document.body.classList.remove("beinvt-mobile-layout");
     const stage = stageElementForMobile();
     if (stage && stage.dataset.beinvtMobileLayout === "1") {
@@ -6262,6 +6287,24 @@ function initEvents() {
     applyMobilePanel();
     applyMobileStage();
     updateTopbarUtilityButtons && updateTopbarUtilityButtons();
+    const stage = stageElementForMobile();
+    const host = $("canvasHost");
+    const data = $("stageDataWrap");
+    const labelHost = $("stageLabelHost");
+    const layoutKey = [
+      labelType,
+      Math.round(window.innerWidth || 0),
+      Math.round(window.innerHeight || 0),
+      Math.round((stage && stage.clientWidth) || 0),
+      Math.round((host && host.clientWidth) || 0),
+      Math.round((data && data.clientWidth) || 0),
+      Math.round((labelHost && labelHost.clientWidth) || 0),
+      leftPaneHidden ? 1 : 0
+    ].join("|");
+    if (layoutKey !== mobileLastLayoutKey) {
+      mobileLastLayoutKey = layoutKey;
+      scheduleMobileRerender();
+    }
     return true;
   }
 
@@ -6280,6 +6323,14 @@ function initEvents() {
         body.beinvt-mobile-layout #stageRowsTable button{min-width:42px!important;padding:6px 7px!important}
         body.beinvt-mobile-layout .stageMeta{max-width:100%!important;min-width:0!important}
         body.beinvt-mobile-layout .labelCanvas{box-shadow:0 12px 34px rgba(0,0,0,.36)!important}
+        body.beinvt-mobile-layout #stageLabelHost{overflow:auto!important;-webkit-overflow-scrolling:touch!important}
+        body.beinvt-mobile-layout .stageTableScroll{overflow:auto!important;-webkit-overflow-scrolling:touch!important}
+        body.beinvt-mobile-layout.beinvt-label-wrap #stageLabelHost,
+        body.beinvt-mobile-layout.beinvt-label-free #stageLabelHost{align-items:flex-start!important;justify-content:flex-start!important}
+        body.beinvt-mobile-layout.beinvt-label-wrap .stageStack,
+        body.beinvt-mobile-layout.beinvt-label-wrap .labelPreviewRow,
+        body.beinvt-mobile-layout.beinvt-label-free .stageStack,
+        body.beinvt-mobile-layout.beinvt-label-free .labelPreviewRow{width:max-content!important;min-width:max-content!important;max-width:none!important;align-items:flex-start!important;justify-content:flex-start!important}
         body.beinvt-mobile-layout .freeFormatToolbar button{min-width:36px!important;height:34px!important}
         body.beinvt-mobile-layout .compactGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
         body.beinvt-mobile-layout #objectPanel{grid-template-columns:repeat(2,minmax(0,1fr))!important;max-height:230px!important}
