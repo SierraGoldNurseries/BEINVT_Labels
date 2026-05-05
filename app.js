@@ -1,5 +1,5 @@
 const APP_VERSION = "8.6.56_no_gaps_into_item_names";
-const WRAP_QR_BALANCE_VERSION = "8.6.56";
+const WRAP_QR_BALANCE_VERSION = "8.6.61";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -345,12 +345,11 @@ function wrapLikeQrBalanceKey(size) {
 }
 function wrapLikeQrSidePx(labelHeightPx, type, role) {
   const h = Math.max(36, Number(labelHeightPx || 48));
-  // v8.6.54: use almost the full wrap-like label height so QR boxes print larger and less blurry.
-  // The QR image itself now uses a high-resolution SVG with a tiny quiet zone, so the visible code
-  // fills the object box instead of leaving the large white border seen before.
-  const ratio = role === "single" ? 0.94 : 0.92;
+  // v8.6.61: make QR boxes use nearly the full label height, with the lot/right QR largest.
+  // This gives the QR modules more physical print area and reduces smudging on dense lot QR data.
+  const ratio = role === "right" ? 0.985 : (role === "single" ? 0.97 : 0.94);
   const preferred = Math.round(h * ratio);
-  return clamp(preferred, 38, Math.max(38, Math.round(h - 4)));
+  return clamp(preferred, 42, Math.max(42, Math.round(h - 1)));
 }
 function setWrapDefaultFont(o, id, px) {
   if (!o || !o[id] || o[id].manualFontSize) return;
@@ -391,8 +390,9 @@ function rebalanceWrapLikeQrLayout(layoutObj, type) {
   const sy = labelH / Math.max(1, 0.5 * INCH);
   const o = layoutObj.objects;
   const margin = Math.max(2, Math.round(2 * Math.min(sx, sy)));
-  const gap = Math.max(2, Math.round(3 * Math.min(sx, sy)));
-  const centerX = Math.round((type === "FIELD" ? 118 : 124) * sx);
+  const gap = type === "FIELD" ? Math.max(4, Math.round(5 * Math.min(sx, sy))) : Math.max(2, Math.round(3 * Math.min(sx, sy)));
+  // Field labels need breathing room between Row / WO-Crop-ID / item text, so the center starts farther right.
+  const centerX = Math.round((type === "FIELD" ? 142 : 124) * sx);
 
   const logoW = Math.max(Math.round(30 * sx), Math.round(28 * Math.min(sx, sy)));
   const warningW = Math.max(Math.round(58 * sx), Math.round(54 * sx));
@@ -417,9 +417,9 @@ function rebalanceWrapLikeQrLayout(layoutObj, type) {
   if (o.WO_QR && type === "FIELD") {
     o.WO_QR.x = margin;
     o.WO_QR.y = margin;
-    o.WO_QR.w = Math.max(22, Math.round(28 * sx));
+    o.WO_QR.w = Math.max(30, Math.round(36 * sx));
     o.WO_QR.h = Math.max(34, labelH - (margin * 2));
-    if (!o.WO_QR.manualFontSize) o.WO_QR.fontSize = Number(Math.max(10, 13.5 * sy).toFixed(1));
+    if (!o.WO_QR.manualFontSize) o.WO_QR.fontSize = Number(Math.max(10, 14.5 * sy).toFixed(1));
   } else if (o.WO_QR && o.WO_QR.visible !== false) {
     const side = wrapLikeQrSidePx(labelH, type, type === "SHIP" ? "single" : "left");
     o.WO_QR.w = side;
@@ -438,15 +438,14 @@ function rebalanceWrapLikeQrLayout(layoutObj, type) {
 
   const leftTextStart = o.WO_QR && type !== "FIELD" && o.WO_QR.visible !== false
     ? Math.round(Number(o.WO_QR.x || 0) + Number(o.WO_QR.w || 0))
-    : Math.round(Number((o.WO_QR && o.WO_QR.x) || margin) + Number((o.WO_QR && o.WO_QR.w) || (34 * sx)));
-  // v8.6.56: no gap between the WO/Crop/Internal ID block and the item-name block.
-  // The right border of the left info block now touches the left border of Scion/Rootstock.
-  const leftTextWidth = Math.max(32, centerX - leftTextStart);
+    : Math.round(Number((o.WO_QR && o.WO_QR.x) || margin) + Number((o.WO_QR && o.WO_QR.w) || (34 * sx)) + (type === "FIELD" ? gap : 0));
+  // v8.6.61: keep Finished Trees tight, but add visual breathing room on Field Labels.
+  const leftTextWidth = Math.max(32, centerX - leftTextStart - (type === "FIELD" ? gap : 0));
   stackLeftInfoObjects(o, type, labelH, leftTextStart, leftTextWidth, margin, gap, sy);
 
   const rightTextEdge = o.LOT_QR && type !== "SHIP" && o.LOT_QR.visible !== false
-    // v8.6.56: item-name block touches the lot QR block on the right with no gap.
-    ? Math.max(centerX + Math.round(100 * sx), Math.round(Number(o.LOT_QR.x || rightAnchor)))
+    // v8.6.61: Finished Trees can remain tight; Field Labels get a gap before the lot QR.
+    ? Math.max(centerX + Math.round(100 * sx), Math.round(Number(o.LOT_QR.x || rightAnchor) - (type === "FIELD" ? gap : 0)))
     : Math.round(rightAnchor);
   const centerWidth = Math.max(110, rightTextEdge - centerX);
   ["SCION", "SCION_PATENT", "ROOTSTOCK", "ROOTSTOCK_PATENT", "LOT", "ADDRESS"].forEach(id => {
@@ -1519,7 +1518,7 @@ function fallbackLayout(type) {
     gridPx: 4,
     snapPx: 5,
     objects: {
-      WO_QR: { x: type === "FIELD" ? WRAP_LIKE_PREVIEW_CONFIG.fieldRowX : 2, y: type === "FIELD" ? 2 : 2, w: 44, h: type === "FIELD" ? 44 : 44, rot: 0, fontSize: type === "FIELD" ? 13.5 : undefined, locked: false, visible: true },
+      WO_QR: { x: type === "FIELD" ? WRAP_LIKE_PREVIEW_CONFIG.fieldRowX : 2, y: type === "FIELD" ? 2 : 2, w: type === "FIELD" ? 36 : 44, h: type === "FIELD" ? 44 : 44, rot: 0, fontSize: type === "FIELD" ? 14.5 : undefined, locked: false, visible: true },
       WO: { x: 46, y: type === "SHIP" ? 0 : 1, w: 76, h: type === "SHIP" ? 0 : 16, rot: 0, fontSize: 17.4, fontFamily: "Times New Roman", locked: false, visible: type !== "SHIP", alignH: "left", alignV: "middle" },
       CROP: { x: 46, y: type === "SHIP" ? 3 : 17, w: 76, h: type === "SHIP" ? 22 : 14, rot: 0, fontSize: type === "SHIP" ? 16.2 : 15.8, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
       INTERNAL: { x: 46, y: type === "SHIP" ? 25 : 32, w: 76, h: type === "SHIP" ? 22 : 16, rot: 0, fontSize: type === "SHIP" ? 17.2 : 16.8, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" },
@@ -1554,9 +1553,9 @@ function normalizeLayout(src) {
     const labelH = Math.round(labelSizeInches(type).heightIn * INCH);
     out.objects.WO_QR.x = Number((2 * scale.sx).toFixed(1));
     out.objects.WO_QR.y = Number((2 * scale.sy).toFixed(1));
-    out.objects.WO_QR.w = Number((28 * scale.sx).toFixed(1));
+    out.objects.WO_QR.w = Number((36 * scale.sx).toFixed(1));
     out.objects.WO_QR.h = Math.max(34, Number((labelH - 4 * scale.sy).toFixed(1)));
-    if (!out.objects.WO_QR.manualFontSize) out.objects.WO_QR.fontSize = Number((13.5 * scale.sy).toFixed(1));
+    if (!out.objects.WO_QR.manualFontSize) out.objects.WO_QR.fontSize = Number((14.5 * scale.sy).toFixed(1));
     out.objects.WO_QR.rot = 0;
     out.objects.WO_QR.visible = true;
   }
@@ -1944,7 +1943,8 @@ function wrapRightQrText(row) {
   if (isShippingMode() || isRschRow(row)) return "";
   const lot = cleanDisplay(row && row.lotNumber);
   const wo = cleanDisplay(row && row.wo);
-  return lot ? `LOT ${lot} | ${wo}` : (wo || " ");
+  // v8.6.61: compact payload makes the lot QR less dense and easier to print/scan.
+  return lot ? `${lot}|${wo}` : (wo || " ");
 }
 function labelText(id, row) {
   if (id === "WO") return capClean(row.wo || "WO");
@@ -2062,8 +2062,9 @@ function applyWrapDataAwareStack(row) {
 }
 function qrUrl(text) {
   const value = text || " ";
-  // v8.6.54: SVG + larger size + tiny margin gives a sharp printed QR while filling the object box.
-  return "https://quickchart.io/qr?format=svg&size=700&margin=1&ecLevel=M&text=" + encodeURIComponent(value);
+  // v8.6.61: use a higher-resolution SVG, no quiet-zone margin, and lower error correction
+  // so dense lot QR codes have larger modules and print less smudged.
+  return "https://quickchart.io/qr?format=svg&size=1200&margin=0&ecLevel=L&text=" + encodeURIComponent(value);
 }
 function colorConfigKey(name) {
   return cleanDisplay(name).toUpperCase().replace(/\s+/g, " ").trim();
@@ -5992,6 +5993,441 @@ function initEvents() {
     if ((ev.key === "Delete" || ev.key === "Backspace") && layout && layout.objects && layout.objects[selectedId]) { ev.preventDefault(); deleteFreeObject(); }
   }, true);
   window.BEINVT_FREE_DESIGNER = { add: addFreeObject, copy: copyFreeObject, paste: pasteFreeObject, duplicate: duplicateFreeObject, delete: deleteFreeObject, saveTemplate: saveFreeTemplate, loadTemplate: loadFreeTemplate, exportTemplate: exportFreeTemplate, importTemplate: importFreeTemplate, loadSharedTemplates: loadSharedFreeTemplates };
+})();
+
+
+/* v8.6.60: Mobile view fix - stack controls/table/preview, stop desktop fixed-stage sizing on phones. */
+(function installMobileViewFixV8660(){
+  const MOBILE_STYLE_ID = "beinvt-v8660-mobile-view-css";
+  const MOBILE_MAX_WIDTH = 900;
+
+  function mobileViewport() {
+    const w = Math.max(0, window.innerWidth || document.documentElement.clientWidth || 0);
+    const coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    return w <= MOBILE_MAX_WIDTH || (coarse && w <= 1100);
+  }
+
+  function important(el, prop, value) {
+    if (el) el.style.setProperty(prop, value, "important");
+  }
+
+  function removeImportant(el, props) {
+    if (!el) return;
+    props.forEach(prop => el.style.removeProperty(prop));
+  }
+
+  function stageElementForMobile() {
+    return document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
+  }
+
+  function topbarElementForMobile() {
+    return topMenuElement && topMenuElement() || document.querySelector("[data-beinvt-top-menu-ref='1'],.topbar,.toolbar,header");
+  }
+
+  function applyMobileTopbar() {
+    const top = topbarElementForMobile();
+    if (!top) return;
+    top.classList.add("beinvtMobileTopbar");
+    important(top, "position", "relative");
+    important(top, "left", "auto");
+    important(top, "top", "auto");
+    important(top, "right", "auto");
+    important(top, "width", "calc(100vw - 12px)");
+    important(top, "min-width", "0px");
+    important(top, "max-width", "calc(100vw - 12px)");
+    important(top, "margin", "6px");
+    important(top, "box-sizing", "border-box");
+    important(top, "overflow-x", "auto");
+    important(top, "overflow-y", "visible");
+    important(top, "display", "flex");
+    important(top, "flex-wrap", "wrap");
+    important(top, "align-items", "center");
+    important(top, "gap", "6px");
+  }
+
+  function applyMobilePanel() {
+    const panel = getObjectsPanePanel && getObjectsPanePanel();
+    if (!panel) return;
+    if (leftPaneHidden) {
+      panel.dataset.beinvtObjectsPaneHidden = "1";
+      panel.setAttribute("aria-hidden", "true");
+      important(panel, "display", "none");
+      important(panel, "visibility", "hidden");
+      important(panel, "width", "0px");
+      important(panel, "min-width", "0px");
+      important(panel, "max-width", "0px");
+      important(panel, "height", "0px");
+      important(panel, "min-height", "0px");
+      important(panel, "max-height", "0px");
+      important(panel, "flex", "0 0 0px");
+      important(panel, "padding", "0px");
+      important(panel, "margin", "0px");
+      important(panel, "border", "0px");
+      important(panel, "overflow", "hidden");
+      important(panel, "pointer-events", "none");
+      return;
+    }
+    panel.classList.add("beinvtSettingsPanel");
+    panel.dataset.beinvtObjectsPaneHidden = "0";
+    panel.removeAttribute("aria-hidden");
+    important(panel, "display", "flex");
+    important(panel, "visibility", "visible");
+    important(panel, "position", "relative");
+    important(panel, "left", "auto");
+    important(panel, "top", "auto");
+    important(panel, "width", "calc(100vw - 12px)");
+    important(panel, "min-width", "0px");
+    important(panel, "max-width", "calc(100vw - 12px)");
+    important(panel, "height", "auto");
+    important(panel, "min-height", "0px");
+    important(panel, "max-height", "42vh");
+    important(panel, "flex", "0 0 auto");
+    important(panel, "flex-basis", "auto");
+    important(panel, "margin", "6px");
+    important(panel, "padding", "8px");
+    important(panel, "overflow", "auto");
+    important(panel, "pointer-events", "auto");
+  }
+
+  function applyMobileStage() {
+    const stage = stageElementForMobile();
+    const host = $("canvasHost");
+    const data = $("stageDataWrap");
+    const labelHost = $("stageLabelHost");
+    const tableScroll = document.querySelector(".stageTableScroll");
+    const table = $("stageRowsTable");
+
+    if (!stage || !host) return;
+
+    if (document.body) {
+      document.body.classList.add("beinvt-mobile-layout");
+      document.body.classList.remove("beinvt-stage-fixed");
+      document.body.classList.remove("beinvt-left-pane-hidden");
+    }
+    document.documentElement.style.removeProperty("--beinvt-stage-fixed-left");
+    document.documentElement.style.removeProperty("--beinvt-stage-fixed-top");
+    document.documentElement.style.removeProperty("--beinvt-stage-fixed-width");
+    document.documentElement.style.removeProperty("--beinvt-stage-fixed-height");
+    document.documentElement.style.removeProperty("--beinvt-hidden-stage-left");
+    document.documentElement.style.removeProperty("--beinvt-hidden-stage-top");
+    document.documentElement.style.removeProperty("--beinvt-hidden-stage-width");
+    document.documentElement.style.removeProperty("--beinvt-hidden-stage-height");
+    document.documentElement.style.removeProperty("--beinvt-left-pane-height");
+
+    important(document.documentElement, "width", "100%");
+    important(document.documentElement, "max-width", "100%");
+    important(document.documentElement, "overflow-x", "hidden");
+    important(document.documentElement, "overflow-y", "auto");
+    important(document.body, "width", "100%");
+    important(document.body, "max-width", "100%");
+    important(document.body, "min-width", "0px");
+    important(document.body, "overflow-x", "hidden");
+    important(document.body, "overflow-y", "auto");
+
+    let p = stage.parentElement;
+    let guard = 0;
+    while (p && p !== document.body && guard < 10) {
+      important(p, "min-width", "0px");
+      important(p, "max-width", "100vw");
+      important(p, "width", "100%");
+      important(p, "overflow-x", "hidden");
+      important(p, "box-sizing", "border-box");
+      p = p.parentElement;
+      guard++;
+    }
+
+    stage.dataset.beinvtMobileLayout = "1";
+    important(stage, "position", "relative");
+    important(stage, "left", "auto");
+    important(stage, "top", "auto");
+    important(stage, "right", "auto");
+    important(stage, "bottom", "auto");
+    important(stage, "transform", "none");
+    important(stage, "will-change", "auto");
+    important(stage, "z-index", "1");
+    important(stage, "display", "flex");
+    important(stage, "flex-direction", "column");
+    important(stage, "width", "calc(100vw - 12px)");
+    important(stage, "min-width", "0px");
+    important(stage, "max-width", "calc(100vw - 12px)");
+    important(stage, "height", "auto");
+    important(stage, "min-height", "calc(100vh - 110px)");
+    important(stage, "max-height", "none");
+    important(stage, "flex", "0 0 auto");
+    important(stage, "flex-basis", "auto");
+    important(stage, "margin", "6px");
+    important(stage, "padding", "4px");
+    important(stage, "overflow", "visible");
+    important(stage, "box-sizing", "border-box");
+
+    important(host, "display", "flex");
+    important(host, "flex-direction", "column");
+    important(host, "align-items", "stretch");
+    important(host, "justify-content", "flex-start");
+    important(host, "gap", "6px");
+    important(host, "width", "100%");
+    important(host, "min-width", "0px");
+    important(host, "max-width", "100%");
+    important(host, "height", "auto");
+    important(host, "min-height", "0px");
+    important(host, "max-height", "none");
+    important(host, "overflow", "visible");
+
+    if (data) {
+      if (labelType === "FREE") {
+        important(data, "display", "none");
+        important(data, "visibility", "hidden");
+        important(data, "height", "0px");
+        important(data, "min-height", "0px");
+        important(data, "max-height", "0px");
+        important(data, "flex", "0 0 0px");
+      } else {
+        important(data, "display", "flex");
+        important(data, "visibility", "visible");
+        important(data, "width", "100%");
+        important(data, "min-width", "0px");
+        important(data, "max-width", "100%");
+        important(data, "height", "42vh");
+        important(data, "min-height", "260px");
+        important(data, "max-height", "54vh");
+        important(data, "flex", "0 0 42vh");
+        important(data, "overflow", "hidden");
+      }
+    }
+    if (tableScroll) {
+      important(tableScroll, "overflow", "auto");
+      important(tableScroll, "overflow-x", "auto");
+      important(tableScroll, "overflow-y", "auto");
+      important(tableScroll, "-webkit-overflow-scrolling", "touch");
+    }
+    if (table) {
+      important(table, "width", "760px");
+      important(table, "min-width", "760px");
+      important(table, "max-width", "none");
+      important(table, "table-layout", "fixed");
+    }
+
+    if (labelHost) {
+      important(labelHost, "display", "flex");
+      important(labelHost, "visibility", "visible");
+      important(labelHost, "width", "100%");
+      important(labelHost, "min-width", "0px");
+      important(labelHost, "max-width", "100%");
+      important(labelHost, "height", labelType === "FREE" ? "70vh" : "auto");
+      important(labelHost, "min-height", labelType === "FREE" ? "520px" : (labelType === "POT" ? "760px" : "300px"));
+      important(labelHost, "max-height", "none");
+      important(labelHost, "flex", "0 0 auto");
+      important(labelHost, "align-items", "center");
+      important(labelHost, "justify-content", "center");
+      important(labelHost, "padding", "8px");
+      important(labelHost, "overflow", "auto");
+      important(labelHost, "box-sizing", "border-box");
+    }
+
+    document.querySelectorAll(".stageStack,.labelPreviewRow").forEach(el => {
+      important(el, "max-width", "100%");
+      important(el, "width", "100%");
+      important(el, "align-items", "center");
+      important(el, "justify-content", "center");
+      important(el, "overflow", "visible");
+    });
+
+    const zoom = $("zoom");
+    if (zoom) {
+      if (zoom.dataset.beinvtMobileAdjusted !== "1") {
+        zoom.dataset.beinvtMobileAdjusted = "1";
+        if (Number(zoom.value || 0) > 2.2) zoom.value = "1.2";
+      }
+      zoom.max = Math.max(Number(zoom.max || 1), 2.6).toFixed(2);
+    }
+  }
+
+  function clearMobileLayout() {
+    if (document.body) document.body.classList.remove("beinvt-mobile-layout");
+    const stage = stageElementForMobile();
+    if (stage && stage.dataset.beinvtMobileLayout === "1") {
+      delete stage.dataset.beinvtMobileLayout;
+      removeImportant(stage, ["position","left","top","right","bottom","transform","will-change","z-index","display","flex-direction","width","min-width","max-width","height","min-height","max-height","flex","flex-basis","margin","padding","overflow","box-sizing"]);
+    }
+    const top = topbarElementForMobile();
+    if (top) top.classList.remove("beinvtMobileTopbar");
+    const zoom = $("zoom");
+    if (zoom) delete zoom.dataset.beinvtMobileAdjusted;
+  }
+
+  function applyResponsiveMobileLayout() {
+    injectMobileCss();
+    if (!mobileViewport()) { clearMobileLayout(); return false; }
+    applyMobileTopbar();
+    applyMobilePanel();
+    applyMobileStage();
+    updateTopbarUtilityButtons && updateTopbarUtilityButtons();
+    return true;
+  }
+
+  function injectMobileCss() {
+    if (document.getElementById(MOBILE_STYLE_ID)) return;
+    const css = `
+      @media (max-width: 900px), (pointer: coarse) and (max-width: 1100px){
+        html,body{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:hidden!important;overflow-y:auto!important}
+        body.beinvt-mobile-layout .beinvtMobileTopbar{border-radius:14px!important;box-shadow:0 8px 24px rgba(0,0,0,.22)!important}
+        body.beinvt-mobile-layout .modeTabs{display:flex!important;flex-wrap:wrap!important;gap:6px!important;max-width:100%!important;margin-left:0!important}
+        body.beinvt-mobile-layout .modeTab{padding:7px 10px!important;font-size:12px!important;white-space:nowrap!important}
+        body.beinvt-mobile-layout #zoom{width:120px!important;max-width:34vw!important;min-width:70px!important}
+        body.beinvt-mobile-layout #stageSearch{height:38px!important;font-size:14px!important}
+        body.beinvt-mobile-layout #stageRowsTable th,
+        body.beinvt-mobile-layout #stageRowsTable td{font-size:11px!important;padding:8px 7px!important}
+        body.beinvt-mobile-layout #stageRowsTable button{min-width:42px!important;padding:6px 7px!important}
+        body.beinvt-mobile-layout .stageMeta{max-width:100%!important;min-width:0!important}
+        body.beinvt-mobile-layout .labelCanvas{box-shadow:0 12px 34px rgba(0,0,0,.36)!important}
+        body.beinvt-mobile-layout .freeFormatToolbar button{min-width:36px!important;height:34px!important}
+        body.beinvt-mobile-layout .compactGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+        body.beinvt-mobile-layout #objectPanel{grid-template-columns:repeat(2,minmax(0,1fr))!important;max-height:230px!important}
+      }
+    `;
+    const tag = document.createElement("style");
+    tag.id = MOBILE_STYLE_ID;
+    tag.textContent = css;
+    document.head.appendChild(tag);
+  }
+
+  const previousApplyObjectsPaneVisibility = applyObjectsPaneVisibility;
+  applyObjectsPaneVisibility = function() {
+    if (mobileViewport()) { applyResponsiveMobileLayout(); return; }
+    return previousApplyObjectsPaneVisibility.apply(this, arguments);
+  };
+
+  const previousForceOuterCardSize = forceOuterCardSize;
+  forceOuterCardSize = function() {
+    if (mobileViewport()) { applyResponsiveMobileLayout(); return; }
+    return previousForceOuterCardSize.apply(this, arguments);
+  };
+
+  const previousDockStageAwayFromLeftPanel = dockStageAwayFromLeftPanel;
+  dockStageAwayFromLeftPanel = function() {
+    if (mobileViewport()) { applyResponsiveMobileLayout(); return; }
+    return previousDockStageAwayFromLeftPanel.apply(this, arguments);
+  };
+
+  const previousRenderAllMobileFix = renderAll;
+  renderAll = function() {
+    previousRenderAllMobileFix.apply(this, arguments);
+    applyResponsiveMobileLayout();
+  };
+
+  window.addEventListener("resize", () => setTimeout(applyResponsiveMobileLayout, 60));
+  window.addEventListener("orientationchange", () => setTimeout(() => { applyResponsiveMobileLayout(); renderCanvas && renderCanvas(); }, 250));
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(applyResponsiveMobileLayout, 80); });
+  window.BEINVT_APPLY_MOBILE_LAYOUT = applyResponsiveMobileLayout;
+  injectMobileCss();
+})();
+
+
+/* v8.6.62: Wrap/Field/Shipping scion-blank rule.
+   When scion is blank, print the rootstock/item once in the main item-name line,
+   hide the rootstock line, and never add the literal "on" prefix. */
+(function installNoOnWhenScionBlankV8662(){
+  function rawPrintableScionV8662(row) {
+    if (!row) return "";
+    const parts = typeof splitLotParts === "function" ? splitLotParts(row) : [];
+    const raw = cleanDisplay(row.scion);
+    if (typeof isRschScion === "function" && isRschScion(row)) return cleanDisplay(parts[0] || raw);
+    return raw;
+  }
+  function rawPrintableRootstockV8662(row) {
+    if (!row) return "";
+    const parts = typeof splitLotParts === "function" ? splitLotParts(row) : [];
+    const raw = cleanDisplay(row.rootstock);
+    if (typeof isRschRootstock === "function" && isRschRootstock(row)) return cleanDisplay(parts[1] || parts[0] || raw);
+    return raw;
+  }
+  function scionIsBlankV8662(row) {
+    return !cleanDisplay(rawPrintableScionV8662(row));
+  }
+  function singleMainWhenScionBlankV8662(row) {
+    return capClean(
+      rawPrintableRootstockV8662(row) ||
+      cleanDisplay(row && row.rootstock) ||
+      cleanDisplay(row && row.name) ||
+      cleanDisplay(row && row.crop) ||
+      "ITEM"
+    );
+  }
+
+  const previousWrapScionTextV8662 = wrapScionText;
+  wrapScionText = function(row) {
+    if (row && scionIsBlankV8662(row)) return singleMainWhenScionBlankV8662(row);
+    return previousWrapScionTextV8662(row);
+  };
+
+  const previousWrapRootstockTextV8662 = wrapRootstockText;
+  wrapRootstockText = function(row) {
+    if (row && scionIsBlankV8662(row)) return "";
+    return previousWrapRootstockTextV8662(row);
+  };
+
+  const previousShippingSingleLineInfoV8662 = shippingSingleLineInfo;
+  shippingSingleLineInfo = function(row) {
+    if (!isShippingMode() || !row) return previousShippingSingleLineInfoV8662(row);
+    if (scionIsBlankV8662(row)) {
+      const main = singleMainWhenScionBlankV8662(row);
+      return main ? {
+        main,
+        mainPatent: capClean(row && row.rootstockPatent),
+        secondary: "",
+        secondaryPatent: ""
+      } : null;
+    }
+    return previousShippingSingleLineInfoV8662(row);
+  };
+
+  const previousWrapObjectTextV8662 = wrapObjectText;
+  wrapObjectText = function(id, row) {
+    if (row && isWrapLikeMode(labelType) && scionIsBlankV8662(row)) {
+      if (id === "SCION") return singleMainWhenScionBlankV8662(row);
+      if (id === "ROOTSTOCK") return "";
+      if (id === "SCION_PATENT") return "";
+      if (id === "ROOTSTOCK_PATENT") return "";
+    }
+    return previousWrapObjectTextV8662(id, row);
+  };
+
+  const previousHasWrapObjectValueV8662 = hasWrapObjectValue;
+  hasWrapObjectValue = function(id, row) {
+    if (row && isWrapLikeMode(labelType) && scionIsBlankV8662(row)) {
+      if (id === "SCION") return !!singleMainWhenScionBlankV8662(row);
+      if (id === "ROOTSTOCK" || id === "SCION_PATENT" || id === "ROOTSTOCK_PATENT") return false;
+    }
+    return previousHasWrapObjectValueV8662(id, row);
+  };
+
+  const previousApplyWrapDataAwareStackV8662 = applyWrapDataAwareStack;
+  applyWrapDataAwareStack = function(row) {
+    previousApplyWrapDataAwareStackV8662(row);
+    if (!row || !layout || !layout.objects || !isWrapLikeMode(labelType) || !scionIsBlankV8662(row)) return;
+    const o = layout.objects;
+    const sy = wrapVerticalScale(labelType);
+    const labelH = sizePx(labelType).h;
+    const v = n => Number((Number(n || 0) * sy).toFixed(1));
+    if (o.SCION) {
+      o.SCION.y = isShippingMode() ? v(8) : v(9);
+      o.SCION.h = isShippingMode() ? v(22) : v(26);
+      o.SCION.alignH = "center";
+      o.SCION.alignV = "middle";
+    }
+    ["SCION_PATENT", "ROOTSTOCK", "ROOTSTOCK_PATENT"].forEach(id => {
+      if (o[id]) { o[id].y = 0; o[id].h = 0; }
+    });
+    if (!isShippingMode() && o.LOT) {
+      o.LOT.y = v(36);
+      o.LOT.h = v(6);
+    }
+    if (o.ADDRESS) {
+      o.ADDRESS.y = isShippingMode() ? v(43) : v(43);
+      o.ADDRESS.h = Math.max(v(5), labelH - o.ADDRESS.y);
+    }
+    if (typeof clampAllObjects === "function") clampAllObjects();
+  };
 })();
 
 function boot() {
