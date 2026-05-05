@@ -6496,3 +6496,243 @@ function boot() {
 }
 boot();
 
+
+/* v8.6.64: stronger mobile width authority.
+   Phones using Chrome normal mode or Desktop site can report different layout widths.
+   This pass forces the stage/table/preview cards to use the full CSS viewport width
+   and removes the narrow left-column layout that left blank space on the right. */
+(function installMobileFullWidthAuthorityV8664(){
+  const MOBILE_STYLE_ID = "beinvt-v8664-mobile-full-width-css";
+  let rafPending = false;
+
+  function isMobileDeviceLayout() {
+    const iw = Math.max(0, window.innerWidth || document.documentElement.clientWidth || 0);
+    const sw = Math.max(0, (window.screen && Math.min(window.screen.width || 0, window.screen.height || 0)) || 0);
+    const coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    const vv = Math.max(0, (window.visualViewport && window.visualViewport.width) || 0);
+    return iw <= 1200 || vv <= 1200 || (coarse && sw <= 900);
+  }
+
+  function cssViewportWidth() {
+    const iw = Math.round(window.innerWidth || 0);
+    const cw = Math.round(document.documentElement.clientWidth || 0);
+    const vv = Math.round((window.visualViewport && window.visualViewport.width) || 0);
+    // Use the layout viewport when available; Desktop Site on Android often needs this
+    // larger value so the cards fill the whole page instead of one narrow column.
+    return Math.max(320, iw, cw, vv);
+  }
+
+  function important(el, prop, value) {
+    if (el) el.style.setProperty(prop, value, "important");
+  }
+
+  function stageEl() {
+    return document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement);
+  }
+
+  function topEl() {
+    return (typeof topMenuElement === "function" && topMenuElement()) || document.querySelector("[data-beinvt-top-menu-ref='1'],.topbar,.toolbar,header");
+  }
+
+  function injectCss() {
+    if (document.getElementById(MOBILE_STYLE_ID)) return;
+    const css = `
+      @media (max-width:1200px), (pointer:coarse){
+        html.beinvt-mobile-full-width, html.beinvt-mobile-full-width body{
+          width:100%!important;min-width:0!important;max-width:none!important;overflow-x:hidden!important;
+        }
+        body.beinvt-mobile-layout .stageWrap,
+        body.beinvt-mobile-layout #canvasHost,
+        body.beinvt-mobile-layout #stageDataWrap,
+        body.beinvt-mobile-layout #stageLabelHost{
+          box-sizing:border-box!important;
+          width:calc(100vw - 12px)!important;
+          min-width:0!important;
+          max-width:calc(100vw - 12px)!important;
+        }
+        body.beinvt-mobile-layout .stageWrap{
+          margin-left:6px!important;margin-right:6px!important;align-self:stretch!important;
+        }
+        body.beinvt-mobile-layout #canvasHost{flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important}
+        body.beinvt-mobile-layout #stageDataWrap{flex:0 0 auto!important;align-self:stretch!important}
+        body.beinvt-mobile-layout #stageLabelHost{flex:0 0 auto!important;align-self:stretch!important}
+        body.beinvt-mobile-layout #stageRowsTable{max-width:none!important}
+        body.beinvt-mobile-layout .stageTableScroll{width:100%!important;min-width:0!important;overflow:auto!important;-webkit-overflow-scrolling:touch!important}
+      }
+    `;
+    const tag = document.createElement("style");
+    tag.id = MOBILE_STYLE_ID;
+    tag.textContent = css;
+    document.head.appendChild(tag);
+  }
+
+  function forceFullWidthMobile() {
+    injectCss();
+    if (!isMobileDeviceLayout()) {
+      document.documentElement.classList.remove("beinvt-mobile-full-width");
+      return false;
+    }
+    const vw = cssViewportWidth();
+    const pageW = Math.max(320, vw - 12);
+    document.documentElement.classList.add("beinvt-mobile-full-width");
+    if (document.body) document.body.classList.add("beinvt-mobile-layout");
+
+    important(document.documentElement, "width", "100%");
+    important(document.documentElement, "min-width", "0px");
+    important(document.documentElement, "max-width", "none");
+    important(document.documentElement, "overflow-x", "hidden");
+    important(document.body, "width", "100%");
+    important(document.body, "min-width", "0px");
+    important(document.body, "max-width", "none");
+    important(document.body, "overflow-x", "hidden");
+    important(document.body, "overflow-y", "auto");
+
+    const top = topEl();
+    if (top) {
+      important(top, "position", "relative");
+      important(top, "left", "auto");
+      important(top, "right", "auto");
+      important(top, "top", "auto");
+      important(top, "width", pageW + "px");
+      important(top, "min-width", "0px");
+      important(top, "max-width", pageW + "px");
+      important(top, "margin", "6px");
+      important(top, "display", "flex");
+      important(top, "flex-wrap", "wrap");
+      important(top, "gap", "6px");
+      important(top, "box-sizing", "border-box");
+      important(top, "overflow-x", "auto");
+    }
+
+    const stage = stageEl();
+    const host = $("canvasHost");
+    const data = $("stageDataWrap");
+    const labelHost = $("stageLabelHost");
+    const tableScroll = document.querySelector(".stageTableScroll");
+    const table = $("stageRowsTable");
+    if (!stage || !host) return true;
+
+    // Remove old desktop fixed positioning variables/classes.
+    document.body && document.body.classList.remove("beinvt-stage-fixed");
+    ["--beinvt-stage-fixed-left","--beinvt-stage-fixed-top","--beinvt-stage-fixed-width","--beinvt-stage-fixed-height","--beinvt-hidden-stage-left","--beinvt-hidden-stage-top","--beinvt-hidden-stage-width","--beinvt-hidden-stage-height"].forEach(k => document.documentElement.style.removeProperty(k));
+
+    // Make the whole ancestry stop behaving like a narrow flex column.
+    let p = stage.parentElement;
+    let guard = 0;
+    while (p && p !== document.body && guard < 12) {
+      important(p, "display", "block");
+      important(p, "width", "100%");
+      important(p, "min-width", "0px");
+      important(p, "max-width", "none");
+      important(p, "margin-left", "0px");
+      important(p, "margin-right", "0px");
+      important(p, "overflow-x", "hidden");
+      important(p, "box-sizing", "border-box");
+      p = p.parentElement;
+      guard++;
+    }
+
+    important(stage, "position", "relative");
+    important(stage, "left", "auto");
+    important(stage, "top", "auto");
+    important(stage, "right", "auto");
+    important(stage, "bottom", "auto");
+    important(stage, "transform", "none");
+    important(stage, "display", "flex");
+    important(stage, "flex-direction", "column");
+    important(stage, "align-self", "stretch");
+    important(stage, "width", pageW + "px");
+    important(stage, "min-width", pageW + "px");
+    important(stage, "max-width", pageW + "px");
+    important(stage, "height", "auto");
+    important(stage, "min-height", "0px");
+    important(stage, "max-height", "none");
+    important(stage, "flex", "0 0 auto");
+    important(stage, "margin", "6px");
+    important(stage, "padding", "4px");
+    important(stage, "overflow", "visible");
+    important(stage, "box-sizing", "border-box");
+
+    [host, data, labelHost].filter(Boolean).forEach(el => {
+      important(el, "width", "100%");
+      important(el, "min-width", "0px");
+      important(el, "max-width", "100%");
+      important(el, "box-sizing", "border-box");
+      important(el, "align-self", "stretch");
+    });
+    important(host, "display", "flex");
+    important(host, "flex-direction", "column");
+    important(host, "gap", "8px");
+    important(host, "overflow", "visible");
+
+    if (data) {
+      if (labelType === "FREE") {
+        important(data, "display", "none");
+        important(data, "height", "0px");
+        important(data, "flex", "0 0 0px");
+      } else {
+        important(data, "display", "flex");
+        important(data, "height", "44vh");
+        important(data, "min-height", "260px");
+        important(data, "max-height", "56vh");
+        important(data, "flex", "0 0 auto");
+        important(data, "overflow", "hidden");
+      }
+    }
+    if (tableScroll) {
+      important(tableScroll, "width", "100%");
+      important(tableScroll, "min-width", "0px");
+      important(tableScroll, "overflow", "auto");
+      important(tableScroll, "overflow-x", "auto");
+      important(tableScroll, "overflow-y", "auto");
+    }
+    if (table) {
+      const tableW = Math.max(pageW - 16, labelType === "POT" ? 620 : 860);
+      important(table, "width", tableW + "px");
+      important(table, "min-width", tableW + "px");
+      important(table, "max-width", "none");
+    }
+    if (labelHost) {
+      important(labelHost, "display", "flex");
+      important(labelHost, "height", "auto");
+      important(labelHost, "min-height", labelType === "POT" ? "700px" : "330px");
+      important(labelHost, "max-height", "none");
+      important(labelHost, "align-items", labelType === "POT" ? "center" : "flex-start");
+      important(labelHost, "justify-content", labelType === "POT" ? "center" : "flex-start");
+      important(labelHost, "padding", "8px");
+      important(labelHost, "overflow", "auto");
+      important(labelHost, "overflow-x", "auto");
+      important(labelHost, "overflow-y", "auto");
+    }
+
+    if (!rafPending) {
+      rafPending = true;
+      const raf = window.requestAnimationFrame || (cb => setTimeout(cb, 16));
+      raf(() => raf(() => {
+        rafPending = false;
+        try { if (typeof renderCanvas === "function") renderCanvas(); } catch (_) {}
+      }));
+    }
+    return true;
+  }
+
+  const previousApplyResponsiveMobileLayoutV8664 = window.BEINVT_APPLY_MOBILE_LAYOUT;
+  window.BEINVT_APPLY_MOBILE_LAYOUT = function() {
+    try { if (typeof previousApplyResponsiveMobileLayoutV8664 === "function") previousApplyResponsiveMobileLayoutV8664(); } catch (_) {}
+    return forceFullWidthMobile();
+  };
+
+  const prevRenderAllV8664 = renderAll;
+  renderAll = function() {
+    const r = prevRenderAllV8664.apply(this, arguments);
+    setTimeout(forceFullWidthMobile, 40);
+    return r;
+  };
+
+  window.addEventListener("resize", () => setTimeout(forceFullWidthMobile, 60));
+  window.addEventListener("orientationchange", () => setTimeout(forceFullWidthMobile, 220));
+  window.addEventListener("load", () => setTimeout(forceFullWidthMobile, 120));
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(forceFullWidthMobile, 90); });
+  setTimeout(forceFullWidthMobile, 60);
+  setTimeout(forceFullWidthMobile, 400);
+})();
