@@ -6481,6 +6481,178 @@ function initEvents() {
   };
 })();
 
+
+/* v8.6.65: Preserve every user object edit.
+   Auto-balance/default layout helpers may still set initial defaults, but once a user
+   moves/resizes/edits an object, later renders, row changes, blank values, and print
+   preparation must not snap that object back to the default coordinates/size/font. */
+(function installPreserveManualObjectEditsV8665(){
+  const MANUAL_KEYS = ["x", "y", "w", "h", "rot", "fontSize", "fontFamily", "alignH", "alignV", "visible", "locked", "manualFontSize"];
+  const AUTO_KEYS = ["__autoDefault", "__wrapQrBalanceKey"];
+
+  function obj(id) {
+    return layout && layout.objects ? layout.objects[id] : null;
+  }
+  function markManualObject(id, reason) {
+    const o = obj(id);
+    if (!o) return;
+    o.userEdited = true;
+    o.manualLayout = true;
+    o.manualObject = true;
+    o.manualReason = reason || o.manualReason || "user";
+    o.manualEditedAt = Date.now();
+    if (reason === "font" || Number.isFinite(Number(o.fontSize))) o.manualFontSize = true;
+  }
+  function markManualIfSource(o) {
+    if (!o || o.__autoDefault) return o;
+    // Existing saved working layouts from older versions did not have manual flags.
+    // Treat saved object coordinates as intentional so loading/switching modes does not erase them.
+    o.userEdited = o.userEdited !== false;
+    o.manualLayout = o.manualLayout !== false;
+    o.manualObject = o.manualObject !== false;
+    if (Number.isFinite(Number(o.fontSize)) && Number(o.fontSize) > 0) o.manualFontSize = true;
+    return o;
+  }
+  function isManualObject(o) {
+    return !!(o && (o.manualLayout || o.userEdited || o.manualObject));
+  }
+  function snapshotManualObjects(layoutObj) {
+    const snap = {};
+    if (!layoutObj || !layoutObj.objects) return snap;
+    Object.entries(layoutObj.objects).forEach(([id, o]) => {
+      if (!isManualObject(o)) return;
+      snap[id] = {};
+      Object.keys(o).forEach(k => { snap[id][k] = clone(o[k]); });
+    });
+    return snap;
+  }
+  function restoreManualObjects(layoutObj, snap) {
+    if (!layoutObj || !layoutObj.objects || !snap) return layoutObj;
+    Object.entries(snap).forEach(([id, saved]) => {
+      if (!layoutObj.objects[id] || !saved) return;
+      const keepVisible = layoutObj.objects[id].visible;
+      Object.assign(layoutObj.objects[id], clone(saved));
+      // If a render-time data rule hid an object due to missing source data, keep that data-rule hide.
+      // Otherwise preserve user visibility. This prevents empty text from forcing visible defaults back on.
+      if (keepVisible === false && saved.visible !== false) layoutObj.objects[id].visible = false;
+      layoutObj.objects[id].userEdited = true;
+      layoutObj.objects[id].manualLayout = true;
+      layoutObj.objects[id].manualObject = true;
+    });
+    return layoutObj;
+  }
+
+  const previousNormalizeLayoutV8665 = normalizeLayout;
+  normalizeLayout = function(src) {
+    const sourceObjects = (src && src.objects) || {};
+    Object.values(sourceObjects).forEach(markManualIfSource);
+    const sourceSnap = {};
+    Object.entries(sourceObjects).forEach(([id, o]) => {
+      if (!o || o.__autoDefault) return;
+      sourceSnap[id] = clone(o);
+    });
+    const out = previousNormalizeLayoutV8665(src);
+    if (out && out.objects) {
+      Object.entries(sourceSnap).forEach(([id, saved]) => {
+        if (!out.objects[id]) return;
+        // Preserve saved user object values after normalizeLayout's default merge and Field/Logo default enforcement.
+        Object.keys(saved).forEach(k => {
+          if (AUTO_KEYS.includes(k)) return;
+          out.objects[id][k] = clone(saved[k]);
+        });
+        markManualIfSource(out.objects[id]);
+      });
+    }
+    return out;
+  };
+
+  const previousRebalanceWrapLikeQrLayoutV8665 = rebalanceWrapLikeQrLayout;
+  rebalanceWrapLikeQrLayout = function(layoutObj, type) {
+    const snap = snapshotManualObjects(layoutObj);
+    const out = previousRebalanceWrapLikeQrLayoutV8665(layoutObj, type);
+    return restoreManualObjects(out || layoutObj, snap);
+  };
+
+  const previousApplyWrapDataAwareStackV8665 = applyWrapDataAwareStack;
+  applyWrapDataAwareStack = function(row) {
+    const snap = snapshotManualObjects(layout);
+    const result = previousApplyWrapDataAwareStackV8665(row);
+    restoreManualObjects(layout, snap);
+    return result;
+  };
+
+  const previousEnforceWrapQrTextClearanceV8665 = enforceWrapQrTextClearance;
+  enforceWrapQrTextClearance = function(row) {
+    const snap = snapshotManualObjects(layout);
+    const result = previousEnforceWrapQrTextClearanceV8665(row);
+    restoreManualObjects(layout, snap);
+    if (typeof clampAllObjects === "function") clampAllObjects();
+    return result;
+  };
+
+  const previousStartMoveV8665 = startMove;
+  startMove = function(ev, el, id) {
+    markManualObject(id, "move");
+    return previousStartMoveV8665(ev, el, id);
+  };
+
+  const previousStartResizeV8665 = startResize;
+  startResize = function(ev, el, id, dir) {
+    markManualObject(id, "resize");
+    return previousStartResizeV8665(ev, el, id, dir);
+  };
+
+  const previousApplyControlsV8665 = applyControls;
+  applyControls = function() {
+    if (layout && layout.objects && layout.objects[selectedId]) markManualObject(selectedId, "controls");
+    return previousApplyControlsV8665.apply(this, arguments);
+  };
+
+  const previousSaveWorkingLayoutV8665 = saveWorkingLayout;
+  saveWorkingLayout = function() {
+    if (layout && layout.objects) {
+      Object.values(layout.objects).forEach(o => {
+        if (!o) return;
+        if (o.userEdited || o.manualLayout || o.manualObject) {
+          o.userEdited = true;
+          o.manualLayout = true;
+          o.manualObject = true;
+        }
+      });
+    }
+    return previousSaveWorkingLayoutV8665.apply(this, arguments);
+  };
+
+  // Mark object-card eye/lock changes as user edits too.
+  const previousRenderObjectPanelV8665 = renderObjectPanel;
+  renderObjectPanel = function() {
+    const result = previousRenderObjectPanelV8665.apply(this, arguments);
+    const panel = $("objectPanel");
+    if (panel && panel.dataset.beinvtManualGuardV8665 !== "1") {
+      panel.dataset.beinvtManualGuardV8665 = "1";
+      panel.addEventListener("pointerdown", ev => {
+        const btn = ev.target && ev.target.closest ? ev.target.closest(".objectBtn") : null;
+        if (!btn) return;
+        const id = btn.getAttribute("data-id") || btn.dataset.id || btn.querySelector("[data-id]")?.dataset.id;
+        if (id && layout && layout.objects && layout.objects[id]) markManualObject(id, "object-panel");
+        else if (selectedId && layout && layout.objects && layout.objects[selectedId]) markManualObject(selectedId, "object-panel");
+      }, true);
+    }
+    return result;
+  };
+
+  // The normal font-size live input already sets manualFontSize; add full object manual protection too.
+  document.addEventListener("input", ev => {
+    const id = ev.target && ev.target.id;
+    if (["x", "y", "w", "h", "rot", "fontSize"].includes(id) && layout && layout.objects && layout.objects[selectedId]) {
+      markManualObject(selectedId, id === "fontSize" ? "font" : "controls-live");
+    }
+  }, true);
+
+  window.BEINVT_MARK_OBJECT_MANUAL = markManualObject;
+  window.BEINVT_PRESERVE_MANUAL_OBJECTS = { mark: markManualObject, snapshot: snapshotManualObjects, restore: restoreManualObjects };
+})();
+
 function boot() {
   removeGitHubWorkflowText();
   loadDefaults();
@@ -6735,4 +6907,224 @@ boot();
   document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(forceFullWidthMobile, 90); });
   setTimeout(forceFullWidthMobile, 60);
   setTimeout(forceFullWidthMobile, 400);
+})();
+
+/* v8.6.66: Mobile visible-width authority + stronger manual resize guard.
+   Android Chrome Desktop Site can expose a wide layout viewport while the user only sees
+   the visual viewport. Use the smaller visible viewport for the mobile cards so the right
+   side is not a dead blank area. Also, blank object-control inputs are ignored instead of
+   being interpreted as zero, and manual objects are restored without clamp/default snapback. */
+(function installMobileVisibleWidthAndManualResizeGuardV8666(){
+  function important(el, prop, value) { if (el) el.style.setProperty(prop, value, "important"); }
+  function visibleViewportWidthV8666() {
+    const vv = Math.round((window.visualViewport && window.visualViewport.width) || 0);
+    const iw = Math.round(window.innerWidth || 0);
+    const cw = Math.round(document.documentElement.clientWidth || 0);
+    const sw = Math.round((window.screen && Math.min(window.screen.width || 0, window.screen.height || 0)) || 0);
+    const coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    const candidates = [vv, iw, cw].filter(n => Number.isFinite(n) && n > 0);
+    let width = candidates.length ? Math.min.apply(null, candidates) : 390;
+    if (coarse && sw > 0) width = Math.min(width, sw);
+    return Math.max(320, width);
+  }
+  function isMobileLikeV8666() {
+    const coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    const vv = visibleViewportWidthV8666();
+    return coarse || vv <= 900;
+  }
+  function stageElV8666() { return document.querySelector(".stageWrap") || ($("canvasHost") && $("canvasHost").parentElement); }
+  function topElV8666() { return (typeof topMenuElement === "function" && topMenuElement()) || document.querySelector("[data-beinvt-top-menu-ref='1'],.topbar,.toolbar,header"); }
+  function injectCssV8666() {
+    if (document.getElementById("beinvt-v8666-mobile-visible-width-css")) return;
+    const css = `
+      @media (pointer:coarse), (max-width:900px){
+        html.beinvt-mobile-visible-width, html.beinvt-mobile-visible-width body{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:hidden!important;}
+        body.beinvt-mobile-visible-width .stageWrap,
+        body.beinvt-mobile-visible-width #canvasHost,
+        body.beinvt-mobile-visible-width #stageDataWrap,
+        body.beinvt-mobile-visible-width #stageLabelHost{box-sizing:border-box!important;max-width:var(--beinvt-mobile-visible-width,calc(100vw - 12px))!important;}
+        body.beinvt-mobile-visible-width .stageWrap{left:auto!important;right:auto!important;margin-left:6px!important;margin-right:6px!important;}
+        body.beinvt-mobile-visible-width #canvasHost{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;}
+        body.beinvt-mobile-visible-width #stageDataWrap{align-self:stretch!important;}
+        body.beinvt-mobile-visible-width #stageLabelHost{align-self:stretch!important;}
+      }
+    `;
+    const tag = document.createElement("style");
+    tag.id = "beinvt-v8666-mobile-visible-width-css";
+    tag.textContent = css;
+    document.head.appendChild(tag);
+  }
+  function applyVisibleMobileWidthV8666() {
+    injectCssV8666();
+    if (!isMobileLikeV8666()) return false;
+    const pageW = Math.max(320, visibleViewportWidthV8666() - 12);
+    document.documentElement.classList.add("beinvt-mobile-visible-width");
+    document.documentElement.style.setProperty("--beinvt-mobile-visible-width", pageW + "px");
+    document.body && document.body.classList.add("beinvt-mobile-layout", "beinvt-mobile-visible-width");
+
+    important(document.documentElement, "width", "100%");
+    important(document.documentElement, "max-width", "100%");
+    important(document.documentElement, "overflow-x", "hidden");
+    important(document.body, "width", "100%");
+    important(document.body, "max-width", "100%");
+    important(document.body, "overflow-x", "hidden");
+
+    const top = topElV8666();
+    const stage = stageElV8666();
+    const host = $("canvasHost");
+    const data = $("stageDataWrap");
+    const labelHost = $("stageLabelHost");
+    const tableScroll = document.querySelector(".stageTableScroll");
+    const table = $("stageRowsTable");
+
+    [top, stage].filter(Boolean).forEach(el => {
+      important(el, "position", "relative");
+      important(el, "left", "auto");
+      important(el, "right", "auto");
+      important(el, "top", "auto");
+      important(el, "transform", "none");
+      important(el, "width", pageW + "px");
+      important(el, "min-width", pageW + "px");
+      important(el, "max-width", pageW + "px");
+      important(el, "box-sizing", "border-box");
+      important(el, "margin-left", "6px");
+      important(el, "margin-right", "6px");
+    });
+
+    let p = stage && stage.parentElement;
+    let guard = 0;
+    while (p && p !== document.body && guard < 14) {
+      important(p, "width", "100%");
+      important(p, "min-width", "0px");
+      important(p, "max-width", "100%");
+      important(p, "margin-left", "0px");
+      important(p, "margin-right", "0px");
+      important(p, "overflow-x", "hidden");
+      important(p, "box-sizing", "border-box");
+      p = p.parentElement;
+      guard++;
+    }
+
+    [host, data, labelHost].filter(Boolean).forEach(el => {
+      important(el, "width", "100%");
+      important(el, "min-width", "0px");
+      important(el, "max-width", "100%");
+      important(el, "box-sizing", "border-box");
+      important(el, "align-self", "stretch");
+    });
+    if (host) {
+      important(host, "display", "flex");
+      important(host, "flex-direction", "column");
+      important(host, "align-items", "stretch");
+      important(host, "justify-content", "flex-start");
+      important(host, "gap", "8px");
+    }
+    if (data && labelType !== "FREE") {
+      important(data, "display", "flex");
+      important(data, "height", "44vh");
+      important(data, "min-height", "250px");
+      important(data, "max-height", "56vh");
+      important(data, "overflow", "hidden");
+    }
+    if (tableScroll) {
+      important(tableScroll, "width", "100%");
+      important(tableScroll, "min-width", "0px");
+      important(tableScroll, "max-width", "100%");
+      important(tableScroll, "overflow-x", "auto");
+      important(tableScroll, "overflow-y", "auto");
+      important(tableScroll, "-webkit-overflow-scrolling", "touch");
+    }
+    if (table) {
+      const tableW = Math.max(pageW - 20, labelType === "POT" ? 620 : 860);
+      important(table, "width", tableW + "px");
+      important(table, "min-width", tableW + "px");
+      important(table, "max-width", "none");
+    }
+    if (labelHost) {
+      important(labelHost, "display", "flex");
+      important(labelHost, "height", "auto");
+      important(labelHost, "min-height", labelType === "POT" ? "700px" : "330px");
+      important(labelHost, "align-items", labelType === "POT" ? "center" : "flex-start");
+      important(labelHost, "justify-content", labelType === "POT" ? "center" : "flex-start");
+      important(labelHost, "padding", "8px");
+      important(labelHost, "overflow", "auto");
+      important(labelHost, "overflow-x", "auto");
+      important(labelHost, "overflow-y", "auto");
+    }
+    return true;
+  }
+
+  // Override object controls so blank fields do not mean zero and user values are saved as manual edits.
+  const previousApplyControlsV8666 = applyControls;
+  applyControls = function() {
+    if (!layout || !layout.objects) return previousApplyControlsV8666.apply(this, arguments);
+    if (!layout.objects[selectedId]) selectedId = defaultSelectedId(labelType);
+    const o = layout.objects[selectedId];
+    if (!o) return previousApplyControlsV8666.apply(this, arguments);
+    pushHistory();
+    const changed = [];
+    ["x", "y", "w", "h", "rot"].forEach(k => {
+      const inp = $(k);
+      if (!inp) return;
+      const raw = String(inp.value ?? "").trim();
+      if (raw === "") return;
+      const val = Number(raw);
+      if (Number.isFinite(val)) { o[k] = val; changed.push(k); }
+    });
+    if (!isImageObject(selectedId)) {
+      const fsRaw = String(($("fontSize") && $("fontSize").value) ?? "").trim();
+      const fs = Number(fsRaw);
+      if (fsRaw !== "" && Number.isFinite(fs) && fs > 0) {
+        o.fontSize = fs;
+        o.manualFontSize = true;
+        changed.push("fontSize");
+      }
+      if (!o.fontFamily) o.fontFamily = "Times New Roman";
+    }
+    if ($("safeMargin")) layout.safeMarginPx = Number($("safeMargin").value || 0);
+    if ($("gridPx")) layout.gridPx = Number($("gridPx").value || 4);
+    if ($("snapPx")) layout.snapPx = Number($("snapPx").value || 5);
+    o.userEdited = true;
+    o.manualLayout = true;
+    o.manualObject = true;
+    o.manualReason = changed.length ? "controls-" + changed.join("-") : "controls";
+    o.manualEditedAt = Date.now();
+    if (Number.isFinite(Number(o.fontSize)) && Number(o.fontSize) > 0) o.manualFontSize = true;
+    clampObject(selectedId);
+    saveWorkingLayout();
+    renderAll();
+  };
+
+  // Do not clamp manual objects back after render-time auto rules unless they are truly outside the label.
+  const previousClampObjectV8666 = clampObject;
+  clampObject = function(id) {
+    if (!layout || !layout.objects || !layout.objects[id]) return;
+    const o = layout.objects[id];
+    if (!(o.manualLayout || o.manualObject || o.userEdited)) return previousClampObjectV8666(id);
+    const b = labelBounds();
+    const limH = labelBounds().h;
+    o.w = Math.max(1, Math.min(Number(o.w || 1), b.w));
+    o.h = Math.max(1, Math.min(Number(o.h || 1), limH));
+    o.x = Math.max(0, Math.min(Number(o.x || 0), Math.max(0, b.w - o.w)));
+    o.y = Math.max(0, Math.min(Number(o.y || 0), Math.max(0, limH - o.h)));
+  };
+
+  const previousRenderAllV8666 = renderAll;
+  renderAll = function() {
+    const r = previousRenderAllV8666.apply(this, arguments);
+    setTimeout(applyVisibleMobileWidthV8666, 20);
+    setTimeout(applyVisibleMobileWidthV8666, 180);
+    return r;
+  };
+  const previousMobileApplyV8666 = window.BEINVT_APPLY_MOBILE_LAYOUT;
+  window.BEINVT_APPLY_MOBILE_LAYOUT = function() {
+    try { if (typeof previousMobileApplyV8666 === "function") previousMobileApplyV8666(); } catch (_) {}
+    return applyVisibleMobileWidthV8666();
+  };
+  window.BEINVT_APPLY_VISIBLE_MOBILE_WIDTH = applyVisibleMobileWidthV8666;
+  window.addEventListener("resize", () => setTimeout(applyVisibleMobileWidthV8666, 60));
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", () => setTimeout(applyVisibleMobileWidthV8666, 60));
+  window.addEventListener("orientationchange", () => setTimeout(applyVisibleMobileWidthV8666, 220));
+  setTimeout(applyVisibleMobileWidthV8666, 60);
+  setTimeout(applyVisibleMobileWidthV8666, 500);
 })();
