@@ -7328,3 +7328,200 @@ boot();
   setTimeout(widenTableForActionV8667, 80);
   setTimeout(widenTableForActionV8667, 500);
 })();
+
+
+/* v8.6.68: Mobile Add-button visibility + Finished Tree/Wrap repair.
+   v8.6.65 protected user edits correctly, but it also tagged older/default saved
+   objects as manual. That could freeze an empty/bad Finished Tree layout so the
+   normal wrap/field/shipping auto-placement could not rebuild it. This pass
+   removes only those synthetic manual flags (no manualReason/manualEditedAt),
+   keeps real user edits protected, and gives the mobile Add action column extra
+   inside space so it cannot be clipped by the phone viewport. */
+(function installMobileAddAndWrapRepairV8668(){
+  function important(el, prop, value) { if (el) el.style.setProperty(prop, value, "important"); }
+  function mobileLikeV8668() {
+    const coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    const vv = Math.round((window.visualViewport && window.visualViewport.width) || 0);
+    const iw = Math.round(window.innerWidth || 0);
+    return coarse || Math.min(vv || iw || 9999, iw || vv || 9999) <= 900;
+  }
+  function installCssV8668() {
+    if (document.getElementById("beinvt-v8668-mobile-add-safe-css")) return;
+    const css = `
+      @media (pointer:coarse), (max-width:900px){
+        body.beinvt-mobile-layout .stageTableScroll{
+          overflow-x:auto!important;
+          overflow-y:auto!important;
+          padding-right:54px!important;
+          box-sizing:border-box!important;
+          scrollbar-gutter:stable both-edges!important;
+        }
+        body.beinvt-mobile-layout #stageRowsTable{
+          border-collapse:separate!important;
+          border-spacing:0!important;
+          margin-right:54px!important;
+        }
+        body.beinvt-mobile-layout #stageRowsTable th:last-child,
+        body.beinvt-mobile-layout #stageRowsTable td:last-child{
+          position:sticky!important;
+          right:38px!important;
+          z-index:90!important;
+          width:104px!important;
+          min-width:104px!important;
+          max-width:104px!important;
+          padding-left:10px!important;
+          padding-right:10px!important;
+          overflow:visible!important;
+          text-align:center!important;
+          box-sizing:border-box!important;
+          background:#10142d!important;
+          box-shadow:-18px 0 22px rgba(8,11,26,.92)!important;
+        }
+        body.beinvt-mobile-layout #stageRowsTable th:last-child{z-index:110!important;background:#151831!important}
+        body.beinvt-mobile-layout #stageRowsTable tr.active td:last-child{background:#2563eb!important}
+        body.beinvt-mobile-layout #stageRowsTable td:last-child button{
+          display:inline-flex!important;
+          align-items:center!important;
+          justify-content:center!important;
+          width:70px!important;
+          min-width:70px!important;
+          max-width:70px!important;
+          height:38px!important;
+          padding:0!important;
+          margin:0 auto!important;
+          border-radius:11px!important;
+          font-size:14px!important;
+          line-height:1!important;
+          white-space:nowrap!important;
+          overflow:visible!important;
+          box-sizing:border-box!important;
+        }
+        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable th:last-child,
+        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable td:last-child{background:#ffffff!important;box-shadow:-18px 0 22px rgba(255,255,255,.95)!important}
+        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable tr.active td:last-child{background:#bfdbfe!important}
+      }
+    `;
+    const tag = document.createElement("style");
+    tag.id = "beinvt-v8668-mobile-add-safe-css";
+    tag.textContent = css;
+    document.head.appendChild(tag);
+  }
+  function fixMobileAddColumnV8668() {
+    installCssV8668();
+    const table = $("stageRowsTable");
+    const wrap = document.querySelector(".stageTableScroll");
+    if (!table || !wrap || !mobileLikeV8668()) return false;
+    document.body && document.body.classList.add("beinvt-mobile-layout");
+    const visible = Math.max(320, Math.round((window.visualViewport && window.visualViewport.width) || window.innerWidth || document.documentElement.clientWidth || 390));
+    const minNeeded = labelType === "POT" ? 780 : (labelType === "SHIP" ? 1060 : 1220);
+    const tableW = Math.max(minNeeded, visible + 180);
+    important(wrap, "width", "100%");
+    important(wrap, "max-width", "100%");
+    important(wrap, "overflow-x", "auto");
+    important(wrap, "overflow-y", "auto");
+    important(wrap, "padding-right", "54px");
+    important(wrap, "box-sizing", "border-box");
+    important(wrap, "-webkit-overflow-scrolling", "touch");
+    important(table, "width", tableW + "px");
+    important(table, "min-width", tableW + "px");
+    important(table, "max-width", "none");
+    important(table, "margin-right", "54px");
+    table.querySelectorAll("tr").forEach(tr => {
+      const last = tr.lastElementChild;
+      if (!last) return;
+      important(last, "position", "sticky");
+      important(last, "right", "38px");
+      important(last, "width", "104px");
+      important(last, "min-width", "104px");
+      important(last, "max-width", "104px");
+      important(last, "overflow", "visible");
+      const btn = last.querySelector("button");
+      if (btn) {
+        important(btn, "width", "70px");
+        important(btn, "min-width", "70px");
+        important(btn, "height", "38px");
+        important(btn, "overflow", "visible");
+      }
+    });
+    return true;
+  }
+
+  function isSyntheticManualV8668(o) {
+    return !!(o && (o.manualLayout || o.manualObject || o.userEdited) && !o.manualReason && !o.manualEditedAt);
+  }
+  function purgeSyntheticManualFlagsV8668(layoutObj) {
+    if (!layoutObj || !layoutObj.objects) return layoutObj;
+    Object.values(layoutObj.objects).forEach(o => {
+      if (!isSyntheticManualV8668(o)) return;
+      delete o.userEdited;
+      delete o.manualLayout;
+      delete o.manualObject;
+      delete o.manualFontSize;
+    });
+    return layoutObj;
+  }
+  function wrapLooksEmptyOrFrozenV8668(layoutObj) {
+    if (!layoutObj || !layoutObj.objects || !isWrapLikeMode(labelType)) return false;
+    const s = sizePx();
+    const importantIds = labelType === "SHIP"
+      ? ["CROP", "INTERNAL", "SCION", "LOGO", "WARNING"]
+      : ["WO_QR", "WO", "CROP", "INTERNAL", "SCION", "ROOTSTOCK", "LOT_QR", "LOGO", "WARNING"];
+    let visibleInside = 0;
+    importantIds.forEach(id => {
+      const o = layoutObj.objects[id];
+      if (!o || o.visible === false) return;
+      const w = Number(o.w), h = Number(o.h), x = Number(o.x), y = Number(o.y);
+      if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 1 || h <= 1) return;
+      if (Number.isFinite(x) && Number.isFinite(y) && x < s.w && y < s.h && x + w > 0 && y + h > 0) visibleInside++;
+    });
+    return visibleInside < 4;
+  }
+  function repairWrapLayoutIfNeededV8668(reason) {
+    if (!layout || !isWrapLikeMode(labelType)) return false;
+    purgeSyntheticManualFlagsV8668(layout);
+    if (wrapLooksEmptyOrFrozenV8668(layout)) {
+      const keepSize = layout.labelSize;
+      layout = normalizeLayout(fallbackLayout(labelType));
+      if (keepSize) layout.labelSize = keepSize;
+      purgeSyntheticManualFlagsV8668(layout);
+      try { saveWorkingLayout(); } catch (_) {}
+      try { renderAll(); } catch (_) {}
+      return true;
+    }
+    try { rebalanceWrapLikeQrLayout(layout, labelType); } catch (_) {}
+    try { applyWrapDataAwareStack(currentRow()); } catch (_) {}
+    return false;
+  }
+
+  const prevNormalizeV8668 = normalizeLayout;
+  normalizeLayout = function(src) {
+    const out = prevNormalizeV8668.apply(this, arguments);
+    return purgeSyntheticManualFlagsV8668(out);
+  };
+
+  const prevRenderRowsV8668 = typeof renderRows === "function" ? renderRows : null;
+  if (prevRenderRowsV8668) {
+    renderRows = function() {
+      const r = prevRenderRowsV8668.apply(this, arguments);
+      setTimeout(fixMobileAddColumnV8668, 0);
+      setTimeout(fixMobileAddColumnV8668, 120);
+      return r;
+    };
+  }
+  const prevRenderAllV8668 = renderAll;
+  renderAll = function() {
+    purgeSyntheticManualFlagsV8668(layout);
+    const r = prevRenderAllV8668.apply(this, arguments);
+    setTimeout(fixMobileAddColumnV8668, 0);
+    setTimeout(fixMobileAddColumnV8668, 120);
+    return r;
+  };
+
+  window.BEINVT_FIX_MOBILE_ADD_COLUMN = fixMobileAddColumnV8668;
+  window.BEINVT_REPAIR_WRAP_LAYOUT = repairWrapLayoutIfNeededV8668;
+  window.addEventListener("resize", () => setTimeout(fixMobileAddColumnV8668, 60));
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", () => setTimeout(fixMobileAddColumnV8668, 60));
+  window.addEventListener("orientationchange", () => setTimeout(fixMobileAddColumnV8668, 220));
+  setTimeout(() => { repairWrapLayoutIfNeededV8668("boot"); fixMobileAddColumnV8668(); try { renderCanvas(); } catch (_) {} }, 180);
+  setTimeout(fixMobileAddColumnV8668, 650);
+})();
