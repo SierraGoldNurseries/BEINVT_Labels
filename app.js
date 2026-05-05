@@ -7525,3 +7525,218 @@ boot();
   setTimeout(() => { repairWrapLayoutIfNeededV8668("boot"); fixMobileAddColumnV8668(); try { renderCanvas(); } catch (_) {} }, 180);
   setTimeout(fixMobileAddColumnV8668, 650);
 })();
+
+
+/* v8.6.69: Full wrap-like layout repair + mobile Add column no-clip.
+   Finished Trees, Field Labels, and Shipping Labels may have inherited a bad/frozen
+   saved working layout from the manual-protection migration. This one-time repair
+   clears only those wrap-like working layouts so they rebuild from the known-good
+   defaults. Pot Stakes and Free Field templates are not cleared. The mobile Add
+   column now sticks to right:0 with no extra margin/padding that can clip it. */
+(function installWrapShipFieldRepairAndAddNoClipV8669(){
+  const REPAIR_KEY = "beinvtV8669WrapShipFieldLayoutRepairDone";
+  const STYLE_ID = "beinvt-v8669-mobile-add-noclip-css";
+  function important(el, prop, value) { if (el) el.style.setProperty(prop, value, "important"); }
+  function mobileLike() {
+    const coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    const vv = Math.round((window.visualViewport && window.visualViewport.width) || 0);
+    const iw = Math.round(window.innerWidth || 0);
+    return coarse || Math.min(vv || iw || 9999, iw || vv || 9999) <= 900;
+  }
+  function installCss() {
+    if (document.getElementById(STYLE_ID)) return;
+    const css = `
+      @media (pointer:coarse), (max-width:900px){
+        body.beinvt-mobile-layout .stageWrap,
+        body.beinvt-mobile-layout #canvasHost,
+        body.beinvt-mobile-layout #stageDataWrap,
+        body.beinvt-mobile-layout #stageLabelHost{
+          width:calc(100vw - 12px)!important;
+          max-width:calc(100vw - 12px)!important;
+          min-width:0!important;
+          box-sizing:border-box!important;
+        }
+        body.beinvt-mobile-layout .stageTableScroll{
+          width:100%!important;
+          max-width:100%!important;
+          min-width:0!important;
+          overflow-x:auto!important;
+          overflow-y:auto!important;
+          padding-right:0!important;
+          margin-right:0!important;
+          box-sizing:border-box!important;
+          -webkit-overflow-scrolling:touch!important;
+        }
+        body.beinvt-mobile-layout #stageRowsTable{
+          border-collapse:separate!important;
+          border-spacing:0!important;
+          table-layout:fixed!important;
+          max-width:none!important;
+          margin-right:0!important;
+        }
+        body.beinvt-mobile-layout #stageRowsTable th:last-child,
+        body.beinvt-mobile-layout #stageRowsTable td:last-child{
+          position:sticky!important;
+          right:0!important;
+          z-index:150!important;
+          width:86px!important;
+          min-width:86px!important;
+          max-width:86px!important;
+          padding:6px 8px!important;
+          overflow:visible!important;
+          text-align:center!important;
+          box-sizing:border-box!important;
+          background:#10142d!important;
+          box-shadow:-12px 0 18px rgba(8,11,26,.94)!important;
+        }
+        body.beinvt-mobile-layout #stageRowsTable th:last-child{
+          z-index:170!important;
+          background:#151831!important;
+        }
+        body.beinvt-mobile-layout #stageRowsTable tr.active td:last-child{
+          background:#2563eb!important;
+        }
+        body.beinvt-mobile-layout #stageRowsTable td:last-child button{
+          display:inline-flex!important;
+          align-items:center!important;
+          justify-content:center!important;
+          width:58px!important;
+          min-width:58px!important;
+          max-width:58px!important;
+          height:36px!important;
+          padding:0!important;
+          margin:0 auto!important;
+          border-radius:10px!important;
+          font-size:13px!important;
+          font-weight:900!important;
+          line-height:1!important;
+          white-space:nowrap!important;
+          overflow:visible!important;
+          box-sizing:border-box!important;
+        }
+        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable th:last-child,
+        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable td:last-child{
+          background:#ffffff!important;
+          box-shadow:-12px 0 18px rgba(255,255,255,.96)!important;
+        }
+        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable tr.active td:last-child{
+          background:#bfdbfe!important;
+        }
+      }
+    `;
+    const tag = document.createElement("style");
+    tag.id = STYLE_ID;
+    tag.textContent = css;
+    document.head.appendChild(tag);
+  }
+  function fixMobileAddColumn() {
+    installCss();
+    const table = document.getElementById("stageRowsTable");
+    const wrap = document.querySelector(".stageTableScroll");
+    if (!table || !wrap || !mobileLike()) return false;
+    document.body && document.body.classList.add("beinvt-mobile-layout");
+    const visible = Math.max(320, Math.round((window.visualViewport && window.visualViewport.width) || window.innerWidth || document.documentElement.clientWidth || 390));
+    const minNeeded = labelType === "POT" ? 720 : (labelType === "SHIP" ? 900 : 1000);
+    const tableW = Math.max(minNeeded, visible + 120);
+    important(wrap, "width", "100%");
+    important(wrap, "max-width", "100%");
+    important(wrap, "min-width", "0px");
+    important(wrap, "overflow-x", "auto");
+    important(wrap, "overflow-y", "auto");
+    important(wrap, "padding-right", "0px");
+    important(wrap, "margin-right", "0px");
+    important(wrap, "box-sizing", "border-box");
+    important(table, "width", tableW + "px");
+    important(table, "min-width", tableW + "px");
+    important(table, "max-width", "none");
+    important(table, "margin-right", "0px");
+    table.querySelectorAll("tr").forEach(tr => {
+      const last = tr.lastElementChild;
+      if (!last) return;
+      important(last, "position", "sticky");
+      important(last, "right", "0px");
+      important(last, "z-index", "150");
+      important(last, "width", "86px");
+      important(last, "min-width", "86px");
+      important(last, "max-width", "86px");
+      important(last, "overflow", "visible");
+      important(last, "box-sizing", "border-box");
+      const btn = last.querySelector("button");
+      if (btn) {
+        important(btn, "width", "58px");
+        important(btn, "min-width", "58px");
+        important(btn, "max-width", "58px");
+        important(btn, "height", "36px");
+        important(btn, "overflow", "visible");
+        important(btn, "font-size", "13px");
+      }
+    });
+    return true;
+  }
+  function clearBrokenWrapLikeWorkingLayoutsOnce() {
+    installCss();
+    try {
+      if (localStorage.getItem(REPAIR_KEY) !== "1") {
+        localStorage.removeItem("beinvtWorkingLayout_WRAP");
+        localStorage.removeItem("beinvtWorkingLayout_FIELD");
+        localStorage.removeItem("beinvtWorkingLayout_SHIP");
+        localStorage.setItem(REPAIR_KEY, "1");
+        if (typeof isWrapLikeMode === "function" && isWrapLikeMode(labelType)) {
+          layout = normalizeLayout(fallbackLayout(labelType));
+          layout.labelSize = labelSizeInches(labelType);
+          selectedId = defaultSelectedId(labelType);
+          try { saveWorkingLayout(); } catch (_) {}
+          try { renderAll(); } catch (_) {}
+        }
+      } else if (typeof isWrapLikeMode === "function" && isWrapLikeMode(labelType) && layout && layout.objects) {
+        // If the current in-memory wrap/shipping label is visibly blank/frozen, rebuild it.
+        const ids = labelType === "SHIP"
+          ? ["CROP", "INTERNAL", "SCION", "LOGO", "WARNING"]
+          : ["WO_QR", "WO", "CROP", "INTERNAL", "SCION", "ROOTSTOCK", "LOT_QR", "LOGO", "WARNING"];
+        const s = sizePx();
+        let ok = 0;
+        ids.forEach(id => {
+          const o = layout.objects[id];
+          if (!o || o.visible === false) return;
+          const x = Number(o.x), y = Number(o.y), w = Number(o.w), h = Number(o.h);
+          if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(w) && Number.isFinite(h) && w > 2 && h > 2 && x < s.w && y < s.h && x + w > 0 && y + h > 0) ok++;
+        });
+        if (ok < 4) {
+          layout = normalizeLayout(fallbackLayout(labelType));
+          layout.labelSize = labelSizeInches(labelType);
+          selectedId = defaultSelectedId(labelType);
+          try { saveWorkingLayout(); } catch (_) {}
+          try { renderAll(); } catch (_) {}
+        }
+      }
+    } catch (_) {}
+  }
+  const prevRenderRowsV8669 = typeof renderRows === "function" ? renderRows : null;
+  if (prevRenderRowsV8669) {
+    renderRows = function() {
+      const r = prevRenderRowsV8669.apply(this, arguments);
+      setTimeout(fixMobileAddColumn, 0);
+      setTimeout(fixMobileAddColumn, 80);
+      setTimeout(fixMobileAddColumn, 220);
+      return r;
+    };
+  }
+  const prevRenderAllV8669 = renderAll;
+  renderAll = function() {
+    const r = prevRenderAllV8669.apply(this, arguments);
+    setTimeout(fixMobileAddColumn, 0);
+    setTimeout(fixMobileAddColumn, 80);
+    setTimeout(fixMobileAddColumn, 220);
+    return r;
+  };
+  window.BEINVT_FIX_MOBILE_ADD_COLUMN = fixMobileAddColumn;
+  window.BEINVT_RESET_WRAP_FIELD_SHIP_LAYOUTS = function() {
+    try { localStorage.removeItem(REPAIR_KEY); } catch (_) {}
+    clearBrokenWrapLikeWorkingLayoutsOnce();
+  };
+  window.addEventListener("resize", () => setTimeout(fixMobileAddColumn, 80));
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", () => setTimeout(fixMobileAddColumn, 80));
+  document.addEventListener("DOMContentLoaded", () => setTimeout(() => { clearBrokenWrapLikeWorkingLayoutsOnce(); fixMobileAddColumn(); }, 80));
+  setTimeout(() => { clearBrokenWrapLikeWorkingLayoutsOnce(); fixMobileAddColumn(); }, 120);
+  setTimeout(fixMobileAddColumn, 400);
+})();
