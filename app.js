@@ -1,5 +1,7 @@
 const APP_VERSION = "8.6.56_no_gaps_into_item_names";
 const WRAP_QR_BALANCE_VERSION = "8.6.61";
+const MOBILE_VIEW_ADD_BUTTON_FIX_VERSION = "8.6.62_mobile_add_button_visible";
+const MOBILE_FULL_WIDTH_TABLE_FIX_VERSION = "8.6.63_mobile_full_width_table_add_visible";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -6127,11 +6129,17 @@ function initEvents() {
     let p = stage.parentElement;
     let guard = 0;
     while (p && p !== document.body && guard < 10) {
+      p.dataset.beinvtMobileContainer = "1";
       important(p, "min-width", "0px");
       important(p, "max-width", "100vw");
       important(p, "width", "100%");
       important(p, "overflow-x", "hidden");
       important(p, "box-sizing", "border-box");
+      if (getComputedStyle(p).display === "flex") {
+        important(p, "flex-direction", "column");
+        important(p, "align-items", "stretch");
+        important(p, "justify-content", "flex-start");
+      }
       p = p.parentElement;
       guard++;
     }
@@ -6201,10 +6209,39 @@ function initEvents() {
       important(tableScroll, "-webkit-overflow-scrolling", "touch");
     }
     if (table) {
-      important(table, "width", "760px");
-      important(table, "min-width", "760px");
+      // Mobile-only: the desktop table can stay wide, but phones need the Add
+      // button to remain usable instead of being squeezed by the tiny % action column.
+      const mobileTableWidth = labelType === "POT" ? "100%" : (labelType === "SHIP" ? "860px" : "940px");
+      important(table, "width", mobileTableWidth);
+      important(table, "min-width", mobileTableWidth);
       important(table, "max-width", "none");
       important(table, "table-layout", "fixed");
+      table.dataset.beinvtMobileTableType = labelType;
+
+      table.querySelectorAll("th:last-child,td:last-child").forEach(cell => {
+        important(cell, "width", "64px");
+        important(cell, "min-width", "64px");
+        important(cell, "max-width", "64px");
+        important(cell, "padding-left", "5px");
+        important(cell, "padding-right", "5px");
+        important(cell, "overflow", "visible");
+        important(cell, "text-align", "center");
+        important(cell, "position", "sticky");
+        important(cell, "right", "0px");
+        important(cell, "z-index", cell.tagName === "TH" ? "45" : "35");
+        important(cell, "box-shadow", "-8px 0 12px rgba(0,0,0,.18)");
+      });
+      table.querySelectorAll("td:last-child button").forEach(btn => {
+        important(btn, "display", "inline-flex");
+        important(btn, "align-items", "center");
+        important(btn, "justify-content", "center");
+        important(btn, "width", "50px");
+        important(btn, "min-width", "50px");
+        important(btn, "max-width", "none");
+        important(btn, "white-space", "nowrap");
+        important(btn, "padding", "6px 8px");
+        important(btn, "box-sizing", "border-box");
+      });
     }
 
     if (labelHost) {
@@ -6249,6 +6286,10 @@ function initEvents() {
       delete stage.dataset.beinvtMobileLayout;
       removeImportant(stage, ["position","left","top","right","bottom","transform","will-change","z-index","display","flex-direction","width","min-width","max-width","height","min-height","max-height","flex","flex-basis","margin","padding","overflow","box-sizing"]);
     }
+    document.querySelectorAll("[data-beinvt-mobile-container='1']").forEach(el => {
+      delete el.dataset.beinvtMobileContainer;
+      removeImportant(el, ["min-width","max-width","width","overflow-x","box-sizing","flex-direction","align-items","justify-content"]);
+    });
     const top = topbarElementForMobile();
     if (top) top.classList.remove("beinvtMobileTopbar");
     const zoom = $("zoom");
@@ -6277,7 +6318,15 @@ function initEvents() {
         body.beinvt-mobile-layout #stageSearch{height:38px!important;font-size:14px!important}
         body.beinvt-mobile-layout #stageRowsTable th,
         body.beinvt-mobile-layout #stageRowsTable td{font-size:11px!important;padding:8px 7px!important}
-        body.beinvt-mobile-layout #stageRowsTable button{min-width:42px!important;padding:6px 7px!important}
+        body.beinvt-mobile-layout #stageRowsTable th:last-child,
+        body.beinvt-mobile-layout #stageRowsTable td:last-child{width:64px!important;min-width:64px!important;max-width:64px!important;position:sticky!important;right:0!important;text-align:center!important;overflow:visible!important;box-shadow:-8px 0 12px rgba(0,0,0,.18)!important}
+        body.beinvt-mobile-layout #stageRowsTable th:last-child{z-index:45!important;background:#151831!important}
+        body.beinvt-mobile-layout #stageRowsTable td:last-child{z-index:35!important;background:#10142d!important}
+        body.beinvt-mobile-layout #stageRowsTable tr.active td:last-child{background:rgba(104,124,210,.95)!important;color:#fff!important}
+        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable th:last-child{background:#e5e7eb!important;color:#111827!important}
+        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable td:last-child{background:#ffffff!important;color:#111827!important}
+        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable tr.active td:last-child{background:#bfdbfe!important;color:#0f172a!important}
+        body.beinvt-mobile-layout #stageRowsTable button{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:50px!important;min-width:50px!important;max-width:none!important;padding:6px 8px!important;white-space:nowrap!important;box-sizing:border-box!important}
         body.beinvt-mobile-layout .stageMeta{max-width:100%!important;min-width:0!important}
         body.beinvt-mobile-layout .labelCanvas{box-shadow:0 12px 34px rgba(0,0,0,.36)!important}
         body.beinvt-mobile-layout .freeFormatToolbar button{min-width:36px!important;height:34px!important}
@@ -6428,6 +6477,319 @@ function initEvents() {
     }
     if (typeof clampAllObjects === "function") clampAllObjects();
   };
+})();
+
+
+/* v8.6.63: Mobile full-width table/add fix.
+   Mobile-only override: fills the phone viewport, removes the right dead space,
+   and keeps the Add button visible. Desktop/computer layout is not touched. */
+(function installMobileFullWidthTableAddFixV8663(){
+  const STYLE_ID = "beinvt-v8663-mobile-full-width-table-add-css";
+  const VERSION = "8.6.63_mobile_full_width_table_add_visible";
+
+  function isMobileViewV8663() {
+    const w = Math.max(0, window.innerWidth || document.documentElement.clientWidth || 0);
+    const coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    const uaMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(String(navigator.userAgent || ""));
+    return w <= 900 || (uaMobile && w <= 1400) || (coarse && w <= 1200);
+  }
+  function importantV8663(el, prop, value) {
+    if (el) el.style.setProperty(prop, value, "important");
+  }
+  function removeV8663(el, props) {
+    if (!el) return;
+    props.forEach(p => el.style.removeProperty(p));
+  }
+  function stageV8663() {
+    return document.querySelector(".stageWrap") || ((typeof $ === "function" && $("canvasHost")) ? $("canvasHost").parentElement : null);
+  }
+  function topbarV8663() {
+    try {
+      if (typeof topMenuElement === "function") return topMenuElement();
+    } catch (e) {}
+    return document.querySelector("[data-beinvt-top-menu-ref='1'],.topbar,.toolbar,header");
+  }
+  function injectCssV8663() {
+    if (document.getElementById(STYLE_ID)) return;
+    const css = `
+      @media (max-width: 900px), (pointer: coarse) and (max-width: 1200px){
+        html,body{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:hidden!important;overflow-y:auto!important}
+        body.beinvt-mobile-full-width-v8663{min-width:0!important;max-width:100%!important;overflow-x:hidden!important;overflow-y:auto!important}
+        body.beinvt-mobile-full-width-v8663 .beinvtMobileTopbar,
+        body.beinvt-mobile-full-width-v8663 [data-beinvt-top-menu-ref="1"]{width:calc(100vw - 12px)!important;min-width:0!important;max-width:calc(100vw - 12px)!important;margin:6px!important;box-sizing:border-box!important;overflow-x:auto!important}
+        body.beinvt-mobile-full-width-v8663 .stageWrap{position:relative!important;left:auto!important;top:auto!important;right:auto!important;bottom:auto!important;transform:none!important;width:calc(100vw - 12px)!important;min-width:0!important;max-width:calc(100vw - 12px)!important;height:auto!important;min-height:calc(100vh - 112px)!important;max-height:none!important;flex:0 0 auto!important;flex-basis:auto!important;margin:6px!important;padding:4px!important;overflow:visible!important;align-self:stretch!important;box-sizing:border-box!important}
+        body.beinvt-mobile-full-width-v8663 #canvasHost,
+        body.beinvt-mobile-full-width-v8663 #stageDataWrap,
+        body.beinvt-mobile-full-width-v8663 #stageLabelHost,
+        body.beinvt-mobile-full-width-v8663 .stageStack,
+        body.beinvt-mobile-full-width-v8663 .labelPreviewRow{width:100%!important;min-width:0!important;max-width:100%!important;align-self:stretch!important;box-sizing:border-box!important}
+        body.beinvt-mobile-full-width-v8663 #canvasHost{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;gap:6px!important}
+        body.beinvt-mobile-full-width-v8663 #stageDataWrap{display:flex!important;visibility:visible!important;flex:0 0 auto!important;height:46vh!important;min-height:260px!important;max-height:58vh!important;overflow:hidden!important}
+        body.beinvt-mobile-full-width-v8663 .stageTableScroll{width:100%!important;min-width:0!important;max-width:100%!important;overflow-x:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
+        body.beinvt-mobile-full-width-v8663 #stageRowsTable{width:100%!important;min-width:100%!important;max-width:100%!important;table-layout:fixed!important;border-spacing:0!important}
+        body.beinvt-mobile-full-width-v8663 #stageRowsTable th,
+        body.beinvt-mobile-full-width-v8663 #stageRowsTable td{font-size:11px!important;padding:8px 7px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+        body.beinvt-mobile-full-width-v8663.beinvt-label-pot #stageRowsTable th:nth-child(3),
+        body.beinvt-mobile-full-width-v8663.beinvt-label-pot #stageRowsTable th:nth-child(4),
+        body.beinvt-mobile-full-width-v8663.beinvt-label-pot #stageRowsTable th:nth-child(5),
+        body.beinvt-mobile-full-width-v8663.beinvt-label-pot #stageRowsTable td:nth-child(3),
+        body.beinvt-mobile-full-width-v8663.beinvt-label-pot #stageRowsTable td:nth-child(4),
+        body.beinvt-mobile-full-width-v8663.beinvt-label-pot #stageRowsTable td:nth-child(5){display:none!important}
+        body.beinvt-mobile-full-width-v8663.beinvt-label-pot #stageRowsTable th:nth-child(1),
+        body.beinvt-mobile-full-width-v8663.beinvt-label-pot #stageRowsTable td:nth-child(1){width:28%!important;min-width:0!important;max-width:none!important}
+        body.beinvt-mobile-full-width-v8663.beinvt-label-pot #stageRowsTable th:nth-child(2),
+        body.beinvt-mobile-full-width-v8663.beinvt-label-pot #stageRowsTable td:nth-child(2){width:50%!important;min-width:0!important;max-width:none!important}
+        body.beinvt-mobile-full-width-v8663.beinvt-label-pot #stageRowsTable th:nth-child(6),
+        body.beinvt-mobile-full-width-v8663.beinvt-label-pot #stageRowsTable td:nth-child(6){display:table-cell!important;width:22%!important;min-width:62px!important;max-width:78px!important;text-align:center!important;overflow:visible!important;position:static!important;right:auto!important;box-shadow:none!important}
+        body.beinvt-mobile-full-width-v8663 #stageRowsTable button{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:54px!important;min-width:54px!important;max-width:64px!important;padding:6px 8px!important;white-space:nowrap!important;box-sizing:border-box!important}
+        body.beinvt-mobile-full-width-v8663:not(.beinvt-label-pot) #stageRowsTable{min-width:720px!important;width:720px!important;max-width:none!important}
+        body.beinvt-mobile-full-width-v8663:not(.beinvt-label-pot) .stageTableScroll{overflow-x:auto!important}
+        body.beinvt-mobile-full-width-v8663:not(.beinvt-label-pot) #stageRowsTable th:last-child,
+        body.beinvt-mobile-full-width-v8663:not(.beinvt-label-pot) #stageRowsTable td:last-child{position:sticky!important;right:0!important;width:70px!important;min-width:70px!important;max-width:70px!important;text-align:center!important;overflow:visible!important;z-index:35!important;box-shadow:-8px 0 12px rgba(0,0,0,.18)!important}
+        body.beinvt-mobile-full-width-v8663 #stageLabelHost{display:flex!important;visibility:visible!important;flex:0 0 auto!important;height:auto!important;min-height:640px!important;max-height:none!important;align-items:center!important;justify-content:center!important;padding:8px!important;overflow:auto!important}
+      }
+    `;
+    const tag = document.createElement("style");
+    tag.id = STYLE_ID;
+    tag.textContent = css;
+    document.head.appendChild(tag);
+  }
+  function showOnlyCompactPotColumnsV8663(table) {
+    if (!table || labelType !== "POT") return;
+    const rows = table.querySelectorAll("thead tr,tbody tr");
+    rows.forEach(tr => {
+      const cells = Array.from(tr.children || []);
+      cells.forEach((cell, idx) => {
+        if (idx === 2 || idx === 3 || idx === 4) {
+          importantV8663(cell, "display", "none");
+          return;
+        }
+        importantV8663(cell, "display", "table-cell");
+        importantV8663(cell, "position", "static");
+        importantV8663(cell, "right", "auto");
+        importantV8663(cell, "box-shadow", "none");
+        importantV8663(cell, "overflow", idx === cells.length - 1 ? "visible" : "hidden");
+        if (idx === 0) importantV8663(cell, "width", "28%");
+        if (idx === 1) importantV8663(cell, "width", "50%");
+        if (idx === cells.length - 1) {
+          importantV8663(cell, "width", "22%");
+          importantV8663(cell, "min-width", "62px");
+          importantV8663(cell, "max-width", "78px");
+          importantV8663(cell, "text-align", "center");
+          const btn = cell.querySelector("button");
+          if (btn) {
+            importantV8663(btn, "display", "inline-flex");
+            importantV8663(btn, "align-items", "center");
+            importantV8663(btn, "justify-content", "center");
+            importantV8663(btn, "width", "54px");
+            importantV8663(btn, "min-width", "54px");
+            importantV8663(btn, "max-width", "64px");
+            importantV8663(btn, "padding", "6px 8px");
+            importantV8663(btn, "white-space", "nowrap");
+          }
+        }
+      });
+    });
+  }
+  function restoreNonPotCellsV8663(table) {
+    if (!table || labelType === "POT") return;
+    table.querySelectorAll("th,td").forEach(cell => {
+      cell.style.removeProperty("display");
+    });
+  }
+  function applyV8663() {
+    injectCssV8663();
+    const active = isMobileViewV8663();
+    if (!document.body) return false;
+    if (!active) {
+      document.body.classList.remove("beinvt-mobile-full-width-v8663");
+      return false;
+    }
+    document.body.classList.add("beinvt-mobile-layout");
+    document.body.classList.add("beinvt-mobile-full-width-v8663");
+    document.body.classList.remove("beinvt-stage-fixed");
+    document.body.classList.remove("beinvt-left-pane-hidden");
+    document.documentElement.style.removeProperty("--beinvt-stage-fixed-left");
+    document.documentElement.style.removeProperty("--beinvt-stage-fixed-top");
+    document.documentElement.style.removeProperty("--beinvt-stage-fixed-width");
+    document.documentElement.style.removeProperty("--beinvt-stage-fixed-height");
+    document.documentElement.style.removeProperty("--beinvt-hidden-stage-left");
+    document.documentElement.style.removeProperty("--beinvt-hidden-stage-top");
+    document.documentElement.style.removeProperty("--beinvt-hidden-stage-width");
+    document.documentElement.style.removeProperty("--beinvt-hidden-stage-height");
+
+    const top = topbarV8663();
+    if (top) {
+      top.classList.add("beinvtMobileTopbar");
+      importantV8663(top, "position", "relative");
+      importantV8663(top, "left", "auto");
+      importantV8663(top, "top", "auto");
+      importantV8663(top, "right", "auto");
+      importantV8663(top, "width", "calc(100vw - 12px)");
+      importantV8663(top, "min-width", "0px");
+      importantV8663(top, "max-width", "calc(100vw - 12px)");
+      importantV8663(top, "margin", "6px");
+      importantV8663(top, "box-sizing", "border-box");
+      importantV8663(top, "overflow-x", "auto");
+      importantV8663(top, "overflow-y", "visible");
+    }
+
+    importantV8663(document.documentElement, "width", "100%");
+    importantV8663(document.documentElement, "max-width", "100%");
+    importantV8663(document.documentElement, "overflow-x", "hidden");
+    importantV8663(document.documentElement, "overflow-y", "auto");
+    importantV8663(document.body, "width", "100%");
+    importantV8663(document.body, "max-width", "100%");
+    importantV8663(document.body, "min-width", "0px");
+    importantV8663(document.body, "overflow-x", "hidden");
+    importantV8663(document.body, "overflow-y", "auto");
+
+    const stage = stageV8663();
+    const host = typeof $ === "function" ? $("canvasHost") : null;
+    const data = typeof $ === "function" ? $("stageDataWrap") : null;
+    const labelHost = typeof $ === "function" ? $("stageLabelHost") : null;
+    const tableScroll = document.querySelector(".stageTableScroll");
+    const table = typeof $ === "function" ? $("stageRowsTable") : null;
+
+    if (stage) {
+      let p = stage.parentElement, guard = 0;
+      while (p && p !== document.body && guard < 12) {
+        importantV8663(p, "width", "100%");
+        importantV8663(p, "min-width", "0px");
+        importantV8663(p, "max-width", "100vw");
+        importantV8663(p, "box-sizing", "border-box");
+        importantV8663(p, "overflow-x", "hidden");
+        if (getComputedStyle(p).display === "flex") {
+          importantV8663(p, "flex-direction", "column");
+          importantV8663(p, "align-items", "stretch");
+          importantV8663(p, "justify-content", "flex-start");
+        }
+        p = p.parentElement;
+        guard++;
+      }
+      importantV8663(stage, "position", "relative");
+      importantV8663(stage, "left", "auto");
+      importantV8663(stage, "top", "auto");
+      importantV8663(stage, "right", "auto");
+      importantV8663(stage, "bottom", "auto");
+      importantV8663(stage, "transform", "none");
+      importantV8663(stage, "will-change", "auto");
+      importantV8663(stage, "z-index", "1");
+      importantV8663(stage, "display", "flex");
+      importantV8663(stage, "flex-direction", "column");
+      importantV8663(stage, "align-self", "stretch");
+      importantV8663(stage, "width", "calc(100vw - 12px)");
+      importantV8663(stage, "min-width", "0px");
+      importantV8663(stage, "max-width", "calc(100vw - 12px)");
+      importantV8663(stage, "height", "auto");
+      importantV8663(stage, "min-height", "calc(100vh - 112px)");
+      importantV8663(stage, "max-height", "none");
+      importantV8663(stage, "flex", "0 0 auto");
+      importantV8663(stage, "flex-basis", "auto");
+      importantV8663(stage, "margin", "6px");
+      importantV8663(stage, "padding", "4px");
+      importantV8663(stage, "overflow", "visible");
+      importantV8663(stage, "box-sizing", "border-box");
+    }
+    [host, data, labelHost].forEach(el => {
+      if (!el) return;
+      importantV8663(el, "width", "100%");
+      importantV8663(el, "min-width", "0px");
+      importantV8663(el, "max-width", "100%");
+      importantV8663(el, "box-sizing", "border-box");
+      importantV8663(el, "align-self", "stretch");
+    });
+    if (host) {
+      importantV8663(host, "display", "flex");
+      importantV8663(host, "flex-direction", "column");
+      importantV8663(host, "align-items", "stretch");
+      importantV8663(host, "justify-content", "flex-start");
+      importantV8663(host, "height", "auto");
+      importantV8663(host, "min-height", "0px");
+      importantV8663(host, "max-height", "none");
+      importantV8663(host, "overflow", "visible");
+    }
+    if (data && labelType !== "FREE") {
+      importantV8663(data, "display", "flex");
+      importantV8663(data, "visibility", "visible");
+      importantV8663(data, "flex", "0 0 auto");
+      importantV8663(data, "height", "46vh");
+      importantV8663(data, "min-height", "260px");
+      importantV8663(data, "max-height", "58vh");
+      importantV8663(data, "overflow", "hidden");
+    }
+    if (tableScroll) {
+      importantV8663(tableScroll, "width", "100%");
+      importantV8663(tableScroll, "min-width", "0px");
+      importantV8663(tableScroll, "max-width", "100%");
+      importantV8663(tableScroll, "overflow-y", "auto");
+      importantV8663(tableScroll, "-webkit-overflow-scrolling", "touch");
+      importantV8663(tableScroll, "overflow-x", labelType === "POT" ? "hidden" : "auto");
+    }
+    if (table) {
+      if (labelType === "POT") {
+        importantV8663(table, "width", "100%");
+        importantV8663(table, "min-width", "100%");
+        importantV8663(table, "max-width", "100%");
+      } else {
+        importantV8663(table, "width", "720px");
+        importantV8663(table, "min-width", "720px");
+        importantV8663(table, "max-width", "none");
+      }
+      importantV8663(table, "table-layout", "fixed");
+      showOnlyCompactPotColumnsV8663(table);
+      restoreNonPotCellsV8663(table);
+      table.dataset.beinvtMobileFullWidthFix = VERSION;
+    }
+    if (labelHost) {
+      importantV8663(labelHost, "display", "flex");
+      importantV8663(labelHost, "visibility", "visible");
+      importantV8663(labelHost, "flex", "0 0 auto");
+      importantV8663(labelHost, "height", "auto");
+      importantV8663(labelHost, "min-height", labelType === "POT" ? "640px" : "320px");
+      importantV8663(labelHost, "max-height", "none");
+      importantV8663(labelHost, "align-items", "center");
+      importantV8663(labelHost, "justify-content", "center");
+      importantV8663(labelHost, "padding", "8px");
+      importantV8663(labelHost, "overflow", "auto");
+    }
+    document.querySelectorAll(".stageStack,.labelPreviewRow").forEach(el => {
+      importantV8663(el, "width", "100%");
+      importantV8663(el, "min-width", "0px");
+      importantV8663(el, "max-width", "100%");
+      importantV8663(el, "align-items", "center");
+      importantV8663(el, "justify-content", "center");
+      importantV8663(el, "overflow", "visible");
+    });
+    return true;
+  }
+
+  const previousRenderRowsV8663 = renderRows;
+  renderRows = function() {
+    const out = previousRenderRowsV8663.apply(this, arguments);
+    applyV8663();
+    setTimeout(applyV8663, 30);
+    return out;
+  };
+  const previousRenderAllV8663 = renderAll;
+  renderAll = function() {
+    const out = previousRenderAllV8663.apply(this, arguments);
+    applyV8663();
+    setTimeout(applyV8663, 30);
+    return out;
+  };
+  const previousRenderCanvasV8663 = renderCanvas;
+  renderCanvas = function() {
+    const out = previousRenderCanvasV8663.apply(this, arguments);
+    applyV8663();
+    return out;
+  };
+  window.addEventListener("resize", () => setTimeout(applyV8663, 80));
+  window.addEventListener("orientationchange", () => setTimeout(applyV8663, 250));
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(applyV8663, 80); });
+  window.BEINVT_MOBILE_FULL_WIDTH_TABLE_ADD_FIX_VERSION = VERSION;
+  window.BEINVT_APPLY_MOBILE_FULL_WIDTH_TABLE_FIX = applyV8663;
+  injectCssV8663();
 })();
 
 function boot() {
