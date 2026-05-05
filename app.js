@@ -3617,30 +3617,30 @@ function renderRows() {
   renderRowBody($("stageRowsBody"));
 }
 function potHeaderHtml() {
-  return "<th style='width:14%'>WO</th><th style='width:28%'>Activity</th><th style='width:32%'>Item / Rootstock</th><th style='width:14%'>Color</th><th style='width:8%'>Labels</th><th style='width:4%'></th>";
+  return "<th style='width:9%'></th><th style='width:13%'>WO</th><th style='width:27%'>Activity</th><th style='width:31%'>Item / Rootstock</th><th style='width:12%'>Color</th><th style='width:8%'>Labels</th>";
 }
 function wrapHeaderHtml() {
-  return "<th style='width:8%'>WO</th><th style='width:13%'>Activity</th><th style='width:11%'>Crop</th><th style='width:12%'>Scion</th><th style='width:12%'>Rootstock</th><th style='width:10%'>Scion Patent</th><th style='width:10%'>Rootstock Patent</th><th style='width:9%'>Internal ID</th><th style='width:8%'>Color</th><th style='width:4%'>Labels</th><th style='width:3%'></th>";
+  return "<th style='width:7%'></th><th style='width:8%'>WO</th><th style='width:12%'>Activity</th><th style='width:10%'>Crop</th><th style='width:12%'>Scion</th><th style='width:12%'>Rootstock</th><th style='width:9%'>Scion Patent</th><th style='width:9%'>Rootstock Patent</th><th style='width:8%'>Internal ID</th><th style='width:8%'>Color</th><th style='width:5%'>Labels</th>";
 }
 function shippingHeaderHtml() {
-  return "<th style='width:12%'>Crop</th><th style='width:16%'>Scion</th><th style='width:14%'>Rootstock</th><th style='width:12%'>Tray Type</th><th style='width:12%'>Sales Format</th><th style='width:12%'>Scion Patent</th><th style='width:12%'>Rootstock Patent</th><th style='width:7%'>Color</th><th style='width:3%'></th>";
+  return "<th style='width:9%'></th><th style='width:12%'>Crop</th><th style='width:15%'>Scion</th><th style='width:14%'>Rootstock</th><th style='width:12%'>Tray Type</th><th style='width:11%'>Sales Format</th><th style='width:11%'>Scion Patent</th><th style='width:11%'>Rootstock Patent</th><th style='width:5%'>Color</th>";
 }
 function cell(v) {
   return escapeHtml(capClean(v));
 }
 function buildRowHtml(r) {
   if (labelType === "POT") {
-    return `<td>${cell(r.wo)}</td><td>${cell(r.act)}</td><td>${cell(derivedRootstock(r) || displayPotItem(r))}</td><td>${cell(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button type="button">Add</button></td>`;
+    return `<td><button type="button">Add</button></td><td>${cell(r.wo)}</td><td>${cell(r.act)}</td><td>${cell(derivedRootstock(r) || displayPotItem(r))}</td><td>${cell(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td>`;
   }
   if (labelType === "SHIP") {
-    return `<td>${cell(r.crop)}</td><td>${cell(wrapScionText(r))}</td><td>${cell(wrapRootstockText(r))}</td><td>${cell(r.trayType)}</td><td>${cell(r.salesFormat || r.shippingSuffix)}</td><td>${cell(r.scionPatent)}</td><td>${cell(r.rootstockPatent)}</td><td>${cell(r.labelColor)}</td><td><button type="button">Add</button></td>`;
+    return `<td><button type="button">Add</button></td><td>${cell(r.crop)}</td><td>${cell(wrapScionText(r))}</td><td>${cell(wrapRootstockText(r))}</td><td>${cell(r.trayType)}</td><td>${cell(r.salesFormat || r.shippingSuffix)}</td><td>${cell(r.scionPatent)}</td><td>${cell(r.rootstockPatent)}</td><td>${cell(r.labelColor)}</td>`;
   }
-  return `<td>${cell(r.wo)}</td><td>${cell(r.act)}</td><td>${cell(r.crop)}</td><td>${cell(wrapScionText(r))}</td><td>${cell(wrapRootstockText(r))}</td><td>${cell(r.scionPatent)}</td><td>${cell(r.rootstockPatent)}</td><td>${cell(r.internalId)}</td><td>${cell(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td><td><button type="button">Add</button></td>`;
+  return `<td><button type="button">Add</button></td><td>${cell(r.wo)}</td><td>${cell(r.act)}</td><td>${cell(r.crop)}</td><td>${cell(wrapScionText(r))}</td><td>${cell(wrapRootstockText(r))}</td><td>${cell(r.scionPatent)}</td><td>${cell(r.rootstockPatent)}</td><td>${cell(r.internalId)}</td><td>${cell(r.labelColor)}</td><td>${escapeHtml(displayLabelsNeeded(r))}</td>`;
 }
 function renderRowBody(tbody) {
   if (!tbody) return;
   tbody.innerHTML = "";
-  filteredRows.slice(0, 400).forEach((r, i) => {
+  filteredRows.forEach((r, i) => {
     const tr = document.createElement("tr");
     if (i === currentRowIndex) tr.className = "active";
     tr.innerHTML = buildRowHtml(r);
@@ -7330,297 +7330,68 @@ boot();
 })();
 
 
-/* v8.6.68: Mobile Add-button visibility + Finished Tree/Wrap repair.
-   v8.6.65 protected user edits correctly, but it also tagged older/default saved
-   objects as manual. That could freeze an empty/bad Finished Tree layout so the
-   normal wrap/field/shipping auto-placement could not rebuild it. This pass
-   removes only those synthetic manual flags (no manualReason/manualEditedAt),
-   keeps real user edits protected, and gives the mobile Add action column extra
-   inside space so it cannot be clipped by the phone viewport. */
-(function installMobileAddAndWrapRepairV8668(){
-  function important(el, prop, value) { if (el) el.style.setProperty(prop, value, "important"); }
-  function mobileLikeV8668() {
-    const coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
-    const vv = Math.round((window.visualViewport && window.visualViewport.width) || 0);
-    const iw = Math.round(window.innerWidth || 0);
-    return coarse || Math.min(vv || iw || 9999, iw || vv || 9999) <= 900;
-  }
-  function installCssV8668() {
-    if (document.getElementById("beinvt-v8668-mobile-add-safe-css")) return;
-    const css = `
-      @media (pointer:coarse), (max-width:900px){
-        body.beinvt-mobile-layout .stageTableScroll{
-          overflow-x:auto!important;
-          overflow-y:auto!important;
-          padding-right:54px!important;
-          box-sizing:border-box!important;
-          scrollbar-gutter:stable both-edges!important;
-        }
-        body.beinvt-mobile-layout #stageRowsTable{
-          border-collapse:separate!important;
-          border-spacing:0!important;
-          margin-right:54px!important;
-        }
-        body.beinvt-mobile-layout #stageRowsTable th:last-child,
-        body.beinvt-mobile-layout #stageRowsTable td:last-child{
-          position:sticky!important;
-          right:38px!important;
-          z-index:90!important;
-          width:104px!important;
-          min-width:104px!important;
-          max-width:104px!important;
-          padding-left:10px!important;
-          padding-right:10px!important;
-          overflow:visible!important;
-          text-align:center!important;
-          box-sizing:border-box!important;
-          background:#10142d!important;
-          box-shadow:-18px 0 22px rgba(8,11,26,.92)!important;
-        }
-        body.beinvt-mobile-layout #stageRowsTable th:last-child{z-index:110!important;background:#151831!important}
-        body.beinvt-mobile-layout #stageRowsTable tr.active td:last-child{background:#2563eb!important}
-        body.beinvt-mobile-layout #stageRowsTable td:last-child button{
-          display:inline-flex!important;
-          align-items:center!important;
-          justify-content:center!important;
-          width:70px!important;
-          min-width:70px!important;
-          max-width:70px!important;
-          height:38px!important;
-          padding:0!important;
-          margin:0 auto!important;
-          border-radius:11px!important;
-          font-size:14px!important;
-          line-height:1!important;
-          white-space:nowrap!important;
-          overflow:visible!important;
-          box-sizing:border-box!important;
-        }
-        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable th:last-child,
-        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable td:last-child{background:#ffffff!important;box-shadow:-18px 0 22px rgba(255,255,255,.95)!important}
-        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable tr.active td:last-child{background:#bfdbfe!important}
-      }
-    `;
-    const tag = document.createElement("style");
-    tag.id = "beinvt-v8668-mobile-add-safe-css";
-    tag.textContent = css;
-    document.head.appendChild(tag);
-  }
-  function fixMobileAddColumnV8668() {
-    installCssV8668();
-    const table = $("stageRowsTable");
-    const wrap = document.querySelector(".stageTableScroll");
-    if (!table || !wrap || !mobileLikeV8668()) return false;
-    document.body && document.body.classList.add("beinvt-mobile-layout");
-    const visible = Math.max(320, Math.round((window.visualViewport && window.visualViewport.width) || window.innerWidth || document.documentElement.clientWidth || 390));
-    const minNeeded = labelType === "POT" ? 780 : (labelType === "SHIP" ? 1060 : 1220);
-    const tableW = Math.max(minNeeded, visible + 180);
-    important(wrap, "width", "100%");
-    important(wrap, "max-width", "100%");
-    important(wrap, "overflow-x", "auto");
-    important(wrap, "overflow-y", "auto");
-    important(wrap, "padding-right", "54px");
-    important(wrap, "box-sizing", "border-box");
-    important(wrap, "-webkit-overflow-scrolling", "touch");
-    important(table, "width", tableW + "px");
-    important(table, "min-width", tableW + "px");
-    important(table, "max-width", "none");
-    important(table, "margin-right", "54px");
-    table.querySelectorAll("tr").forEach(tr => {
-      const last = tr.lastElementChild;
-      if (!last) return;
-      important(last, "position", "sticky");
-      important(last, "right", "38px");
-      important(last, "width", "104px");
-      important(last, "min-width", "104px");
-      important(last, "max-width", "104px");
-      important(last, "overflow", "visible");
-      const btn = last.querySelector("button");
-      if (btn) {
-        important(btn, "width", "70px");
-        important(btn, "min-width", "70px");
-        important(btn, "height", "38px");
-        important(btn, "overflow", "visible");
-      }
-    });
-    return true;
-  }
-
-  function isSyntheticManualV8668(o) {
-    return !!(o && (o.manualLayout || o.manualObject || o.userEdited) && !o.manualReason && !o.manualEditedAt);
-  }
-  function purgeSyntheticManualFlagsV8668(layoutObj) {
-    if (!layoutObj || !layoutObj.objects) return layoutObj;
-    Object.values(layoutObj.objects).forEach(o => {
-      if (!isSyntheticManualV8668(o)) return;
-      delete o.userEdited;
-      delete o.manualLayout;
-      delete o.manualObject;
-      delete o.manualFontSize;
-    });
-    return layoutObj;
-  }
-  function wrapLooksEmptyOrFrozenV8668(layoutObj) {
-    if (!layoutObj || !layoutObj.objects || !isWrapLikeMode(labelType)) return false;
-    const s = sizePx();
-    const importantIds = labelType === "SHIP"
-      ? ["CROP", "INTERNAL", "SCION", "LOGO", "WARNING"]
-      : ["WO_QR", "WO", "CROP", "INTERNAL", "SCION", "ROOTSTOCK", "LOT_QR", "LOGO", "WARNING"];
-    let visibleInside = 0;
-    importantIds.forEach(id => {
-      const o = layoutObj.objects[id];
-      if (!o || o.visible === false) return;
-      const w = Number(o.w), h = Number(o.h), x = Number(o.x), y = Number(o.y);
-      if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 1 || h <= 1) return;
-      if (Number.isFinite(x) && Number.isFinite(y) && x < s.w && y < s.h && x + w > 0 && y + h > 0) visibleInside++;
-    });
-    return visibleInside < 4;
-  }
-  function repairWrapLayoutIfNeededV8668(reason) {
-    if (!layout || !isWrapLikeMode(labelType)) return false;
-    purgeSyntheticManualFlagsV8668(layout);
-    if (wrapLooksEmptyOrFrozenV8668(layout)) {
-      const keepSize = layout.labelSize;
-      layout = normalizeLayout(fallbackLayout(labelType));
-      if (keepSize) layout.labelSize = keepSize;
-      purgeSyntheticManualFlagsV8668(layout);
-      try { saveWorkingLayout(); } catch (_) {}
-      try { renderAll(); } catch (_) {}
-      return true;
-    }
-    try { rebalanceWrapLikeQrLayout(layout, labelType); } catch (_) {}
-    try { applyWrapDataAwareStack(currentRow()); } catch (_) {}
-    return false;
-  }
-
-  const prevNormalizeV8668 = normalizeLayout;
-  normalizeLayout = function(src) {
-    const out = prevNormalizeV8668.apply(this, arguments);
-    return purgeSyntheticManualFlagsV8668(out);
-  };
-
-  const prevRenderRowsV8668 = typeof renderRows === "function" ? renderRows : null;
-  if (prevRenderRowsV8668) {
-    renderRows = function() {
-      const r = prevRenderRowsV8668.apply(this, arguments);
-      setTimeout(fixMobileAddColumnV8668, 0);
-      setTimeout(fixMobileAddColumnV8668, 120);
-      return r;
-    };
-  }
-  const prevRenderAllV8668 = renderAll;
-  renderAll = function() {
-    purgeSyntheticManualFlagsV8668(layout);
-    const r = prevRenderAllV8668.apply(this, arguments);
-    setTimeout(fixMobileAddColumnV8668, 0);
-    setTimeout(fixMobileAddColumnV8668, 120);
-    return r;
-  };
-
-  window.BEINVT_FIX_MOBILE_ADD_COLUMN = fixMobileAddColumnV8668;
-  window.BEINVT_REPAIR_WRAP_LAYOUT = repairWrapLayoutIfNeededV8668;
-  window.addEventListener("resize", () => setTimeout(fixMobileAddColumnV8668, 60));
-  if (window.visualViewport) window.visualViewport.addEventListener("resize", () => setTimeout(fixMobileAddColumnV8668, 60));
-  window.addEventListener("orientationchange", () => setTimeout(fixMobileAddColumnV8668, 220));
-  setTimeout(() => { repairWrapLayoutIfNeededV8668("boot"); fixMobileAddColumnV8668(); try { renderCanvas(); } catch (_) {} }, 180);
-  setTimeout(fixMobileAddColumnV8668, 650);
-})();
-
-
-/* v8.6.69: Full wrap-like layout repair + mobile Add column no-clip.
-   Finished Trees, Field Labels, and Shipping Labels may have inherited a bad/frozen
-   saved working layout from the manual-protection migration. This one-time repair
-   clears only those wrap-like working layouts so they rebuild from the known-good
-   defaults. Pot Stakes and Free Field templates are not cleared. The mobile Add
-   column now sticks to right:0 with no extra margin/padding that can clip it. */
-(function installWrapShipFieldRepairAndAddNoClipV8669(){
-  const REPAIR_KEY = "beinvtV8669WrapShipFieldLayoutRepairDone";
-  const STYLE_ID = "beinvt-v8669-mobile-add-noclip-css";
-  function important(el, prop, value) { if (el) el.style.setProperty(prop, value, "important"); }
-  function mobileLike() {
-    const coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
-    const vv = Math.round((window.visualViewport && window.visualViewport.width) || 0);
-    const iw = Math.round(window.innerWidth || 0);
-    return coarse || Math.min(vv || iw || 9999, iw || vv || 9999) <= 900;
-  }
-  function installCss() {
+/* v8.6.70: Restore Finished/Shipping stability, show all WOs, and stop mobile Add clipping.
+   This version is based on the last stable pre-repair script, removes the 400-row display limit,
+   moves Add to the first table column so it cannot be clipped on phones, and cleans up the bad
+   v8.6.68/v8.6.69 repair markers if a browser already loaded those builds. */
+(function installRestoreFinishedShippingAllWosV8670(){
+  const STYLE_ID = "beinvt-v8670-add-first-mobile-css";
+  function installCss(){
     if (document.getElementById(STYLE_ID)) return;
     const css = `
+      #stageRowsTable th:first-child,
+      #stageRowsTable td:first-child{
+        overflow:visible!important;
+        text-align:center!important;
+        box-sizing:border-box!important;
+      }
+      #stageRowsTable td:first-child button{
+        display:inline-flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        min-width:52px!important;
+        height:32px!important;
+        padding:0 10px!important;
+        margin:0!important;
+        white-space:nowrap!important;
+        overflow:visible!important;
+        box-sizing:border-box!important;
+      }
       @media (pointer:coarse), (max-width:900px){
-        body.beinvt-mobile-layout .stageWrap,
-        body.beinvt-mobile-layout #canvasHost,
-        body.beinvt-mobile-layout #stageDataWrap,
-        body.beinvt-mobile-layout #stageLabelHost{
-          width:calc(100vw - 12px)!important;
-          max-width:calc(100vw - 12px)!important;
-          min-width:0!important;
-          box-sizing:border-box!important;
+        body.beinvt-mobile-layout #stageRowsTable th:first-child,
+        body.beinvt-mobile-layout #stageRowsTable td:first-child{
+          position:sticky!important;
+          left:0!important;
+          right:auto!important;
+          z-index:180!important;
+          width:74px!important;
+          min-width:74px!important;
+          max-width:74px!important;
+          padding:6px 8px!important;
+          background:#10142d!important;
+          box-shadow:12px 0 18px rgba(8,11,26,.94)!important;
         }
-        body.beinvt-mobile-layout .stageTableScroll{
-          width:100%!important;
-          max-width:100%!important;
-          min-width:0!important;
-          overflow-x:auto!important;
-          overflow-y:auto!important;
-          padding-right:0!important;
-          margin-right:0!important;
-          box-sizing:border-box!important;
-          -webkit-overflow-scrolling:touch!important;
+        body.beinvt-mobile-layout #stageRowsTable th:first-child{
+          z-index:200!important;
+          background:#151831!important;
         }
-        body.beinvt-mobile-layout #stageRowsTable{
-          border-collapse:separate!important;
-          border-spacing:0!important;
-          table-layout:fixed!important;
-          max-width:none!important;
-          margin-right:0!important;
+        body.beinvt-mobile-layout #stageRowsTable tr.active td:first-child{
+          background:#2563eb!important;
         }
         body.beinvt-mobile-layout #stageRowsTable th:last-child,
         body.beinvt-mobile-layout #stageRowsTable td:last-child{
-          position:sticky!important;
-          right:0!important;
-          z-index:150!important;
-          width:86px!important;
-          min-width:86px!important;
-          max-width:86px!important;
-          padding:6px 8px!important;
-          overflow:visible!important;
-          text-align:center!important;
-          box-sizing:border-box!important;
-          background:#10142d!important;
-          box-shadow:-12px 0 18px rgba(8,11,26,.94)!important;
+          position:static!important;
+          right:auto!important;
+          box-shadow:none!important;
         }
-        body.beinvt-mobile-layout #stageRowsTable th:last-child{
-          z-index:170!important;
-          background:#151831!important;
-        }
-        body.beinvt-mobile-layout #stageRowsTable tr.active td:last-child{
-          background:#2563eb!important;
-        }
-        body.beinvt-mobile-layout #stageRowsTable td:last-child button{
-          display:inline-flex!important;
-          align-items:center!important;
-          justify-content:center!important;
-          width:58px!important;
-          min-width:58px!important;
-          max-width:58px!important;
-          height:36px!important;
+        body.beinvt-mobile-layout #stageRowsTable td:first-child button{
+          width:54px!important;
+          min-width:54px!important;
+          max-width:54px!important;
+          height:34px!important;
           padding:0!important;
-          margin:0 auto!important;
-          border-radius:10px!important;
           font-size:13px!important;
           font-weight:900!important;
-          line-height:1!important;
-          white-space:nowrap!important;
-          overflow:visible!important;
-          box-sizing:border-box!important;
-        }
-        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable th:last-child,
-        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable td:last-child{
-          background:#ffffff!important;
-          box-shadow:-12px 0 18px rgba(255,255,255,.96)!important;
-        }
-        body.beinvt-light-theme.beinvt-mobile-layout #stageRowsTable tr.active td:last-child{
-          background:#bfdbfe!important;
         }
       }
     `;
@@ -7629,114 +7400,73 @@ boot();
     tag.textContent = css;
     document.head.appendChild(tag);
   }
-  function fixMobileAddColumn() {
-    installCss();
-    const table = document.getElementById("stageRowsTable");
-    const wrap = document.querySelector(".stageTableScroll");
-    if (!table || !wrap || !mobileLike()) return false;
-    document.body && document.body.classList.add("beinvt-mobile-layout");
-    const visible = Math.max(320, Math.round((window.visualViewport && window.visualViewport.width) || window.innerWidth || document.documentElement.clientWidth || 390));
-    const minNeeded = labelType === "POT" ? 720 : (labelType === "SHIP" ? 900 : 1000);
-    const tableW = Math.max(minNeeded, visible + 120);
-    important(wrap, "width", "100%");
-    important(wrap, "max-width", "100%");
-    important(wrap, "min-width", "0px");
-    important(wrap, "overflow-x", "auto");
-    important(wrap, "overflow-y", "auto");
-    important(wrap, "padding-right", "0px");
-    important(wrap, "margin-right", "0px");
-    important(wrap, "box-sizing", "border-box");
-    important(table, "width", tableW + "px");
-    important(table, "min-width", tableW + "px");
-    important(table, "max-width", "none");
-    important(table, "margin-right", "0px");
-    table.querySelectorAll("tr").forEach(tr => {
-      const last = tr.lastElementChild;
-      if (!last) return;
-      important(last, "position", "sticky");
-      important(last, "right", "0px");
-      important(last, "z-index", "150");
-      important(last, "width", "86px");
-      important(last, "min-width", "86px");
-      important(last, "max-width", "86px");
-      important(last, "overflow", "visible");
-      important(last, "box-sizing", "border-box");
-      const btn = last.querySelector("button");
-      if (btn) {
-        important(btn, "width", "58px");
-        important(btn, "min-width", "58px");
-        important(btn, "max-width", "58px");
-        important(btn, "height", "36px");
-        important(btn, "overflow", "visible");
-        important(btn, "font-size", "13px");
-      }
-    });
-    return true;
-  }
-  function clearBrokenWrapLikeWorkingLayoutsOnce() {
-    installCss();
+  function cleanupBadRepairState(){
     try {
-      if (localStorage.getItem(REPAIR_KEY) !== "1") {
+      const bad68 = localStorage.getItem("beinvtV8668WrapLayoutRepairDone") === "1";
+      const bad69 = localStorage.getItem("beinvtV8669WrapShipFieldLayoutRepairDone") === "1";
+      if ((bad68 || bad69) && localStorage.getItem("beinvtV8670RecoveredFromRepair") !== "1") {
+        // These two builds could save blank/frozen wrap-like working layouts. Clear only wrap-like
+        // working layouts one time, then rebuild from the stable defaults on next render.
         localStorage.removeItem("beinvtWorkingLayout_WRAP");
-        localStorage.removeItem("beinvtWorkingLayout_FIELD");
         localStorage.removeItem("beinvtWorkingLayout_SHIP");
-        localStorage.setItem(REPAIR_KEY, "1");
+        localStorage.removeItem("beinvtWorkingLayout_FIELD");
+        localStorage.removeItem("beinvtV8668WrapLayoutRepairDone");
+        localStorage.removeItem("beinvtV8669WrapShipFieldLayoutRepairDone");
+        localStorage.setItem("beinvtV8670RecoveredFromRepair", "1");
         if (typeof isWrapLikeMode === "function" && isWrapLikeMode(labelType)) {
-          layout = normalizeLayout(fallbackLayout(labelType));
-          layout.labelSize = labelSizeInches(labelType);
+          layout = normalizeLayout(DEFAULT_LAYOUTS[labelType] || fallbackLayout(labelType));
           selectedId = defaultSelectedId(labelType);
           try { saveWorkingLayout(); } catch (_) {}
-          try { renderAll(); } catch (_) {}
-        }
-      } else if (typeof isWrapLikeMode === "function" && isWrapLikeMode(labelType) && layout && layout.objects) {
-        // If the current in-memory wrap/shipping label is visibly blank/frozen, rebuild it.
-        const ids = labelType === "SHIP"
-          ? ["CROP", "INTERNAL", "SCION", "LOGO", "WARNING"]
-          : ["WO_QR", "WO", "CROP", "INTERNAL", "SCION", "ROOTSTOCK", "LOT_QR", "LOGO", "WARNING"];
-        const s = sizePx();
-        let ok = 0;
-        ids.forEach(id => {
-          const o = layout.objects[id];
-          if (!o || o.visible === false) return;
-          const x = Number(o.x), y = Number(o.y), w = Number(o.w), h = Number(o.h);
-          if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(w) && Number.isFinite(h) && w > 2 && h > 2 && x < s.w && y < s.h && x + w > 0 && y + h > 0) ok++;
-        });
-        if (ok < 4) {
-          layout = normalizeLayout(fallbackLayout(labelType));
-          layout.labelSize = labelSizeInches(labelType);
-          selectedId = defaultSelectedId(labelType);
-          try { saveWorkingLayout(); } catch (_) {}
-          try { renderAll(); } catch (_) {}
         }
       }
     } catch (_) {}
   }
-  const prevRenderRowsV8669 = typeof renderRows === "function" ? renderRows : null;
-  if (prevRenderRowsV8669) {
-    renderRows = function() {
-      const r = prevRenderRowsV8669.apply(this, arguments);
-      setTimeout(fixMobileAddColumn, 0);
-      setTimeout(fixMobileAddColumn, 80);
-      setTimeout(fixMobileAddColumn, 220);
+  function fixFirstAddColumn(){
+    installCss();
+    const table = document.getElementById("stageRowsTable");
+    if (!table) return;
+    table.querySelectorAll("tr").forEach(tr => {
+      const first = tr.firstElementChild;
+      if (!first) return;
+      first.style.setProperty("overflow", "visible", "important");
+      const btn = first.querySelector("button");
+      if (btn) {
+        btn.style.setProperty("display", "inline-flex", "important");
+        btn.style.setProperty("align-items", "center", "important");
+        btn.style.setProperty("justify-content", "center", "important");
+        btn.style.setProperty("white-space", "nowrap", "important");
+        btn.style.setProperty("overflow", "visible", "important");
+      }
+    });
+  }
+  cleanupBadRepairState();
+  installCss();
+  const prevRenderRows = typeof renderRows === "function" ? renderRows : null;
+  if (prevRenderRows) {
+    renderRows = function(){
+      const r = prevRenderRows.apply(this, arguments);
+      setTimeout(fixFirstAddColumn, 0);
+      setTimeout(fixFirstAddColumn, 100);
       return r;
     };
   }
-  const prevRenderAllV8669 = renderAll;
-  renderAll = function() {
-    const r = prevRenderAllV8669.apply(this, arguments);
-    setTimeout(fixMobileAddColumn, 0);
-    setTimeout(fixMobileAddColumn, 80);
-    setTimeout(fixMobileAddColumn, 220);
-    return r;
+  const prevRenderAll = typeof renderAll === "function" ? renderAll : null;
+  if (prevRenderAll) {
+    renderAll = function(){
+      cleanupBadRepairState();
+      const r = prevRenderAll.apply(this, arguments);
+      setTimeout(fixFirstAddColumn, 0);
+      setTimeout(fixFirstAddColumn, 120);
+      return r;
+    };
+  }
+  window.BEINVT_RECOVER_WRAP_SHIP_FIELD = function(){
+    try {
+      localStorage.removeItem("beinvtV8670RecoveredFromRepair");
+      localStorage.setItem("beinvtV8669WrapShipFieldLayoutRepairDone", "1");
+      cleanupBadRepairState();
+      if (typeof renderAll === "function") renderAll();
+    } catch (_) {}
   };
-  window.BEINVT_FIX_MOBILE_ADD_COLUMN = fixMobileAddColumn;
-  window.BEINVT_RESET_WRAP_FIELD_SHIP_LAYOUTS = function() {
-    try { localStorage.removeItem(REPAIR_KEY); } catch (_) {}
-    clearBrokenWrapLikeWorkingLayoutsOnce();
-  };
-  window.addEventListener("resize", () => setTimeout(fixMobileAddColumn, 80));
-  if (window.visualViewport) window.visualViewport.addEventListener("resize", () => setTimeout(fixMobileAddColumn, 80));
-  document.addEventListener("DOMContentLoaded", () => setTimeout(() => { clearBrokenWrapLikeWorkingLayoutsOnce(); fixMobileAddColumn(); }, 80));
-  setTimeout(() => { clearBrokenWrapLikeWorkingLayoutsOnce(); fixMobileAddColumn(); }, 120);
-  setTimeout(fixMobileAddColumn, 400);
+  setTimeout(() => { cleanupBadRepairState(); fixFirstAddColumn(); try { if (typeof renderAll === "function") renderAll(); } catch (_) {} }, 120);
 })();
