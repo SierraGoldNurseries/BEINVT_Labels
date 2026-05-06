@@ -2,6 +2,7 @@ const APP_VERSION = "8.6.56_no_gaps_into_item_names";
 const WRAP_QR_BALANCE_VERSION = "8.6.61";
 const MOBILE_VIEW_ADD_BUTTON_FIX_VERSION = "8.6.62_mobile_add_button_visible";
 const MOBILE_FULL_WIDTH_TABLE_FIX_VERSION = "8.6.63_mobile_full_width_table_add_visible";
+const LOT_QR_PAYLOAD_FIX_VERSION = "8.6.64_lot_qr_lot_only";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -1943,10 +1944,9 @@ function wrapLeftQrText(row) {
 }
 function wrapRightQrText(row) {
   if (isShippingMode() || isRschRow(row)) return "";
-  const lot = cleanDisplay(row && row.lotNumber);
-  const wo = cleanDisplay(row && row.wo);
-  // v8.6.61: compact payload makes the lot QR less dense and easier to print/scan.
-  return lot ? `${lot}|${wo}` : (wo || " ");
+  // v8.6.64: Lot/second QR must encode ONLY the lot value exactly as exported.
+  // Do not append the WO number or use WO as a fallback.
+  return cleanDisplay(row && row.lotNumber);
 }
 function labelText(id, row) {
   if (id === "WO") return capClean(row.wo || "WO");
