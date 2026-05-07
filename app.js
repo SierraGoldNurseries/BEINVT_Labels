@@ -7132,3 +7132,101 @@ function boot() {
 }
 boot();
 
+
+
+/* v8.6.72: RSCH no-lot wrap labels should use the empty center space.
+   - For RSCH rows with no visible Lot text / Lot QR, make the Scion and Rootstock rows taller.
+   - Keep the address band at the bottom.
+   - Respect manual/user-resized objects from v8.6.65. */
+(function installRschNoLotExpandCenterV8672(){
+  const VERSION = "8.6.72_rsch_no_lot_expand_center";
+
+  function isManualV8672(o) {
+    return !!(o && (o.manualLayout || o.manualPosition || o.manualSize || o.userAdjusted || o.userMoved || o.userResized));
+  }
+  function setBoxV8672(o, vals) {
+    if (!o || isManualV8672(o)) return;
+    Object.keys(vals).forEach(k => { o[k] = vals[k]; });
+  }
+  function setFontMinV8672(o, px) {
+    if (!o || isManualV8672(o)) return;
+    const n = Number(px || 0);
+    if (!Number.isFinite(n) || n <= 0) return;
+    o.fontSize = Number(Math.max(Number(o.fontSize || 0), n).toFixed(1));
+  }
+  function hasVisibleLotV8672(row) {
+    const lotText = (typeof wrapObjectText === "function") ? cleanDisplay(wrapObjectText("LOT", row)) : "";
+    const lotQr = (typeof wrapRightQrText === "function") ? cleanDisplay(wrapRightQrText(row)) : "";
+    return !!(lotText || lotQr);
+  }
+  function isRschNoLotRowV8672(row) {
+    if (!row || !isWrapLikeMode(labelType) || isShippingMode()) return false;
+    if (typeof isRschRow === "function" && !isRschRow(row)) return false;
+    return !hasVisibleLotV8672(row);
+  }
+
+  const previousApplyWrapDataAwareStackV8672 = applyWrapDataAwareStack;
+  applyWrapDataAwareStack = function(row) {
+    const out = previousApplyWrapDataAwareStackV8672.apply(this, arguments);
+    if (!isRschNoLotRowV8672(row) || !layout || !layout.objects) return out;
+
+    const o = layout.objects;
+    const sy = wrapVerticalScale(labelType);
+    const labelH = sizePx(labelType).h;
+    const v = n => Number((Number(n || 0) * sy).toFixed(1));
+    const hasScionPatent = !!cleanDisplay(typeof wrapObjectText === "function" ? wrapObjectText("SCION_PATENT", row) : "");
+    const hasRootstockPatent = !!cleanDisplay(typeof wrapObjectText === "function" ? wrapObjectText("ROOTSTOCK_PATENT", row) : "");
+    const scionText = cleanDisplay(typeof wrapObjectText === "function" ? wrapObjectText("SCION", row) : "");
+    const rootText = cleanDisplay(typeof wrapObjectText === "function" ? wrapObjectText("ROOTSTOCK", row) : "");
+    const addressY = v(42);
+    const addressH = Math.max(v(5), labelH - addressY);
+
+    let y = v(1);
+    let scionH = v(19.5), scionPatentH = 0, rootH = v(19.5), rootPatentH = 0;
+
+    if (scionText && !rootText) {
+      scionH = v(39.5);
+      rootH = 0;
+    } else if (!scionText && rootText) {
+      scionH = 0;
+      rootH = v(39.5);
+    } else if (hasScionPatent && hasRootstockPatent) {
+      scionH = v(15.2);
+      scionPatentH = v(4.8);
+      rootH = v(15.2);
+      rootPatentH = v(4.8);
+    } else if (hasScionPatent || hasRootstockPatent) {
+      scionH = hasScionPatent ? v(15.4) : v(18.6);
+      scionPatentH = hasScionPatent ? v(4.8) : 0;
+      rootH = hasRootstockPatent ? v(15.4) : v(18.6);
+      rootPatentH = hasRootstockPatent ? v(4.8) : 0;
+    }
+
+    if (o.SCION) {
+      setBoxV8672(o.SCION, { y, h: scionH, alignH: "center", alignV: "middle" });
+      if (scionH > 0) y += scionH;
+      if (scionText) setFontMinV8672(o.SCION, v(rootText ? 24.8 : 26.8));
+    }
+    if (o.SCION_PATENT) {
+      setBoxV8672(o.SCION_PATENT, { y, h: scionPatentH, alignH: "center", alignV: "middle" });
+      if (scionPatentH > 0) y += scionPatentH;
+    }
+    if (o.ROOTSTOCK) {
+      setBoxV8672(o.ROOTSTOCK, { y, h: rootH, alignH: "center", alignV: "middle" });
+      if (rootH > 0) y += rootH;
+      if (rootText) setFontMinV8672(o.ROOTSTOCK, v(scionText ? 24.2 : 26.2));
+    }
+    if (o.ROOTSTOCK_PATENT) {
+      setBoxV8672(o.ROOTSTOCK_PATENT, { y, h: rootPatentH, alignH: "center", alignV: "middle" });
+      if (rootPatentH > 0) y += rootPatentH;
+    }
+    if (o.LOT) setBoxV8672(o.LOT, { y: 0, h: 0 });
+    if (o.LOT_QR) setBoxV8672(o.LOT_QR, { x: 0, y: 0, w: 0, h: 0 });
+    if (o.ADDRESS) setBoxV8672(o.ADDRESS, { y: addressY, h: addressH, alignH: "center", alignV: "middle" });
+
+    if (typeof clampAllObjects === "function") clampAllObjects();
+    return out;
+  };
+
+  window.BEINVT_RSCH_NO_LOT_EXPAND_CENTER_VERSION = VERSION;
+})();
