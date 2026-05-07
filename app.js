@@ -4,6 +4,7 @@ const MOBILE_VIEW_ADD_BUTTON_FIX_VERSION = "8.6.62_mobile_add_button_visible";
 const MOBILE_FULL_WIDTH_TABLE_FIX_VERSION = "8.6.63_mobile_full_width_table_add_visible";
 const LOT_QR_PAYLOAD_FIX_VERSION = "8.6.64_lot_qr_lot_only";
 const MANUAL_RESIZE_LOT_TEXT_FIX_VERSION = "8.6.65_manual_resize_preserve_lot_text_one_line";
+const QR_65_DEFAULTS_LOT_HEIGHT_FIX_VERSION = "8.6.66_qr_65_defaults_lot_height_fix";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -6927,6 +6928,145 @@ function initEvents() {
   window.BEINVT_MANUAL_RESIZE_LOT_TEXT_FIX_VERSION = VERSION;
   window.BEINVT_MARK_OBJECT_MANUAL_LAYOUT = markManualV8665;
   injectCssV8665();
+})();
+
+
+/* v8.6.66: QR default placement/size + safer lot/patent vertical stack.
+   - Finished Trees / Field Labels / Shipping Labels default WO_QR to 65x65 at x=2 y=2.
+   - Wrap-like templates default LOT_QR to 65x65 at x=322 y=2 when that object exists.
+   - Manual/user-adjusted objects remain protected by v8.6.65 and are not overwritten.
+   - Lot QR payload remains unchanged: exact lot value only, no WO.
+   - Visible lot text gets more height when one or both patent lines are absent. */
+(function installQr65DefaultsAndLotHeightFixV8666(){
+  const VERSION = "8.6.66_qr_65_defaults_lot_height_fix";
+  const STYLE_ID = "beinvt-v8666-qr-lot-height-css";
+  const QR_DEFAULTS = {
+    WO_QR: { x: 2, y: 2, w: 65, h: 65 },
+    LOT_QR: { x: 322, y: 2, w: 65, h: 65 }
+  };
+
+  function isManualV8666(o) {
+    return !!(o && (o.manualLayout || o.manualPosition || o.manualSize || o.userAdjusted || o.userMoved || o.userResized));
+  }
+  function isWrapLikeTypeV8666(type) {
+    return type === "WRAP" || type === "FIELD" || type === "SHIP";
+  }
+  function applyDefaultQrBoxV8666(layoutObj, type, id) {
+    if (!layoutObj || !layoutObj.objects || !isWrapLikeTypeV8666(type)) return;
+    const o = layoutObj.objects[id];
+    if (!o || isManualV8666(o)) return;
+    const d = QR_DEFAULTS[id];
+    if (!d) return;
+    o.x = d.x;
+    o.y = d.y;
+    o.w = d.w;
+    o.h = d.h;
+    o.qrDefaultVersion = VERSION;
+  }
+  function applyQrDefaultsV8666(layoutObj, type) {
+    if (!layoutObj || !layoutObj.objects || !isWrapLikeTypeV8666(type)) return layoutObj;
+    applyDefaultQrBoxV8666(layoutObj, type, "WO_QR");
+    applyDefaultQrBoxV8666(layoutObj, type, "LOT_QR");
+    return layoutObj;
+  }
+  function setBoxV8666(o, vals) {
+    if (!o || isManualV8666(o)) return;
+    Object.keys(vals).forEach(k => { o[k] = vals[k]; });
+  }
+  function retuneLotPatentStackV8666(row) {
+    if (!isWrapLikeMode(labelType) || isShippingMode() || !layout || !layout.objects) return;
+    if (isWrapScionOnlyCrop(row)) return;
+    const o = layout.objects;
+    const sy = wrapVerticalScale(labelType);
+    const labelH = sizePx(labelType).h;
+    const v = n => Number((Number(n || 0) * sy).toFixed(1));
+    const hasScionPatent = !!cleanDisplay(wrapObjectText("SCION_PATENT", row));
+    const hasRootstockPatent = !!cleanDisplay(wrapObjectText("ROOTSTOCK_PATENT", row));
+    const hasLot = !!cleanDisplay(wrapObjectText("LOT", row));
+
+    let scionH, scionPatentH, rootH, rootPatentH, lotH;
+    if (hasScionPatent && hasRootstockPatent) {
+      scionH = v(13.0);
+      scionPatentH = v(5.8);
+      rootH = v(13.0);
+      rootPatentH = v(5.8);
+      lotH = hasLot ? v(4.8) : 0;
+    } else if (hasScionPatent || hasRootstockPatent) {
+      scionH = hasScionPatent ? v(13.5) : v(16.0);
+      scionPatentH = hasScionPatent ? v(6.0) : 0;
+      rootH = hasRootstockPatent ? v(13.5) : v(16.0);
+      rootPatentH = hasRootstockPatent ? v(6.0) : 0;
+      lotH = hasLot ? v(7.3) : 0;
+    } else {
+      scionH = v(17.0);
+      scionPatentH = 0;
+      rootH = v(17.0);
+      rootPatentH = 0;
+      lotH = hasLot ? v(8.8) : 0;
+    }
+
+    let y = v(1);
+    setBoxV8666(o.SCION, { y, h: scionH });
+    y += scionH;
+    setBoxV8666(o.SCION_PATENT, { y, h: scionPatentH });
+    if (scionPatentH) y += scionPatentH;
+    setBoxV8666(o.ROOTSTOCK, { y, h: rootH });
+    y += rootH;
+    setBoxV8666(o.ROOTSTOCK_PATENT, { y, h: rootPatentH });
+    if (rootPatentH) y += rootPatentH;
+    setBoxV8666(o.LOT, { y, h: lotH });
+    y += lotH;
+    const minAddressH = v(3.2);
+    if (o.ADDRESS && !isManualV8666(o.ADDRESS)) {
+      o.ADDRESS.y = y;
+      o.ADDRESS.h = Math.max(minAddressH, labelH - y);
+    }
+    if (o.SCION_PATENT && hasScionPatent && !isManualV8666(o.SCION_PATENT)) o.SCION_PATENT.fontSize = Math.min(Number(o.SCION_PATENT.fontSize || v(5.2)), v(5.4));
+    if (o.ROOTSTOCK_PATENT && hasRootstockPatent && !isManualV8666(o.ROOTSTOCK_PATENT)) o.ROOTSTOCK_PATENT.fontSize = Math.min(Number(o.ROOTSTOCK_PATENT.fontSize || v(5.0)), v(5.3));
+    if (typeof clampAllObjects === "function") clampAllObjects();
+  }
+  function injectCssV8666() {
+    if (document.getElementById(STYLE_ID)) return;
+    const tag = document.createElement("style");
+    tag.id = STYLE_ID;
+    tag.textContent = `
+      .obj[data-id="LOT"] .wrapTextInner,
+      .obj[data-id="SCION_PATENT"] .wrapTextInner,
+      .obj[data-id="ROOTSTOCK_PATENT"] .wrapTextInner{
+        white-space:nowrap!important;
+        word-break:normal!important;
+        overflow-wrap:normal!important;
+        line-height:1!important;
+        padding-top:0!important;
+        padding-bottom:0!important;
+      }
+    `;
+    document.head.appendChild(tag);
+  }
+
+  const previousRebalanceWrapLikeQrLayoutV8666 = rebalanceWrapLikeQrLayout;
+  rebalanceWrapLikeQrLayout = function(layoutObj, type) {
+    const out = previousRebalanceWrapLikeQrLayoutV8666.apply(this, arguments);
+    return applyQrDefaultsV8666(out || layoutObj, type);
+  };
+
+  const previousNormalizeLayoutV8666 = normalizeLayout;
+  normalizeLayout = function(src) {
+    const out = previousNormalizeLayoutV8666.apply(this, arguments);
+    return applyQrDefaultsV8666(out, out && out.labelType);
+  };
+
+  const previousApplyWrapDataAwareStackV8666 = applyWrapDataAwareStack;
+  applyWrapDataAwareStack = function(row) {
+    const out = previousApplyWrapDataAwareStackV8666.apply(this, arguments);
+    applyQrDefaultsV8666(layout, labelType);
+    retuneLotPatentStackV8666(row);
+    return out;
+  };
+
+  window.BEINVT_QR_65_DEFAULTS_LOT_HEIGHT_FIX_VERSION = VERSION;
+  window.BEINVT_APPLY_QR_65_DEFAULTS = function() { return applyQrDefaultsV8666(layout, labelType); };
+  injectCssV8666();
 })();
 
 function boot() {
