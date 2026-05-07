@@ -1,5 +1,6 @@
 const APP_VERSION = "8.6.56_no_gaps_into_item_names";
 const ADDRESS_TEXT_SAFE_INSET_VERSION = "8.6.69_address_text_safe_inset";
+const TEXT_INNER_MARGINS_FIT_VERSION = "8.6.70_text_inner_margins_fit";
 const FINISHED_TREES_HIDE_FIELD_PLANTING_VERSION = "8.6.68_finished_hide_field_planting";
 const WRAP_QR_BALANCE_VERSION = "8.6.61";
 const MOBILE_VIEW_ADD_BUTTON_FIX_VERSION = "8.6.62_mobile_add_button_visible";
@@ -7239,6 +7240,283 @@ function initEvents() {
   window.BEINVT_ADDRESS_TEXT_SAFE_INSET_VERSION = VERSION;
   window.BEINVT_APPLY_ADDRESS_SAFE_BAND = applyAddressSafeBandV8669;
   injectCssV8669();
+})();
+
+
+/* v8.6.70: Text inner margins + safer fitting inside object guide boxes.
+   - Supersedes the v8.6.69 inset behavior that made the address/crop clip worse.
+   - Keeps object guide boxes in the same place, but adds internal padding and shrinks text to fit inside that padded area.
+   - Gives the address a taller bottom band and pulls it slightly up from the label edge.
+   - Gives long Crop values more vertical room in the left stack so multi-line crop names do not clip at the top.
+   - QR payloads, activity filters, desktop/mobile layout sizing, and manual object positions are unchanged. */
+(function installTextInnerMarginsFitV8670(){
+  const VERSION = "8.6.70_text_inner_margins_fit";
+  const STYLE_ID = "beinvt-v8670-text-inner-margins-fit-css";
+
+  function isManualV8670(o) {
+    return !!(o && (o.manualLayout || o.manualPosition || o.manualSize || o.userAdjusted || o.userMoved || o.userResized));
+  }
+  function isWrapLikeActiveV8670() {
+    return typeof isWrapLikeMode === "function" && isWrapLikeMode(labelType);
+  }
+  function scaleYV8670() {
+    return typeof wrapVerticalScale === "function" ? Number(wrapVerticalScale(labelType) || 1) : 1;
+  }
+  function v8670(n) {
+    return Number((Number(n || 0) * scaleYV8670()).toFixed(1));
+  }
+  function setBoxIfNotManualV8670(o, vals) {
+    if (!o || isManualV8670(o)) return;
+    Object.keys(vals).forEach(k => { o[k] = vals[k]; });
+  }
+  function wrapTextV8670(id, row) {
+    try {
+      if (typeof wrapObjectText === "function") return cleanDisplay(wrapObjectText(id, row));
+    } catch (e) {}
+    return "";
+  }
+
+  function applyLeftTextBreathingRoomV8670(row) {
+    if (!isWrapLikeActiveV8670() || !layout || !layout.objects) return;
+    const o = layout.objects;
+    if (!o.CROP || isManualV8670(o.CROP)) return;
+    const labelH = typeof sizePx === "function" ? Number((sizePx(labelType) || {}).h || 72) : 72;
+    if (!labelH || labelH < 36) return;
+
+    const cropText = wrapTextV8670("CROP", row);
+    const longCrop = cropText.length > 12 || /\s/.test(cropText);
+    const top = Math.max(1, Math.round(Number((o.WO && o.WO.y) || (o.CROP && o.CROP.y) || 2)));
+    const bottomGap = Math.max(2, Math.round(v8670(1.4)));
+    const available = Math.max(18, labelH - top - bottomGap);
+
+    if (o.WO && o.WO.visible !== false && !isManualV8670(o.WO)) {
+      const woH = Math.max(v8670(11.0), Math.round(available * (longCrop ? 0.27 : 0.33)));
+      const cropH = Math.max(v8670(longCrop ? 20.0 : 14.0), Math.round(available * (longCrop ? 0.46 : 0.31)));
+      const internalH = Math.max(v8670(10.0), available - woH - cropH);
+      let y = top;
+      setBoxIfNotManualV8670(o.WO, { y, h: woH, alignV: "middle" });
+      y += woH;
+      setBoxIfNotManualV8670(o.CROP, { y, h: cropH, alignV: "middle" });
+      y += cropH;
+      if (o.INTERNAL && !isManualV8670(o.INTERNAL)) {
+        setBoxIfNotManualV8670(o.INTERNAL, { y, h: Math.max(4, labelH - bottomGap - y), alignV: "middle" });
+      }
+    } else if (o.INTERNAL && !isManualV8670(o.INTERNAL)) {
+      // Shipping-style left stack has only Crop + Internal.
+      const cropH = Math.max(v8670(longCrop ? 20.0 : 16.0), Math.round(available * (longCrop ? 0.55 : 0.50)));
+      const internalH = Math.max(4, available - cropH);
+      setBoxIfNotManualV8670(o.CROP, { y: top, h: cropH, alignV: "middle" });
+      setBoxIfNotManualV8670(o.INTERNAL, { y: top + cropH, h: internalH, alignV: "middle" });
+    }
+
+    if (o.CROP && !isManualV8670(o.CROP) && longCrop) {
+      const cap = Math.max(5.0, v8670(10.2));
+      o.CROP.fontSize = Math.min(Number(o.CROP.fontSize || cap), cap);
+    }
+  }
+
+  function applyAddressBottomBandV8670(row) {
+    if (!isWrapLikeActiveV8670() || !layout || !layout.objects) return;
+    const o = layout.objects;
+    if (!o.ADDRESS || isManualV8670(o.ADDRESS)) return;
+    const labelH = typeof sizePx === "function" ? Number((sizePx(labelType) || {}).h || 72) : 72;
+    if (!labelH || labelH < 24) return;
+
+    const bottomGap = Math.max(2, v8670(2.0));
+    const addressH = Math.max(8.0, v8670(7.0));
+    const addressY = Math.max(0, Number((labelH - bottomGap - addressH).toFixed(1)));
+    setBoxIfNotManualV8670(o.ADDRESS, {
+      y: addressY,
+      h: addressH,
+      alignV: "middle",
+      alignH: o.ADDRESS.alignH || "center"
+    });
+
+    const reserveGap = Math.max(1, v8670(1.0));
+    const maxBeforeAddress = addressY - reserveGap;
+    ["LOT", "ROOTSTOCK_PATENT", "SCION_PATENT"].forEach(id => {
+      const box = o[id];
+      if (!box || isManualV8670(box)) return;
+      const y = Number(box.y || 0);
+      const h = Number(box.h || 0);
+      if (h <= 0) return;
+      const bottom = y + h;
+      if (bottom > maxBeforeAddress) {
+        box.h = Math.max(id === "LOT" ? v8670(3.8) : v8670(2.6), maxBeforeAddress - y);
+      }
+    });
+
+    // Keep the nursery address smaller than the band height so it prints inside the guide.
+    const addressMax = Math.max(3.0, Math.min(Number(o.ADDRESS.fontSize || v8670(5.1)), addressH - 2));
+    o.ADDRESS.fontSize = Number(addressMax.toFixed(1));
+  }
+
+  function applyTextBandLayoutV8670(row) {
+    if (!isWrapLikeActiveV8670()) return;
+    applyLeftTextBreathingRoomV8670(row);
+    applyAddressBottomBandV8670(row);
+    if (typeof clampAllObjects === "function") clampAllObjects();
+  }
+
+  function injectCssV8670() {
+    if (document.getElementById(STYLE_ID)) return;
+    const tag = document.createElement("style");
+    tag.id = STYLE_ID;
+    tag.textContent = `
+      /* v8.6.70: use padding as the safe margin, not inset clipping. */
+      body.beinvt-label-wrap .labelCanvas .obj .wrapTextInner{
+        inset:0!important;
+        width:100%!important;
+        height:100%!important;
+        max-width:none!important;
+        max-height:none!important;
+        box-sizing:border-box!important;
+        padding:1px 3px!important;
+      }
+      body.beinvt-label-wrap .labelCanvas .obj[data-id="WO"] .wrapTextInner,
+      body.beinvt-label-wrap .labelCanvas .obj[data-id="CROP"] .wrapTextInner,
+      body.beinvt-label-wrap .labelCanvas .obj[data-id="INTERNAL"] .wrapTextInner{
+        padding:2px 4px!important;
+        line-height:.86!important;
+        align-items:center!important;
+      }
+      body.beinvt-label-wrap .labelCanvas .obj[data-id="CROP"] .wrapTextInner{
+        line-height:.82!important;
+        padding:3px 4px 2px!important;
+      }
+      body.beinvt-label-wrap .labelCanvas .obj[data-id="SCION"] .wrapTextInner,
+      body.beinvt-label-wrap .labelCanvas .obj[data-id="ROOTSTOCK"] .wrapTextInner{
+        padding:1px 3px!important;
+        line-height:.88!important;
+        align-items:center!important;
+      }
+      body.beinvt-label-wrap .labelCanvas .obj[data-id="LOT"] .wrapTextInner,
+      body.beinvt-label-wrap .labelCanvas .obj[data-id="SCION_PATENT"] .wrapTextInner,
+      body.beinvt-label-wrap .labelCanvas .obj[data-id="ROOTSTOCK_PATENT"] .wrapTextInner{
+        white-space:nowrap!important;
+        word-break:normal!important;
+        overflow-wrap:normal!important;
+        line-height:.94!important;
+        padding:1px 3px!important;
+        align-items:center!important;
+      }
+      body.beinvt-label-wrap .labelCanvas .obj[data-id="ADDRESS"] .wrapTextInner{
+        white-space:nowrap!important;
+        word-break:normal!important;
+        overflow-wrap:normal!important;
+        line-height:.94!important;
+        padding:2px 3px!important;
+        align-items:center!important;
+      }
+      body.beinvt-label-wrap .labelCanvas .obj[data-id="WARNING"] .wrapTextInner{
+        padding:2px 3px!important;
+        line-height:1.0!important;
+      }
+    `;
+    document.head.appendChild(tag);
+  }
+
+  function paddedFitsV8670(el, extraPx) {
+    if (!el) return true;
+    const pad = Math.max(0, Number(extraPx || 0));
+    const maxW = Math.max(1, el.clientWidth - pad);
+    const maxH = Math.max(1, el.clientHeight - pad);
+    return el.scrollWidth <= maxW + 0.5 && el.scrollHeight <= maxH + 0.5;
+  }
+
+  // Slightly safer global fit check. This makes all preview auto-fit leave a little interior breathing room.
+  fits = function(el) {
+    return paddedFitsV8670(el, 2);
+  };
+
+  autoFitWrapText = function() {
+    const ranges = {
+      WO: [36, 4.2], CROP: [34, 3.2], INTERNAL: [36, 3.8],
+      SCION: [42, 3.0], ROOTSTOCK: [42, 3.0],
+      SCION_PATENT: [10, 2.2], ROOTSTOCK_PATENT: [10, 2.2],
+      LOT: [11, 2.4], ADDRESS: [9, 2.2], WARNING: [5, 1.6]
+    };
+    for (const [id, range] of Object.entries(ranges)) {
+      const obj = document.querySelector(`.obj[data-id="${id}"]`);
+      const inner = obj && obj.querySelector(".wrapTextInner");
+      const o = layout && layout.objects && layout.objects[id];
+      if (!obj || !inner || !o) continue;
+      if (!String(inner.textContent || "").trim() && id !== "ADDRESS" && id !== "WARNING") continue;
+
+      if (["LOT", "ADDRESS", "SCION_PATENT", "ROOTSTOCK_PATENT"].includes(id)) {
+        inner.style.setProperty("white-space", "nowrap", "important");
+      }
+      const saved = Number(o.fontSize || range[0]);
+      const hi = Math.max(range[1], Math.min(saved, range[0]));
+      const lo = Math.max(1.2, Number(range[1] || 2));
+      let best = lo;
+
+      inner.style.fontSize = hi.toFixed(1) + "px";
+      if (paddedFitsV8670(inner, 2)) {
+        inner.style.fontSize = hi.toFixed(1) + "px";
+        continue;
+      }
+
+      let low = lo;
+      let high = hi;
+      for (let i = 0; i < 24; i++) {
+        const mid = (low + high) / 2;
+        inner.style.fontSize = mid.toFixed(2) + "px";
+        if (paddedFitsV8670(inner, 2)) { best = mid; low = mid; }
+        else high = mid;
+      }
+      inner.style.fontSize = best.toFixed(2) + "px";
+    }
+  };
+
+  const previousMakeWrapObjectInnerV8670 = makeWrapObjectInner;
+  makeWrapObjectInner = function(id, row, o) {
+    const holder = previousMakeWrapObjectInnerV8670.apply(this, arguments);
+    const inner = holder && holder.querySelector ? holder.querySelector(".wrapTextInner") : null;
+    if (inner && isWrapLikeActiveV8670()) {
+      inner.style.setProperty("inset", "0", "important");
+      inner.style.setProperty("width", "100%", "important");
+      inner.style.setProperty("height", "100%", "important");
+      inner.style.setProperty("box-sizing", "border-box", "important");
+      inner.style.setProperty("padding", id === "CROP" ? "3px 4px 2px" : (id === "ADDRESS" ? "2px 3px" : "1px 3px"), "important");
+      if (["LOT", "ADDRESS", "SCION_PATENT", "ROOTSTOCK_PATENT"].includes(id)) {
+        inner.style.setProperty("white-space", "nowrap", "important");
+        inner.style.setProperty("line-height", ".94", "important");
+      }
+      if (id === "CROP") inner.style.setProperty("line-height", ".82", "important");
+    }
+    return holder;
+  };
+
+  const previousApplyWrapDataAwareStackV8670 = applyWrapDataAwareStack;
+  applyWrapDataAwareStack = function(row) {
+    const out = previousApplyWrapDataAwareStackV8670.apply(this, arguments);
+    applyTextBandLayoutV8670(row);
+    return out;
+  };
+
+  const previousPrintWrapObjectInnerV8670 = printWrapObjectInner;
+  printWrapObjectInner = function(id, row, o) {
+    let html = previousPrintWrapObjectInnerV8670.apply(this, arguments);
+    if (!html || ["WO_QR", "LOT_QR", "LOGO"].includes(id)) return html;
+    html = html.replace(/position:absolute;inset:1px;/g, "position:absolute;inset:0;");
+    html = html.replace(/position:absolute;inset:0;/g, "position:absolute;inset:0;box-sizing:border-box;");
+    const pad = id === "CROP" ? "padding:3px 4px 2px;" : (id === "ADDRESS" ? "padding:2px 3px;" : "padding:1px 3px;");
+    html = html.replace(/padding:[^;]*;color:#000;/g, pad + "color:#000;");
+    html = html.replace(/padding:[^;]*;text-transform:uppercase/g, pad + "text-transform:uppercase");
+    if (["LOT", "ADDRESS", "SCION_PATENT", "ROOTSTOCK_PATENT"].includes(id)) {
+      html = html.replace(/white-space:normal;word-break:normal;overflow-wrap:normal;line-height:[^;]+;/g, "white-space:nowrap;word-break:normal;overflow-wrap:normal;line-height:.94;");
+      html = html.replace(/white-space:nowrap;word-break:normal;overflow-wrap:normal;line-height:[^;]+;/g, "white-space:nowrap;word-break:normal;overflow-wrap:normal;line-height:.94;");
+    }
+    if (id === "CROP") {
+      html = html.replace(/line-height:[^;]+;/, "line-height:.82;");
+    }
+    return html;
+  };
+
+  window.BEINVT_TEXT_INNER_MARGINS_FIT_VERSION = VERSION;
+  window.BEINVT_APPLY_TEXT_INNER_MARGINS_FIT = function(row) { applyTextBandLayoutV8670(row || (typeof currentRow === "function" ? currentRow() : null)); };
+  injectCssV8670();
 })();
 
 function boot() {
