@@ -3,6 +3,7 @@ const WRAP_QR_BALANCE_VERSION = "8.6.61";
 const MOBILE_VIEW_ADD_BUTTON_FIX_VERSION = "8.6.62_mobile_add_button_visible";
 const MOBILE_FULL_WIDTH_TABLE_FIX_VERSION = "8.6.63_mobile_full_width_table_add_visible";
 const LOT_QR_PAYLOAD_FIX_VERSION = "8.6.64_lot_qr_lot_only";
+const MANUAL_RESIZE_LOT_TEXT_FIX_VERSION = "8.6.65_manual_resize_preserve_lot_text_one_line";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -1934,9 +1935,26 @@ function logoUrlForRow(row) {
 function logoTopForRow(o, row) {
   return isGenevaRootstock(row) ? Math.max(0, Number(o.y || 0) + GENEVA_LOGO_SHIFT_Y) : Number(o.y || 0);
 }
+function formatVisibleLotText(rowOrValue) {
+  const raw = typeof rowOrValue === "object" && rowOrValue !== null ? (rowOrValue.lotNumber || "") : rowOrValue;
+  let s = cleanDisplay(raw);
+  if (!s) return "";
+  // v8.6.65: Visible lot text is shortened to fit one line only.
+  // QR payload is NOT changed by this formatter; wrapRightQrText still uses the exact exported lot value.
+  const replacements = [
+    [/\bhardwood\s+cutting\b/gi, "HC"],
+    [/\bsoftwood\s+cutting\b/gi, "SC"],
+    [/\bprune\s+north\b/gi, "PTN"],
+    [/\bprune\s+south\b/gi, "PTS"]
+  ];
+  replacements.forEach(([rx, value]) => { s = s.replace(rx, value); });
+  // Keep block numbers readable as-is: Block #16, Block #25, etc. Do not abbreviate to B16/B25.
+  s = s.replace(/\s*\|\s*/g, " | ").replace(/\s+/g, " ").trim();
+  return capClean(s);
+}
 function wrapLotLine(row) {
   if (isRschRow(row)) return "";
-  return capClean(row && row.lotNumber);
+  return formatVisibleLotText(row);
 }
 function wrapLeftQrText(row) {
   if (isShippingMode()) return cleanDisplay(row && row.internalId) || " ";
@@ -3904,6 +3922,12 @@ function makeWrapObjectInner(id, row, o) {
   inner.style.justifyContent = alignH(o.alignH);
   inner.style.alignItems = alignV(o.alignV);
   inner.style.textAlign = o.alignH === "left" ? "left" : o.alignH === "right" ? "right" : "center";
+  if (id === "LOT") {
+    inner.style.whiteSpace = "nowrap";
+    inner.style.wordBreak = "normal";
+    inner.style.overflowWrap = "normal";
+    inner.style.lineHeight = "1";
+  }
   if (id === "ROOTSTOCK") {
     const rootText = wrapRootstockText(row);
     const shipSingle = shippingSingleLineInfo(row);
@@ -4475,7 +4499,8 @@ function printWrapObjectInner(id, row, o) {
   }
   const textAlign = o.alignH === "left" ? "left" : o.alignH === "right" ? "right" : "center";
   const lineHeight = (id === "WARNING") ? 1.0 : (id === "SCION" || id === "ROOTSTOCK" ? 0.94 : 0.98);
-  const base = `position:absolute;inset:0;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:${textAlign};white-space:normal;word-break:normal;overflow-wrap:normal;font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize || 8}px;line-height:${lineHeight};padding:0 1px;color:#000;`;
+  const whiteSpaceStyle = id === "LOT" ? "white-space:nowrap;word-break:normal;overflow-wrap:normal;line-height:1.0;" : `white-space:normal;word-break:normal;overflow-wrap:normal;line-height:${lineHeight};`;
+  const base = `position:absolute;inset:0;display:flex;align-items:${alignV(o.alignV)};justify-content:${alignH(o.alignH)};overflow:hidden;text-align:${textAlign};${whiteSpaceStyle}font-family:'Times New Roman',Georgia,serif;font-weight:900;font-size:${o.fontSize || 8}px;padding:0 1px;color:#000;`;
   if (id === "ROOTSTOCK") { const rootText = wrapRootstockText(row); const shipSingle = shippingSingleLineInfo(row); return (rootText && !shipSingle) ? `<div ${printFitAttrs(id, o)} style="${base}text-transform:uppercase"><span style="font-size:.68em;margin-right:.18em;text-transform:none!important;">on</span>${escapeHtml(rootText)}</div>` : ""; }
   if (id === "WARNING") return `<div ${printFitAttrs(id, o)} style="${base}white-space:pre-line;line-height:1.0;text-transform:uppercase;align-items:center;">${escapeHtml(WRAP_WARNING)}</div>`;
   return `<div ${printFitAttrs(id, o)} style="${base}text-transform:uppercase;">${escapeHtml(wrapObjectText(id, row))}</div>`;
@@ -6790,6 +6815,118 @@ function initEvents() {
   window.BEINVT_MOBILE_FULL_WIDTH_TABLE_ADD_FIX_VERSION = VERSION;
   window.BEINVT_APPLY_MOBILE_FULL_WIDTH_TABLE_FIX = applyV8663;
   injectCssV8663();
+})();
+
+
+/* v8.6.65: Preserve user-resized/moved label objects and keep visible lot text short/one-line.
+   - When a user edits X/Y/W/H, drags, resizes, or nudges an object, mark that object as manual.
+   - Auto QR balancing and data-aware text stacking then restore manual objects after their calculations.
+   - This stops fields such as Lot QR from snapping back after render/row changes.
+   - QR payloads are not changed here. Lot QR remains the exact lot value from v8.6.64. */
+(function installManualResizeAndLotTextFixV8665(){
+  const VERSION = "8.6.65_manual_resize_preserve_lot_text_one_line";
+  const STYLE_ID = "beinvt-v8665-lot-one-line-css";
+  function objectForV8665(id) {
+    return layout && layout.objects && layout.objects[id] ? layout.objects[id] : null;
+  }
+  function markManualV8665(id) {
+    const o = objectForV8665(id);
+    if (!o) return;
+    o.manualLayout = true;
+    o.manualPosition = true;
+    o.manualSize = true;
+    o.manualLayoutVersion = VERSION;
+  }
+  function isManualV8665(o) {
+    return !!(o && (o.manualLayout || o.manualPosition || o.manualSize || o.userAdjusted || o.userMoved || o.userResized));
+  }
+  function snapshotManualV8665(layoutObj) {
+    const snap = {};
+    if (!layoutObj || !layoutObj.objects) return snap;
+    Object.entries(layoutObj.objects).forEach(([id, o]) => {
+      if (!isManualV8665(o)) return;
+      snap[id] = {
+        x: o.x, y: o.y, w: o.w, h: o.h, rot: o.rot,
+        alignH: o.alignH, alignV: o.alignV,
+        fontSize: o.fontSize, manualFontSize: o.manualFontSize,
+        manualLayout: o.manualLayout, manualPosition: o.manualPosition, manualSize: o.manualSize,
+        manualLayoutVersion: o.manualLayoutVersion || VERSION
+      };
+    });
+    return snap;
+  }
+  function restoreManualV8665(layoutObj, snap) {
+    if (!layoutObj || !layoutObj.objects || !snap) return;
+    Object.entries(snap).forEach(([id, saved]) => {
+      const o = layoutObj.objects[id];
+      if (!o || !saved) return;
+      Object.assign(o, saved, {
+        manualLayout: true,
+        manualPosition: true,
+        manualSize: true,
+        manualLayoutVersion: saved.manualLayoutVersion || VERSION
+      });
+    });
+  }
+  function injectCssV8665() {
+    if (document.getElementById(STYLE_ID)) return;
+    const tag = document.createElement("style");
+    tag.id = STYLE_ID;
+    tag.textContent = `
+      .obj[data-id="LOT"] .wrapTextInner{
+        white-space:nowrap!important;
+        word-break:normal!important;
+        overflow-wrap:normal!important;
+        line-height:1!important;
+      }
+    `;
+    document.head.appendChild(tag);
+  }
+
+  const previousApplyControlsV8665 = applyControls;
+  applyControls = function() {
+    markManualV8665(selectedId);
+    return previousApplyControlsV8665.apply(this, arguments);
+  };
+
+  const previousStartMoveV8665 = startMove;
+  startMove = function(ev, el, id) {
+    markManualV8665(id);
+    return previousStartMoveV8665.apply(this, arguments);
+  };
+
+  const previousStartResizeV8665 = startResize;
+  startResize = function(ev, el, id, dir) {
+    markManualV8665(id);
+    return previousStartResizeV8665.apply(this, arguments);
+  };
+
+  const previousNudgeSelectedV8665 = nudgeSelected;
+  nudgeSelected = function(dx, dy) {
+    markManualV8665(selectedId);
+    return previousNudgeSelectedV8665.apply(this, arguments);
+  };
+
+  const previousRebalanceWrapLikeQrLayoutV8665 = rebalanceWrapLikeQrLayout;
+  rebalanceWrapLikeQrLayout = function(layoutObj, type) {
+    const snap = snapshotManualV8665(layoutObj);
+    const out = previousRebalanceWrapLikeQrLayoutV8665.apply(this, arguments);
+    restoreManualV8665(out || layoutObj, snap);
+    return out;
+  };
+
+  const previousApplyWrapDataAwareStackV8665 = applyWrapDataAwareStack;
+  applyWrapDataAwareStack = function(row) {
+    const snap = snapshotManualV8665(layout);
+    const out = previousApplyWrapDataAwareStackV8665.apply(this, arguments);
+    restoreManualV8665(layout, snap);
+    if (typeof clampAllObjects === "function") clampAllObjects();
+    return out;
+  };
+
+  window.BEINVT_MANUAL_RESIZE_LOT_TEXT_FIX_VERSION = VERSION;
+  window.BEINVT_MARK_OBJECT_MANUAL_LAYOUT = markManualV8665;
+  injectCssV8665();
 })();
 
 function boot() {
