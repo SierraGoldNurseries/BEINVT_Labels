@@ -1534,7 +1534,7 @@ function fallbackLayout(type) {
       ROOTSTOCK: { x: 124, y: 19, w: 224, h: 18, rot: 0, fontSize: 22.5, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       ROOTSTOCK_PATENT: { x: 124, y: 36, w: 224, h: 5, rot: 0, fontSize: 5.0, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       LOT: { x: 124, y: 37, w: 224, h: 6, rot: 0, fontSize: 6.6, fontFamily: "Times New Roman", locked: false, visible: type !== "SHIP", alignH: "center", alignV: "middle" },
-      ADDRESS: { x: 124, y: 43, w: 224, h: 5, rot: 0, fontSize: 5.1, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
+      ADDRESS: { x: 124, y: 43, w: 224, h: 5, rot: 0, fontSize: 9, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "center", alignV: "middle" },
       LOT_QR: { x: 344, y: 2, w: 44, h: 44, rot: 0, locked: false, visible: type !== "SHIP" },
       LOGO: { x: WRAP_LIKE_PREVIEW_CONFIG.logoX, y: WRAP_LIKE_PREVIEW_CONFIG.logoY, w: WRAP_LIKE_PREVIEW_CONFIG.logoWidth, h: WRAP_LIKE_PREVIEW_CONFIG.logoHeight, rot: 0, locked: false, visible: true },
       WARNING: { x: 420, y: 2, w: 58, h: 44, rot: 0, fontSize: 3.65, fontFamily: "Times New Roman", locked: false, visible: true, alignH: "left", alignV: "middle" }
