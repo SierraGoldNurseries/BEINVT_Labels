@@ -1,4 +1,5 @@
 const APP_VERSION = "8.6.56_no_gaps_into_item_names";
+const FINISHED_TREES_HIDE_FIELD_PLANTING_VERSION = "8.6.68_finished_hide_field_planting";
 const WRAP_QR_BALANCE_VERSION = "8.6.61";
 const MOBILE_VIEW_ADD_BUTTON_FIX_VERSION = "8.6.62_mobile_add_button_visible";
 const MOBILE_FULL_WIDTH_TABLE_FIX_VERSION = "8.6.63_mobile_full_width_table_add_visible";
@@ -7070,25 +7071,25 @@ function initEvents() {
 })();
 
 
-/* v8.6.67: Finished Trees / Field Labels activity-code table filter.
+/* v8.6.68: Finished Trees / Field Labels activity-code table filter.
    - Finished Trees table hides Shipping Request rows.
+   - Finished Trees table hides Field Planting rows. Field Planting shows only in Field Labels.
    - Finished Trees and Field Labels hide Initiation 20mm and Initiation 35mm rows, including exports that read like "Initiation 0 35mm".
    - Desktop layout, printing, QR payloads, and object layout are unchanged. */
-(function installFinishedFieldActivityFilterV8667(){
-  const VERSION = "8.6.67_finished_field_activity_filter";
+(function installFinishedFieldActivityFilterV8668(){
+  const VERSION = "8.6.68_finished_hide_field_planting";
   const EXCLUDED_ACTIVITY_PATTERNS = [
     /shipping\s+request/i,
     /^\s*initiation\s*(?:[-–—]\s*)?(?:0\s*)?20\s*mm\b/i,
     /^\s*initiation\s*(?:[-–—]\s*)?(?:0\s*)?35\s*mm\b/i
   ];
 
-  function isFinishedFieldActivityExcludedV8667(row) {
+  function isFinishedFieldActivityExcludedV8668(row) {
     const act = cleanDisplay(row && row.act);
     if (!act) return false;
     return EXCLUDED_ACTIVITY_PATTERNS.some(rx => rx.test(act));
   }
 
-  const previousRenderRowsV8667 = renderRows;
   renderRows = function() {
     ensureStageShell();
     rows = baseRowsForMode(labelType).slice();
@@ -7099,7 +7100,8 @@ function initEvents() {
         if (cleanDisplay(r.scion)) return false;
         if (POT_EXCLUDED_ACTIVITIES.some(rx => rx.test(cleanDisplay(r.act)))) return false;
       }
-      if ((labelType === "WRAP" || labelType === "FIELD") && isFinishedFieldActivityExcludedV8667(r)) return false;
+      if ((labelType === "WRAP" || labelType === "FIELD") && isFinishedFieldActivityExcludedV8668(r)) return false;
+      if (labelType === "WRAP" && isFieldPlantingRow(r)) return false;
       if (labelType === "FIELD" && !isFieldPlantingRow(r)) return false;
       return Object.values(r).join(" ").toLowerCase().includes(q);
     }));
@@ -7110,7 +7112,8 @@ function initEvents() {
   };
 
   window.BEINVT_FINISHED_FIELD_ACTIVITY_FILTER_VERSION = VERSION;
-  window.BEINVT_IS_FINISHED_FIELD_ACTIVITY_EXCLUDED = isFinishedFieldActivityExcludedV8667;
+  window.BEINVT_FINISHED_HIDE_FIELD_PLANTING_VERSION = VERSION;
+  window.BEINVT_IS_FINISHED_FIELD_ACTIVITY_EXCLUDED = isFinishedFieldActivityExcludedV8668;
 })();
 
 function boot() {
