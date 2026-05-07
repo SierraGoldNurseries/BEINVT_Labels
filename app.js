@@ -7069,6 +7069,50 @@ function initEvents() {
   injectCssV8666();
 })();
 
+
+/* v8.6.67: Finished Trees / Field Labels activity-code table filter.
+   - Finished Trees table hides Shipping Request rows.
+   - Finished Trees and Field Labels hide Initiation 20mm and Initiation 35mm rows, including exports that read like "Initiation 0 35mm".
+   - Desktop layout, printing, QR payloads, and object layout are unchanged. */
+(function installFinishedFieldActivityFilterV8667(){
+  const VERSION = "8.6.67_finished_field_activity_filter";
+  const EXCLUDED_ACTIVITY_PATTERNS = [
+    /shipping\s+request/i,
+    /^\s*initiation\s*(?:[-–—]\s*)?(?:0\s*)?20\s*mm\b/i,
+    /^\s*initiation\s*(?:[-–—]\s*)?(?:0\s*)?35\s*mm\b/i
+  ];
+
+  function isFinishedFieldActivityExcludedV8667(row) {
+    const act = cleanDisplay(row && row.act);
+    if (!act) return false;
+    return EXCLUDED_ACTIVITY_PATTERNS.some(rx => rx.test(act));
+  }
+
+  const previousRenderRowsV8667 = renderRows;
+  renderRows = function() {
+    ensureStageShell();
+    rows = baseRowsForMode(labelType).slice();
+    const q = (($("stageSearch") && $("stageSearch").value) || ($("search") && $("search").value) || "").toLowerCase();
+    if ($("search") && $("stageSearch") && $("search").value !== $("stageSearch").value) $("search").value = $("stageSearch").value;
+    filteredRows = sortRowsLatestFirst(rows.filter(r => {
+      if (labelType === "POT") {
+        if (cleanDisplay(r.scion)) return false;
+        if (POT_EXCLUDED_ACTIVITIES.some(rx => rx.test(cleanDisplay(r.act)))) return false;
+      }
+      if ((labelType === "WRAP" || labelType === "FIELD") && isFinishedFieldActivityExcludedV8667(r)) return false;
+      if (labelType === "FIELD" && !isFieldPlantingRow(r)) return false;
+      return Object.values(r).join(" ").toLowerCase().includes(q);
+    }));
+    if (currentRowIndex >= filteredRows.length) currentRowIndex = 0;
+    const head = $("stageRowsHead");
+    if (head) head.innerHTML = labelType === "POT" ? potHeaderHtml() : (labelType === "SHIP" ? shippingHeaderHtml() : wrapHeaderHtml());
+    renderRowBody($("stageRowsBody"));
+  };
+
+  window.BEINVT_FINISHED_FIELD_ACTIVITY_FILTER_VERSION = VERSION;
+  window.BEINVT_IS_FINISHED_FIELD_ACTIVITY_EXCLUDED = isFinishedFieldActivityExcludedV8667;
+})();
+
 function boot() {
   removeGitHubWorkflowText();
   loadDefaults();
