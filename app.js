@@ -1,5 +1,6 @@
 const APP_VERSION = "8.6.56_no_gaps_into_item_names";
 const RESET_TO_PREVIOUS_STABLE_VERSION = "8.6.71_reset_to_v8.6.68_no_tiny_fonts";
+const NO_LOT_LOGO_WARNING_LEFT_ADDRESS9_VERSION = "8.6.74_no_lot_logo_warning_left_address_9";
 const FINISHED_TREES_HIDE_FIELD_PLANTING_VERSION = "8.6.68_finished_hide_field_planting";
 const WRAP_QR_BALANCE_VERSION = "8.6.61";
 const MOBILE_VIEW_ADD_BUTTON_FIX_VERSION = "8.6.62_mobile_add_button_visible";
@@ -7,7 +8,6 @@ const MOBILE_FULL_WIDTH_TABLE_FIX_VERSION = "8.6.63_mobile_full_width_table_add_
 const LOT_QR_PAYLOAD_FIX_VERSION = "8.6.64_lot_qr_lot_only";
 const MANUAL_RESIZE_LOT_TEXT_FIX_VERSION = "8.6.65_manual_resize_preserve_lot_text_one_line";
 const QR_65_DEFAULTS_LOT_HEIGHT_FIX_VERSION = "8.6.66_qr_65_defaults_lot_height_fix";
-const NO_LOT_CENTER_EXPAND_ADDRESS_9_VERSION = "8.6.73_no_lot_center_expand_address_9";
 const INCH = 96;
 const LABEL_SIZES = {
   POT: { widthIn: 0.75, heightIn: 5 },
@@ -7135,228 +7135,130 @@ boot();
 
 
 
-/* v8.6.72: RSCH no-lot wrap labels should use the empty center space.
-   - For RSCH rows with no visible Lot text / Lot QR, make the Scion and Rootstock rows taller.
-   - Keep the address band at the bottom.
-   - Respect manual/user-resized objects from v8.6.65. */
-(function installRschNoLotExpandCenterV8672(){
-  const VERSION = "8.6.72_rsch_no_lot_expand_center";
+/* v8.6.74: No-lot rows move logo/warning left instead of expanding item names.
+   - Built from v8.6.71 stable reset, not from the v8.6.72/v8.6.73 expansion experiments.
+   - If Finished Trees / Field Labels have no lot, zero the Lot and Lot QR boxes for that render.
+   - Move SG Logo and Warning left so they sit directly after the Scion/Rootstock text area.
+   - Address default font is 9. */
+(function installNoLotLogoWarningLeftAddress9V8674(){
+  const VERSION = "8.6.74_no_lot_logo_warning_left_address_9";
 
-  function isManualV8672(o) {
-    return !!(o && (o.manualLayout || o.manualPosition || o.manualSize || o.userAdjusted || o.userMoved || o.userResized));
-  }
-  function setBoxV8672(o, vals) {
-    if (!o || isManualV8672(o)) return;
-    Object.keys(vals).forEach(k => { o[k] = vals[k]; });
-  }
-  function setFontMinV8672(o, px) {
-    if (!o || isManualV8672(o)) return;
-    const n = Number(px || 0);
-    if (!Number.isFinite(n) || n <= 0) return;
-    o.fontSize = Number(Math.max(Number(o.fontSize || 0), n).toFixed(1));
-  }
-  function hasVisibleLotV8672(row) {
-    const lotText = (typeof wrapObjectText === "function") ? cleanDisplay(wrapObjectText("LOT", row)) : "";
-    const lotQr = (typeof wrapRightQrText === "function") ? cleanDisplay(wrapRightQrText(row)) : "";
-    return !!(lotText || lotQr);
-  }
-  function isRschNoLotRowV8672(row) {
-    if (!row || !isWrapLikeMode(labelType) || isShippingMode()) return false;
-    if (typeof isRschRow === "function" && !isRschRow(row)) return false;
-    return !hasVisibleLotV8672(row);
-  }
-
-  const previousApplyWrapDataAwareStackV8672 = applyWrapDataAwareStack;
-  applyWrapDataAwareStack = function(row) {
-    const out = previousApplyWrapDataAwareStackV8672.apply(this, arguments);
-    if (!isRschNoLotRowV8672(row) || !layout || !layout.objects) return out;
-
-    const o = layout.objects;
-    const sy = wrapVerticalScale(labelType);
-    const labelH = sizePx(labelType).h;
-    const v = n => Number((Number(n || 0) * sy).toFixed(1));
-    const hasScionPatent = !!cleanDisplay(typeof wrapObjectText === "function" ? wrapObjectText("SCION_PATENT", row) : "");
-    const hasRootstockPatent = !!cleanDisplay(typeof wrapObjectText === "function" ? wrapObjectText("ROOTSTOCK_PATENT", row) : "");
-    const scionText = cleanDisplay(typeof wrapObjectText === "function" ? wrapObjectText("SCION", row) : "");
-    const rootText = cleanDisplay(typeof wrapObjectText === "function" ? wrapObjectText("ROOTSTOCK", row) : "");
-    const addressY = v(42);
-    const addressH = Math.max(v(5), labelH - addressY);
-
-    let y = v(1);
-    let scionH = v(19.5), scionPatentH = 0, rootH = v(19.5), rootPatentH = 0;
-
-    if (scionText && !rootText) {
-      scionH = v(39.5);
-      rootH = 0;
-    } else if (!scionText && rootText) {
-      scionH = 0;
-      rootH = v(39.5);
-    } else if (hasScionPatent && hasRootstockPatent) {
-      scionH = v(15.2);
-      scionPatentH = v(4.8);
-      rootH = v(15.2);
-      rootPatentH = v(4.8);
-    } else if (hasScionPatent || hasRootstockPatent) {
-      scionH = hasScionPatent ? v(15.4) : v(18.6);
-      scionPatentH = hasScionPatent ? v(4.8) : 0;
-      rootH = hasRootstockPatent ? v(15.4) : v(18.6);
-      rootPatentH = hasRootstockPatent ? v(4.8) : 0;
-    }
-
-    if (o.SCION) {
-      setBoxV8672(o.SCION, { y, h: scionH, alignH: "center", alignV: "middle" });
-      if (scionH > 0) y += scionH;
-      if (scionText) setFontMinV8672(o.SCION, v(rootText ? 24.8 : 26.8));
-    }
-    if (o.SCION_PATENT) {
-      setBoxV8672(o.SCION_PATENT, { y, h: scionPatentH, alignH: "center", alignV: "middle" });
-      if (scionPatentH > 0) y += scionPatentH;
-    }
-    if (o.ROOTSTOCK) {
-      setBoxV8672(o.ROOTSTOCK, { y, h: rootH, alignH: "center", alignV: "middle" });
-      if (rootH > 0) y += rootH;
-      if (rootText) setFontMinV8672(o.ROOTSTOCK, v(scionText ? 24.2 : 26.2));
-    }
-    if (o.ROOTSTOCK_PATENT) {
-      setBoxV8672(o.ROOTSTOCK_PATENT, { y, h: rootPatentH, alignH: "center", alignV: "middle" });
-      if (rootPatentH > 0) y += rootPatentH;
-    }
-    if (o.LOT) setBoxV8672(o.LOT, { y: 0, h: 0 });
-    if (o.LOT_QR) setBoxV8672(o.LOT_QR, { x: 0, y: 0, w: 0, h: 0 });
-    if (o.ADDRESS) setBoxV8672(o.ADDRESS, { y: addressY, h: addressH, alignH: "center", alignV: "middle" });
-
-    if (typeof clampAllObjects === "function") clampAllObjects();
-    return out;
-  };
-
-  window.BEINVT_RSCH_NO_LOT_EXPAND_CENTER_VERSION = VERSION;
-})();
-
-
-/* v8.6.73: Strong no-lot center expansion + Address default font 9.
-   - The previous RSCH check was too strict because some RSCH/no-lot rows do not literally contain "RSCH" in the row fields.
-   - Any Finished Trees / Field Labels row with no visible Lot text and no Lot QR now expands Scion + Rootstock into the unused center/right space.
-   - Lot and Lot QR stay hidden for those rows.
-   - Address default font is 9 and is re-applied to non-manual Address objects. */
-(function installNoLotCenterExpandAddress9V8673(){
-  const VERSION = "8.6.73_no_lot_center_expand_address_9";
-
-  function isWrapNoShipV8673() {
+  function isWrapNoShipV8674() {
     return typeof isWrapLikeMode === "function" && isWrapLikeMode(labelType) && !(typeof isShippingMode === "function" && isShippingMode());
   }
-  function noVisibleLotV8673(row) {
-    if (!row) return false;
-    const rawLot = cleanDisplay(row.lotNumber);
-    const visibleLot = (typeof wrapObjectText === "function") ? cleanDisplay(wrapObjectText("LOT", row)) : rawLot;
-    const lotQr = (typeof wrapRightQrText === "function") ? cleanDisplay(wrapRightQrText(row)) : rawLot;
-    return !rawLot && !visibleLot && !lotQr;
+  function isManualLayoutV8674(o) {
+    return !!(o && (o.manualLayout || o.manualPosition || o.manualSize || o.userAdjusted || o.userMoved || o.userResized));
   }
-  function isManualFontV8673(o) {
+  function isManualFontV8674(o) {
     return !!(o && (o.manualFontSize || o.userFontSize || o.fontManual));
   }
-  function applyAddressFont9V8673(layoutObj, type) {
+  function setBoxV8674(o, vals, force) {
+    if (!o) return;
+    if (!force && isManualLayoutV8674(o)) return;
+    Object.keys(vals).forEach(k => { o[k] = vals[k]; });
+  }
+  function noLotRowV8674(row) {
+    if (!row || !isWrapNoShipV8674()) return false;
+    const rawLot = cleanDisplay(row.lotNumber);
+    const visibleLot = typeof wrapObjectText === "function" ? cleanDisplay(wrapObjectText("LOT", row)) : rawLot;
+    const qrLot = typeof wrapRightQrText === "function" ? cleanDisplay(wrapRightQrText(row)) : rawLot;
+    return !rawLot && !visibleLot && !qrLot;
+  }
+  function scaledV8674(n) {
+    const sy = (typeof wrapVerticalScale === "function" ? wrapVerticalScale(labelType) : 1) || 1;
+    return Number((Number(n || 0) * sy).toFixed(1));
+  }
+  function labelWidthPxV8674() {
+    try { return Math.round(labelSizeInches(labelType).widthIn * INCH); } catch (e) { return 480; }
+  }
+  function applyAddressFont9V8674(layoutObj, type) {
     if (!layoutObj || !layoutObj.objects || !(type === "WRAP" || type === "FIELD" || type === "SHIP")) return layoutObj;
-    const o = layoutObj.objects.ADDRESS;
-    if (o && !isManualFontV8673(o)) {
+    const addr = layoutObj.objects.ADDRESS;
+    if (addr && !isManualFontV8674(addr)) {
       const sy = (typeof labelSizeScaleFactors === "function" ? labelSizeScaleFactors(type).sy : 1) || 1;
-      o.fontSize = Number((9 * sy).toFixed(1));
-      o.addressFontDefaultVersion = VERSION;
+      addr.fontSize = Number((9 * sy).toFixed(1));
+      addr.addressFontDefaultVersion = VERSION;
     }
     return layoutObj;
   }
-  function setV8673(o, vals) {
-    if (!o) return;
-    Object.keys(vals).forEach(k => { o[k] = vals[k]; });
-  }
-  function expandCurrentNoLotRowV8673(row) {
-    if (!isWrapNoShipV8673() || !noVisibleLotV8673(row) || !layout || !layout.objects) return;
-    const o = layout.objects;
-    const sy = (typeof wrapVerticalScale === "function" ? wrapVerticalScale(labelType) : 1) || 1;
-    const labelH = (typeof sizePx === "function" ? sizePx(labelType).h : Math.round(0.75 * 96));
-    const v = n => Number((Number(n || 0) * sy).toFixed(1));
-    const minGap = Math.max(2, Math.round(3 * sy));
-
-    // Use the normal center start, but extend all center text rightward because Lot QR is absent.
-    const centerX = Math.max(0, Math.round(Number((o.SCION && o.SCION.x) || (labelType === "FIELD" ? 142 : 124))));
-    const logoLeft = o.LOGO ? Number(o.LOGO.x || 9999) : 9999;
-    const warningLeft = o.WARNING ? Number(o.WARNING.x || 9999) : 9999;
-    const rightLimit = Math.min(logoLeft, warningLeft, Math.round(labelSizeInches(labelType).widthIn * 96));
-    const centerW = Math.max(140, Math.round(rightLimit - centerX - minGap));
-    ["SCION", "SCION_PATENT", "ROOTSTOCK", "ROOTSTOCK_PATENT", "LOT", "ADDRESS"].forEach(id => {
-      if (o[id]) setV8673(o[id], { x: centerX, w: centerW });
+  function textRightEdgeV8674(o) {
+    const ids = ["SCION", "SCION_PATENT", "ROOTSTOCK", "ROOTSTOCK_PATENT"];
+    let edge = 0;
+    ids.forEach(id => {
+      const box = o && o[id];
+      if (!box) return;
+      const w = Number(box.w || 0);
+      const h = Number(box.h || 0);
+      if (w <= 0 || h <= 0) return;
+      edge = Math.max(edge, Number(box.x || 0) + w);
     });
+    if (!edge && o && o.SCION) edge = Number(o.SCION.x || 0) + Number(o.SCION.w || 0);
+    return edge || 340;
+  }
+  function moveLogoWarningForNoLotV8674(row) {
+    if (!noLotRowV8674(row) || !layout || !layout.objects) return;
+    const o = layout.objects;
+    const labelW = labelWidthPxV8674();
+    const gap = Math.max(3, Math.round(4 * Math.min(1.5, (typeof wrapVerticalScale === "function" ? wrapVerticalScale(labelType) : 1) || 1)));
+    const margin = 2;
+    const textRight = textRightEdgeV8674(o);
 
-    const scionText = cleanDisplay(typeof wrapObjectText === "function" ? wrapObjectText("SCION", row) : "");
-    const rootText = cleanDisplay(typeof wrapObjectText === "function" ? wrapObjectText("ROOTSTOCK", row) : "");
-    const hasScionPatent = !!cleanDisplay(typeof wrapObjectText === "function" ? wrapObjectText("SCION_PATENT", row) : "");
-    const hasRootstockPatent = !!cleanDisplay(typeof wrapObjectText === "function" ? wrapObjectText("ROOTSTOCK_PATENT", row) : "");
+    // Do not let invisible/no-data lot objects reserve visual space in no-lot labels.
+    setBoxV8674(o.LOT, { y: 0, h: 0 }, true);
+    setBoxV8674(o.LOT_QR, { x: 0, y: 0, w: 0, h: 0 }, true);
 
-    const addressY = Math.min(v(43), Math.max(v(39), labelH - v(7)));
-    const addressH = Math.max(v(5), labelH - addressY);
-    let y = v(1);
-    let scionH = v(20.5), scionPatentH = 0, rootH = v(20.5), rootPatentH = 0;
+    // Keep address default readable.
+    if (o.ADDRESS && !isManualFontV8674(o.ADDRESS)) o.ADDRESS.fontSize = scaledV8674(9);
 
-    if (scionText && !rootText) {
-      scionH = Math.max(v(36), addressY - y - v(1));
-      rootH = 0;
-    } else if (!scionText && rootText) {
-      scionH = 0;
-      rootH = Math.max(v(36), addressY - y - v(1));
-    } else if (hasScionPatent && hasRootstockPatent) {
-      scionH = v(15.5); scionPatentH = v(4.8); rootH = v(15.5); rootPatentH = v(4.8);
-    } else if (hasScionPatent || hasRootstockPatent) {
-      scionH = hasScionPatent ? v(16.0) : v(19.5);
-      scionPatentH = hasScionPatent ? v(4.8) : 0;
-      rootH = hasRootstockPatent ? v(16.0) : v(19.5);
-      rootPatentH = hasRootstockPatent ? v(4.8) : 0;
+    const logoW = Math.max(24, Math.round(Number((o.LOGO && o.LOGO.w) || 30)));
+    const warningMinW = Math.max(74, Math.round(76 * Math.min(1.25, Math.max(1, labelW / 480))));
+    const preferredLogoX = Math.round(textRight + gap);
+    const maxLogoX = Math.max(preferredLogoX, labelW - warningMinW - logoW - gap - margin);
+    const logoX = Math.min(preferredLogoX, maxLogoX);
+
+    if (o.LOGO) {
+      setBoxV8674(o.LOGO, {
+        x: Math.max(margin, logoX),
+        y: Math.max(2, Number(o.LOGO.y || 2)),
+        w: logoW,
+        h: Math.max(36, Number(o.LOGO.h || 50))
+      }, false);
     }
 
-    if (o.SCION) {
-      setV8673(o.SCION, { y, h: scionH, alignH: "center", alignV: "middle" });
-      if (scionText && !isManualFontV8673(o.SCION)) o.SCION.fontSize = Math.max(Number(o.SCION.fontSize || 0), Number((24.5 * sy).toFixed(1)));
-      if (scionH > 0) y += scionH;
+    const actualLogoX = Number((o.LOGO && o.LOGO.x) || logoX);
+    const actualLogoW = Number((o.LOGO && o.LOGO.w) || logoW);
+    const warningX = Math.round(actualLogoX + actualLogoW + gap);
+    if (o.WARNING) {
+      setBoxV8674(o.WARNING, {
+        x: warningX,
+        y: Math.max(2, Number(o.WARNING.y || 2)),
+        w: Math.max(50, labelW - warningX - margin),
+        h: Math.max(36, Number(o.WARNING.h || 44))
+      }, false);
     }
-    if (o.SCION_PATENT) {
-      setV8673(o.SCION_PATENT, { y, h: scionPatentH, alignH: "center", alignV: "middle" });
-      if (scionPatentH > 0) y += scionPatentH;
-    }
-    if (o.ROOTSTOCK) {
-      setV8673(o.ROOTSTOCK, { y, h: rootH, alignH: "center", alignV: "middle" });
-      if (rootText && !isManualFontV8673(o.ROOTSTOCK)) o.ROOTSTOCK.fontSize = Math.max(Number(o.ROOTSTOCK.fontSize || 0), Number((24.0 * sy).toFixed(1)));
-      if (rootH > 0) y += rootH;
-    }
-    if (o.ROOTSTOCK_PATENT) {
-      setV8673(o.ROOTSTOCK_PATENT, { y, h: rootPatentH, alignH: "center", alignV: "middle" });
-      if (rootPatentH > 0) y += rootPatentH;
-    }
-    if (o.LOT) setV8673(o.LOT, { y: 0, h: 0 });
-    if (o.LOT_QR) setV8673(o.LOT_QR, { x: 0, y: 0, w: 0, h: 0 });
-    if (o.ADDRESS) {
-      setV8673(o.ADDRESS, { x: centerX, w: centerW, y: addressY, h: addressH, alignH: "center", alignV: "middle" });
-      if (!isManualFontV8673(o.ADDRESS)) o.ADDRESS.fontSize = Number((9 * sy).toFixed(1));
-    }
+
     if (typeof clampAllObjects === "function") clampAllObjects();
   }
 
-  const previousRebalanceWrapLikeQrLayoutV8673 = rebalanceWrapLikeQrLayout;
-  rebalanceWrapLikeQrLayout = function(layoutObj, type) {
-    const out = previousRebalanceWrapLikeQrLayoutV8673.apply(this, arguments);
-    return applyAddressFont9V8673(out || layoutObj, type);
-  };
-
-  const previousNormalizeLayoutV8673 = normalizeLayout;
+  const previousNormalizeLayoutV8674 = normalizeLayout;
   normalizeLayout = function(src) {
-    const out = previousNormalizeLayoutV8673.apply(this, arguments);
-    return applyAddressFont9V8673(out, out && out.labelType);
+    const out = previousNormalizeLayoutV8674.apply(this, arguments);
+    return applyAddressFont9V8674(out, out && out.labelType);
   };
 
-  const previousApplyWrapDataAwareStackV8673 = applyWrapDataAwareStack;
+  const previousRebalanceWrapLikeQrLayoutV8674 = rebalanceWrapLikeQrLayout;
+  rebalanceWrapLikeQrLayout = function(layoutObj, type) {
+    const out = previousRebalanceWrapLikeQrLayoutV8674.apply(this, arguments);
+    return applyAddressFont9V8674(out || layoutObj, type);
+  };
+
+  const previousApplyWrapDataAwareStackV8674 = applyWrapDataAwareStack;
   applyWrapDataAwareStack = function(row) {
-    const out = previousApplyWrapDataAwareStackV8673.apply(this, arguments);
-    applyAddressFont9V8673(layout, labelType);
-    expandCurrentNoLotRowV8673(row);
+    const out = previousApplyWrapDataAwareStackV8674.apply(this, arguments);
+    applyAddressFont9V8674(layout, labelType);
+    moveLogoWarningForNoLotV8674(row);
     return out;
   };
 
-  window.BEINVT_NO_LOT_CENTER_EXPAND_ADDRESS_9_VERSION = VERSION;
+  window.BEINVT_NO_LOT_LOGO_WARNING_LEFT_ADDRESS9_VERSION = VERSION;
 })();
